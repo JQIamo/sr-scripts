@@ -1,5 +1,5 @@
 #pragma rtGlobals=1		// Use modern global access method.
-
+// comment test
 
 // The functions in this file compute the 3 Castin-Dum scaling paramaters
 // for a freely expanding BEC.
