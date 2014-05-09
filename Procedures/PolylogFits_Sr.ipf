@@ -364,3 +364,4 @@ Function SubSlicesPlot()
 	SetAxis bottom -630,630
 	Legend/C/N=text0/J/A=LT "\\s(hsub) hsub\r\\s(vsub) vsub\r\\s(TFh_fit) TFh_fit\r\\s(TFv_fit) TFv_fit"
 End
+
