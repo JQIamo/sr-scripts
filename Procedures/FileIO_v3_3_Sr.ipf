@@ -1,9 +1,6 @@
 #pragma rtGlobals=1		// Use modern global access method.
 
 
-constant IsatCounts = 254; // Gain 10: 15May2009 MEASUREMENT;
-// constant IsatCounts = 745; // Gain 10: Initial estimate;
-// constant IsatCounts = 400; // Gain 5 : Number of camera counts which gives Isat = 1;
 constant OldStyleImage = 1;
 
 
@@ -154,6 +151,7 @@ Function Load_Img(ImageName,FileName)
 	SVAR ImageType = :Experimental_Info:ImageType;
 	SVAR ImageDirection = :Experimental_Info:ImageDirection;
 	NVAR magnification = :Experimental_Info:magnification;
+	NVAR ISatCounts = :Experimental_Info:ISatCounts;
 	NVAR Irace = :Experimental_Info:Irace;
 	NVAR Ipinch = :Experimental_Info:Ipinch;
 	NVAR Ibias = :Experimental_Info:Ibias;
@@ -165,6 +163,7 @@ Function Load_Img(ImageName,FileName)
 	NVAR expand_time = :Experimental_Info:expand_time;
 	NVAR moment = :Experimental_Info:moment;
 	NVAR CamDir = :Experimental_Info:camdir;
+	NVAR DualAxis = :Experimental_Info:DualAxis;
 
 	Wave Isat = :Isat;
 	Wave Raw1 = :Raw1;
@@ -246,9 +245,10 @@ Function Load_Img(ImageName,FileName)
 				tEnd = NumberByKey_Safe(tEnd,"tEvap1",wavenote,"=","\n");
 				tau = NumberByKey_Safe(tau,"tau",wavenote,"=","\n");
 				//extract dip power at end of evap for ExpRamp2 evap shape:
-				DipolePower = ((DipPowXi-DipPowXf)*exp(-tEnd/tau)+DipPowXf);
+				//DipolePower = ((DipPowXi-DipPowXf)*exp(-tEnd/tau)+DipPowXf);
 				//DipolePower = DipPowXf;
 				//DipolePower = DipPowXRamp;
+				DipolePower = 3.5;
 				CrDipolePower = DipPowZf;
 				//CrDipolePower = DipPowZRamp;
 				detuning = (1/31.83)*NumberByKey_Safe(NaN,"ProbeDet", wavenote, "=","\n"); //Sr linewidth from S. Nagel's thesis
@@ -356,13 +356,51 @@ Function Load_Img(ImageName,FileName)
 					Raw1 -= dark;
 					Raw2 -= dark;
 					Raw3 -= dark;
+					RotateImage = 0;
 				break;
 			endswitch
+
+			if (DualAxis == 1)
+				strswitch(ImageDirection)
+					case "XY":
+						//two axis imaging XY ISatCounts goes here
+						ISatCounts = inf;
+					break;
+					case "XZ":
+						//two axis imaging XZ ISatCounts goes here
+						ISatCounts = inf;
+					break;
+					default:
+						//default imposes no Isat correction
+						ISatCounts = inf;
+					break;
+				endswitch
+			elseif(DualAxis == 0)
+				strswitch(ImageDirection)
+					case "XY":
+						//single axis imaging XY ISatCounts goes here
+						ISatCounts = 14650;     //measurement on 6/30/2014 for Sr
+						//ISatCounts = inf;
+					break;
+					case "XZ":
+						//single axis imaging XZ ISatCounts goes here
+						ISatCounts = 52500;     //measurement on 6/30/2014 for Sr
+						//ISatCounts = inf;
+					break;
+					default:
+						//default imposes no Isat correction
+						ISatCounts = inf;
+					break;
+				endswitch
+			else
+				//no Isat correction for unexpected value of DualAxis
+				ISatCounts = inf;
+			endif
 
 			if (numtype(detuning) != 0 || numtype(ISatCounts) != 0)
 				Isat = 0;
 			else
-				Isat = (Raw2/ISatCounts)/(1+4*detuning^2);
+				Isat = ((Raw2-Raw3)/ISatCounts);
 			endif
 			// MatrixFilter/N=3 gauss Raw1
 			// MatrixFilter/N=3 gauss Raw2
@@ -377,7 +415,7 @@ Function Load_Img(ImageName,FileName)
 				break
 			
 				case "Fluorescence":
-						ImageName = Raw1;//-Raw2;
+						ImageName = Raw1-Raw3;
 				break
 
 				case "PhaseContrast":
@@ -419,7 +457,7 @@ Function Load_Img(ImageName,FileName)
 			case "Absorption":
 			case "Absorbsion": // Account for spelling error.
 				// ImageName = -ln(ImageName) - Isat * (ImageName-1);
-				ImageName = -ln(ImageName);
+				ImageName = -(ln(ImageName))*(1+Isat);
 	
 				// remove any non-numbers from the data
 				ImageName=(ImageName > -1 ? ImageName : -1);	//This will remove the Nan's
@@ -430,6 +468,7 @@ Function Load_Img(ImageName,FileName)
 			
 			case "Fluorescence":
 				ImageName = ImageName;
+				MatrixOP/O IsatCtsWave = sum(ImageName);
 			break
 
 			case "PhaseContrast":

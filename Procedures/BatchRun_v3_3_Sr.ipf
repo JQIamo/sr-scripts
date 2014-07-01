@@ -41,8 +41,12 @@ Function BatchRun(startnum,endnum,mode)
 	// Handle single file run
 	String temp, filepath
 	if (startnum==-1)
-		sprintf temp "%.4f" endnum/10000
-		temp = StringByKey("0",temp,".")
+		if(endnum<10000)
+			sprintf temp "%.4f" endnum/10000	
+			temp = StringByKey("0",temp,".")
+		else
+			sprintf temp "%d" endnum
+		endif
 		filepath=BasePath+"_"+temp+".ibw"
 		AutoRunV3(ExperimentName, filepath)
 		
@@ -54,8 +58,12 @@ Function BatchRun(startnum,endnum,mode)
 	String waveNameStr
 	variable i
 	for(i=startnum; i<=endnum; i+=1)
-		sprintf temp "%.4f" i/10000
-		temp = StringByKey("0",temp,".")
+		if(i<10000)
+			sprintf temp "%.4f" i/10000
+			temp = StringByKey("0",temp,".")
+		else
+			sprintf temp "%d" i
+		endif
 		filepath=BasePath+"_"+temp+".ibw"
 		print filepath
 

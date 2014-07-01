@@ -1081,6 +1081,9 @@ function BuildSrWindow(ProjectFolder)
 	PopupMenu FitTypePopup,pos={40,201},size={109,21},bodyWidth=109,proc=SetFit_Type
 	PopupMenu FitTypePopup,mode=1,popvalue="Thermal 1D",value= #"\"Thermal 1D;TF+Thermal 1D;TF only 1D;TF+Thermal 2D;TF only 2D;Thermal 2D;None\""
 	
+	CheckBox DualAxisImage,pos={155,205},size={80,16},bodyWidth=60,proc=Set_DualAxis,title="2 Axis Img"
+	CheckBox DualAxisImage,value=0
+	
 	Button refit,pos={186,355},size={45,20},proc=Refit,title="Refit"
 	
 	PopupMenu AutoUpdate,pos={43,280},size={152,21},bodyWidth=152,proc=SetAutoUpdate
@@ -1521,6 +1524,29 @@ Function Set_center(ctrlName,checked) : CheckboxControl
 	
 	SetDataFolder fldrSav
 End
+
+Function Set_DualAxis(ctrlName,checked) : CheckboxControl
+	String ctrlName
+	Variable checked
+
+	// Get the current path
+	String ProjectFolder = Activate_Top_ColdAtomInfo();
+	String fldrSav= GetDataFolder(1)
+	SetDataFolder ProjectFolder
+	
+	NVAR DualAxis = :Experimental_Info:DualAxis;
+
+	if(checked)
+		//set 2 axis imaging
+		DualAxis = 1;
+	else
+		//set single axis imaging
+		DualAxis = 0;
+	endif
+	
+	SetDataFolder fldrSav
+End
+
 
 Function SetCamDir(ctrlName,popNum,popStr) : PopupMenuControl
 	String ctrlName

@@ -1053,6 +1053,8 @@ Function TFUpdateCloudPars(Gauss3d_coef,fit_type)
 			xwidth_BEC_t0 = sqrt(2)*xwidth_BEC/sqrt((CastDum_Xscale^2)*(1+cos(2*Pi*theta/180))+((omgX*CastDum_Yscale/omgY)^2)*(1-cos(2*Pi*theta/180)));
 			ywidth_BEC_t0 = xwidth_BEC_t0*(omgX/omgY);
 			zwidth_BEC_t0 = zwidth_BEC/CastDum_Zscale;  // run back in time
+			//xwidth_BEC_t0 = zwidth_BEC_t0*(omgZ/omgX);
+			//ywidth_BEC_t0 = xwidth_BEC_t0*(omgX/omgY);
 			xwidth_BEC = CastDum_Xscale*xwidth_BEC_t0;
 			ywidth_BEC = CastDum_Yscale*ywidth_BEC_t0;
 			AspectRatio_BEC_meas_t0 = zwidth_BEC_t0/xwidth_BEC_t0;  // calculated effectively by Castin Dum
