@@ -297,11 +297,12 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	String/G $(ProjectFolder + ":Experimental_Info:FileName") = "";
 	String/G $(ProjectFolder + ":Experimental_Info:HeaderString") = "";
 	Variable/G $(ProjectFolder + ":Experimental_Info:UpdateDataFromFile") = 1;
+	Variable/G $(ProjectFolder + ":Experimental_Info:DualAxis") = 0;
+	
 	Variable/G $(ProjectFolder + ":Experimental_Info:IRace") = nan;
 	Variable/G $(ProjectFolder + ":Experimental_Info:IPinch") = nan;
 	Variable/G $(ProjectFolder + ":Experimental_Info:IBias") = nan;
-
-	Variable/G $(ProjectFolder + ":Experimental_Info:IQuad") = 240;
+	Variable/G $(ProjectFolder + ":Experimental_Info:IQuad") = 60;
 	Variable/G $(ProjectFolder + ":Experimental_Info:WaistX") = nan;
 	Variable/G $(ProjectFolder + ":Experimental_Info:WaistZ") = nan;
 	Variable/G $(ProjectFolder + ":Experimental_Info:BeamZ") = nan;
@@ -314,6 +315,7 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	Variable/G $(ProjectFolder + ":Experimental_Info:expand_time") = nan;
 	Variable/G $(ProjectFolder + ":Experimental_Info:magnification") = 0.664;
 	Variable/G $(ProjectFolder + ":Experimental_Info:delta_pix") = 1;
+	Variable/G $(ProjectFolder + ":Experimental_Info:ISatCounts") = inf;
 	Variable/G $(ProjectFolder + ":Experimental_Info:PeakOD") = 3.5;
 	Variable/G $(ProjectFolder + ":Experimental_Info:Bo") = nan;
 	Variable/G $(ProjectFolder + ":Experimental_Info:omg_ho") = nan;
@@ -334,7 +336,9 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	// Trap properties
 	Variable/G $(ProjectFolder + ":Experimental_Info:TrapMin") = nan;
 	Variable/G $(ProjectFolder + ":Experimental_Info:TrapDepth") = nan;
+	//Cross Axial scaling
 	//Variable/G $(ProjectFolder + ":Experimental_Info:FreqScalingX") = Sqrt(78.017);
+	//Single beam axial scaling
 	Variable/G $(ProjectFolder + ":Experimental_Info:FreqScalingX") = 12.5/(2*Pi);
 	Variable/G $(ProjectFolder + ":Experimental_Info:FreqScalingY") = 157.094/(2*Pi);
 	Variable/G $(ProjectFolder + ":Experimental_Info:FreqScalingZ") = 1789.58/(2*Pi);
@@ -695,10 +699,12 @@ Function ComputeTrapProperties()
 			// The trap frequency in the longitudnal direction is dominated by the magnetic trap and is very
 			// insensitive to dipole power. This should be measured once and entered on the front panel in 
 			// the Trap properties section.
-			freqY = FreqScalingY*sqrt(exp(LambertWaprx(-Pc^2/DipolePower^2)/2)*DipolePower);
+			//freqY = FreqScalingY*sqrt(exp(LambertWaprx(-Pc^2/DipolePower^2)/2)*DipolePower);
+			freqY = 39.1;
 			//freqX = sqrt(0.925+CrDipolePower*FreqScalingX^2);
 			freqX = FreqScalingX*sqrt(exp(LambertWaprx(-Pc^2/DipolePower^2)/2)*(1.01+LambertWaprx(-Pc^2/DipolePower^2))*DipolePower);		
-			freqZ = FreqScalingZ*sqrt(exp(LambertWaprx(-Pc^2/DipolePower^2)/2)*DipolePower*(LambertWaprx(-Pc^2/DipolePower^2)+1));
+			//freqZ = FreqScalingZ*sqrt(exp(LambertWaprx(-Pc^2/DipolePower^2)/2)*DipolePower*(LambertWaprx(-Pc^2/DipolePower^2)+1));
+			freqZ = 438;
 		Break
 	endswitch
 
