@@ -150,15 +150,58 @@ function GS_CreateBasis(ProjectID)
 				SetDataFolder ProjectFolder;
 				
 				//The ROI bounds
-				NVAR ymax=:fit_info:ymax,ymin=:fit_info:ymin
-				NVAR xmax=:fit_info:xmax,xmin=:fit_info:xmin
+				NVAR ymax=:fit_info:ymax,ymin=:fit_info:ymin;
+				NVAR xmax=:fit_info:xmax,xmin=:fit_info:xmin;
 				variable ymaxtemp = ymax, ymintemp = ymin, xmaxtemp = xmax, xmintemp = xmin;
 				
+				//Reset the data series and datafolder
+				Set_ColdAtomInfo(ColdAtomSave);
+				SetDataFolder(ProbePath);
 				
 				//mask out the atom region
-				Duplicate/FREE/O BasisStack, BasisStack_mask
+				Duplicate/FREE/O/D BasisStack, BasisStack_mask;
+				BasisStack_mask *= ( x < xmaxtemp && x > xmintemp && y < ymaxtemp && y > ymintemp ? 0 : 1);
 				
+				//Make the orthogonal basis using Gram-Schmidt
+				variable i;
+				For(i=0; i<DimSize(BasisStack, 2); i+=1)
 				
+					//Pull the current vector
+					Duplicate/O/FREE/R=[][][i] BasisStack_mask, BSmsk_veci;
+					
+					//make orthogonal to previous vectors
+					variable j;
+					For(j=i-1; j<0; j-=1)
+					
+						//Pull vector j
+						Duplicate/O/FREE/R=[][][j] BasisStack_mask, BSmsk_vecj;
+						Duplicate/O/FREE/R=[][][j] BasisStack, BS_vecj;
+						//Get projection of i onto j.
+						MatrixOP/O/FREE Proj_ij = ((BSmsk_veci.BSmsk_vecj)/(BSmsk_vecj.BSmsk_vecj))*BS_vecj;
+						
+						//Make vector i orthogonal to vector j
+						BasisStack[p][q][i] = BasisStack[p][q][i] - Proj_ij[p][q];
+					
+					endfor
+				
+				endfor
+				
+				//remask out the atom region
+				Duplicate/FREE/O/D BasisStack, BasisStack_mask;
+				BasisStack_mask *= ( x < xmaxtemp && x > xmintemp && y < ymaxtemp && y > ymintemp ? 0 : 1);
+				
+				//Normalize the Basis
+				variable k;
+				For(k=0; k<DimSize(BasisStack, 2); k+=1)
+				
+					//Pull vector k
+					Duplicate/O/FREE/R=[][][k] BasisStack_mask, BS_veck;
+					//Get norm of vector k
+					MatrixOP/O/FREE Mag_k = (BS_veck.BS_veck)^(1/2);
+					//Normalize
+					BasisStack[p][q][k] = BasisStack[p][q][k]/Mag_k;
+				
+				endfor
 				
 			else
 			
