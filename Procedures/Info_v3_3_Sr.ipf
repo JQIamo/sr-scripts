@@ -398,6 +398,7 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	Variable/G $(ProjectFolder + ":fit_info:Fit_Type") = 1;
 	Variable/G $(ProjectFolder + ":Fit_Info:slicewidth") = 10;
 	Variable/G $(ProjectFolder + ":fit_info:CentersFixed") = 1;
+	Variable/G $(ProjectFolder + ":fit_info:Analysis_Type") = 1;
 
 	make/O/N=100 $(ProjectFolder + ":Fit_Info:xsec_col")
 	make/O/N=100 $(ProjectFolder + ":Fit_Info:xsec_row")

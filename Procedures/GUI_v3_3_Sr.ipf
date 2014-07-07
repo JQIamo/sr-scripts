@@ -1022,7 +1022,7 @@ function BuildSrWindow(ProjectFolder)
 	DrawText 281,75,"1/e Radius [um]"
 	DrawText 281,111,"TF radius [um]"
 	DrawText 513,41,"1/e Radius [um]"
-	DrawLine 45,252,223,252
+	DrawLine 45,272,223,272
 	DrawText 281,38,"Position [um]"
 	DrawText 513,84,"TF radius [um]"
 	
@@ -1047,10 +1047,11 @@ function BuildSrWindow(ProjectFolder)
 	SetVariable expandtime,pos={50,131},size={173,16},bodyWidth=75,title="ExpansionTime [ms]"
 	SetVariable expandtime,value= :Experimental_Info:expand_time
 	
-	PopupMenu FindCenter,pos={40,226},size={152,21},bodyWidth=152,proc=ChooseCenter
+	PopupMenu FindCenter,pos={40,226},size={127,21},bodyWidth=127,proc=ChooseCenter
 	PopupMenu FindCenter,mode=2,popvalue="Center follows cursor",value= #"\"Find center from max;Center follows cursor;Center from cursor\""
 	
-	Button index_reset,pos={43,307},size={45,20},proc=ResetIndex,title="Reset"
+	PopupMenu AnalysisType,pos={172,226},size={57,21},bodyWidth=57,proc=ChooseAnalysis
+	PopupMenu AnalysisType,mode=1,popvalue="1 Shot",value= #"\"1 Shot;Basis;PCA\""
 	
 	PopupMenu popup0,pos={40,151},size={127,21},bodyWidth=127,proc=SetTrapType
 	PopupMenu popup0,mode=1,popvalue="Magnetic Trap",value= #"\"Magnetic Trap;Dipole;MOT;MOT Diagnostics;Cross Dipole\""
@@ -1086,18 +1087,20 @@ function BuildSrWindow(ProjectFolder)
 	
 	Button refit,pos={186,355},size={45,20},proc=Refit,title="Refit"
 	
-	PopupMenu AutoUpdate,pos={43,280},size={152,21},bodyWidth=152,proc=SetAutoUpdate
+	PopupMenu AutoUpdate,pos={43,300},size={152,21},bodyWidth=152,proc=SetAutoUpdate
 	PopupMenu AutoUpdate,mode=2,popvalue="Auto increment",value= #"\"No update;Auto increment;Index from file;\""
 	
-	Button manual_update,pos={169,307},size={50,20},proc=ManUpdate,title="Update"
+	Button manual_update,pos={169,325},size={50,20},proc=ManUpdate,title="Update"
 	
-	SetVariable IndexDisplay,pos={151,258},size={70,16},bodyWidth=40,title="Index"
+	Button index_reset,pos={43,325},size={45,20},proc=ResetIndex,title="Reset"
+	
+	Button dec_update,pos={104,325},size={50,20},proc=dec_update,title="dec."
+	
+	SetVariable IndexDisplay,pos={151,280},size={70,16},bodyWidth=40,title="Index"
 	SetVariable IndexDisplay,limits={-inf,inf,0},value= :IndexedWaves:index,noedit= 1
 	
-	CheckBox GetScopeTrace,pos={42,256},size={100,14},proc=GetScopeTrace,title="Get Scope Trace"
+	CheckBox GetScopeTrace,pos={42,280},size={100,14},proc=GetScopeTrace,title="Get Scope Trace"
 	CheckBox GetScopeTrace,value= 0
-	
-	Button dec_update,pos={104,307},size={50,20},proc=dec_update,title="dec."
 	
 	PopupMenu SetROI,pos={35,354},size={141,21},bodyWidth=141,proc=SetROI
 	PopupMenu SetROI,mode=1,popvalue="Set ROI",value= #"\"Set ROI;Set ROI and zoom;Zoom to ROI;Unzoom\""
@@ -1221,7 +1224,7 @@ function BuildSrWindow(ProjectFolder)
 	GroupBox TrapProps9,pos={502,344},size={206,53},title="Castin-Dum scale paramaters"
 	GroupBox TrapProps9,fSize=11
 
-	GroupBox TrapProps0,pos={33,8},size={200,336},title="Experimental properties"
+	GroupBox TrapProps0,pos={33,8},size={200,342},title="Experimental properties"
 	GroupBox TrapProps0,fSize=11
 
 	SetVariable Xpos,pos={284,41},size={51,16},bodyWidth=40,title="X"
@@ -1315,6 +1318,22 @@ Function ChooseCenter(ctrlName,popNum,popStr) : PopupMenuControl
 
 	NVAR findmax=:Fit_Info:findmax
 	findmax=popNum;
+	
+	SetDataFolder fldrSav
+End
+
+Function ChooseAnalysis(ctrlName,popNum,popStr) : PopupMenuControl
+	String ctrlName
+	Variable popNum
+	String popStr
+
+	// Get the current path
+	String ProjectFolder = Activate_Top_ColdAtomInfo();
+	String fldrSav= GetDataFolder(1)
+	SetDataFolder ProjectFolder
+
+	NVAR Analysis_Type=:Fit_Info:Analysis_Type;
+	Analysis_Type=popNum;
 	
 	SetDataFolder fldrSav
 End
