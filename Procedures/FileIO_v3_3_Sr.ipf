@@ -164,6 +164,7 @@ Function Load_Img(ImageName,FileName)
 	NVAR moment = :Experimental_Info:moment;
 	NVAR CamDir = :Experimental_Info:camdir;
 	NVAR DualAxis = :Experimental_Info:DualAxis;
+	NVAR Analysis_Type = :Fit_Info:Analysis_Type;
 
 	Wave Isat = :Isat;
 	Wave Raw1 = :Raw1;
@@ -331,7 +332,7 @@ Function Load_Img(ImageName,FileName)
 			strswitch(Camera)
 				case "PIXIS":
 					xsize = dimsize(ImageName,0)/3;
-					redimension/D/N=(xsize, dimsize(ImageName,1)) Raw1, Raw2, Raw3, Isat;	
+					redimension/D/N=(xsize, dimsize(ImageName,1)) Raw1, Raw2, Raw3, Raw4, Isat;	
 					Raw1 = ImageName[p][q];
 					Raw2 = ImageName[p + xsize][q];
 					Raw3 = ImageName[p + 2*xsize][q];
@@ -345,7 +346,7 @@ Function Load_Img(ImageName,FileName)
 				break;
 				Default:
 					xsize = dimsize(ImageName,0)/3;
-					redimension/D/N=(xsize, dimsize(ImageName,1)) Raw1, Raw2, Raw3, Isat;	
+					redimension/D/N=(xsize, dimsize(ImageName,1)) Raw1, Raw2, Raw3, Raw4, Isat;	
 					Raw1 = ImageName[p][q];
 					Raw2 = ImageName[p + xsize][q];
 					Raw3 = ImageName[p + 2*xsize][q];
@@ -450,6 +451,8 @@ Function Load_Img(ImageName,FileName)
 	SetScale/P y dimoffset(ImageName,1)*magnification,Dimdelta(ImageName,1)*magnification,"", Raw2;
 	SetScale/P x dimoffset(ImageName,0)*magnification,Dimdelta(ImageName,0)*magnification,"", Raw3;
 	SetScale/P y dimoffset(ImageName,1)*magnification,Dimdelta(ImageName,1)*magnification,"", Raw3;
+	SetScale/P x dimoffset(ImageName,0)*magnification,Dimdelta(ImageName,0)*magnification,"", Raw4;
+	SetScale/P y dimoffset(ImageName,1)*magnification,Dimdelta(ImageName,1)*magnification,"", Raw4;
 	SetScale/P x dimoffset(ImageName,0),Dimdelta(ImageName,0),"", ISat;
 	SetScale/P y dimoffset(ImageName,1),Dimdelta(ImageName,1),"", ISat;
 	
@@ -464,6 +467,21 @@ Function Load_Img(ImageName,FileName)
 				ImageName=(ImageName !=inf ? ImageName : 5);
 				ImageName=(ImageName !=-inf ? ImageName : -1); 
 				ImageName=(ImageName !=nan ? ImageName : 5);
+				
+				//Use or make the orthonormal basis
+				If(Analysis_Type == 2)
+				
+					string fldrTemp = GetDataFolder(1);
+					string ProjectID = ParseFilePath(0, fldrTemp, ":", 1, 0);					
+					string BasisPath = "root:Packages:OrthoBasis:" + ProjectID + ":BasisStack";
+					If(exists(BasisPath) == 0)
+						//Push probe image onto the stack.
+						Raw4 = (Raw2-Raw3);
+						Add_ProbeImage(FileName, Raw4);
+					elseif(exists(BasisPath) == 1)
+						//set up routines to use orthobasis here.
+					endif
+				endif
 			break
 			
 			case "Fluorescence":
