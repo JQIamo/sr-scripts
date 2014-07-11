@@ -411,6 +411,7 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	make/O/N=6 $(ProjectFolder + ":Fit_Info:TF_ver_coef")
 	make/O/N=6 $(ProjectFolder + ":Fit_Info:TF_hor_coef")
 	make/O/N=9 $(ProjectFolder + ":Fit_Info:TF_2D_coef")
+	make/O/N=25 $(ProjectFolder + ":Fit_Info:PrAlpha")
 	// Index every fit	--CDH 09.Feb.2012
 	New_Indexed2DWave("ver_coefHistory", ":Fit_Info:ver_coef")
 	New_Indexed2DWave("hor_coefHistory", ":Fit_Info:hor_coef")
@@ -418,7 +419,7 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	New_Indexed2DWave("TF_hor_coefHistory", ":Fit_Info:TF_hor_coef")
 	New_Indexed2DWave("TF_2D_coefHisotry", ":Fit_Info:TF_2D_coefHistory")
 	New_Indexed2DWave("Gauss3d_coefHistory", ":Fit_Info:Gauss3d_coef")	// works even though Gauss3d_coef not yet made
-
+	New_Indexed2DWave("PrAlpha_History", ":Fit_Info:PrAlpha")
 	
 	// Thermal cloud properties
 	Variable/G $(ProjectFolder + ":temperature") = nan;

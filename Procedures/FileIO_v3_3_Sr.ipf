@@ -171,6 +171,7 @@ Function Load_Img(ImageName,FileName)
 	Wave Raw2 = :Raw2;
 	Wave Raw3 = :Raw3;
 	Wave Raw4 = :Raw4;
+	Wave PrAlpha = :Fit_Info:PrAlpha;
 
 	// FileName should include the full path to the file i.e., "D:Experiment:Data Acquisition:PFabsimg.ibw"
 
@@ -459,6 +460,26 @@ Function Load_Img(ImageName,FileName)
 	strswitch(DataType)
 			case "Absorption":
 			case "Absorbsion": // Account for spelling error.
+				
+				//Use or make the orthonormal basis
+				If(Analysis_Type == 2)
+				
+					string fldrTemp = GetDataFolder(1);
+					string ProjectID = ParseFilePath(0, fldrTemp, ":", 1, 0);					
+					string BasisPath = "root:Packages:OrthoBasis:" + ProjectID;
+					If(exists(BasisPath + ":BasisStack") == 0)
+						//Push probe image onto the stack.
+						Raw4 = (Raw2-Raw3);
+						Add_ProbeImage(FileName, Raw4);
+					elseif(exists(BasisPath + ":BasisStack") == 1)
+						//Project image onto the basis.
+						
+						
+						
+						
+					endif
+				endif
+				
 				// ImageName = -ln(ImageName) - Isat * (ImageName-1);
 				ImageName = -(ln(ImageName))*(1+Isat);
 	
@@ -468,20 +489,6 @@ Function Load_Img(ImageName,FileName)
 				ImageName=(ImageName !=-inf ? ImageName : -1); 
 				ImageName=(ImageName !=nan ? ImageName : 5);
 				
-				//Use or make the orthonormal basis
-				If(Analysis_Type == 2)
-				
-					string fldrTemp = GetDataFolder(1);
-					string ProjectID = ParseFilePath(0, fldrTemp, ":", 1, 0);					
-					string BasisPath = "root:Packages:OrthoBasis:" + ProjectID + ":BasisStack";
-					If(exists(BasisPath) == 0)
-						//Push probe image onto the stack.
-						Raw4 = (Raw2-Raw3);
-						Add_ProbeImage(FileName, Raw4);
-					elseif(exists(BasisPath) == 1)
-						//set up routines to use orthobasis here.
-					endif
-				endif
 			break
 			
 			case "Fluorescence":

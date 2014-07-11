@@ -47,6 +47,23 @@ function New_ProbeStack(ProjectID)
 	If(exists(ProbePath + ":ProbeFiles") == 0)
 		Make/T/N=0 ProbeFiles;
 	endif
+	
+	//Initialize global variables to track basis ROI
+	If(exists(ProbePath + ":xmaxBasis") == 0)
+		Variable/G $(ProbePath + ":xmaxBasis") = 0;
+	endif
+	
+	If(exists(ProbePath + ":ymaxBasis") == 0)
+		Variable/G $(ProbePath + ":ymaxBasis") = 0;
+	endif
+	
+	If(exists(ProbePath + ":xminBasis") == 0)
+		Variable/G $(ProbePath + ":xminBasis") = 0;
+	endif
+	
+	If(exists(ProbePath + ":yminBasis") == 0)
+		Variable/G $(ProbePath + ":yminBasis") = 0;
+	endif
 
 	SetDataFolder fldrSav;
 	return 1;
@@ -152,7 +169,12 @@ function GS_CreateBasis(ProjectID)
 				//The ROI bounds
 				NVAR ymax=:fit_info:ymax,ymin=:fit_info:ymin;
 				NVAR xmax=:fit_info:xmax,xmin=:fit_info:xmin;
-				variable ymaxtemp = ymax, ymintemp = ymin, xmaxtemp = xmax, xmintemp = xmin;
+				NVAR xmaxBasis = $(ProbePath + ":xmaxBasis"), xminBasis = $(ProbePath + ":xminBasis");
+				NVAR ymaxBasis = $(ProbePath + ":ymaxBasis"), yminBasis = $(ProbePath + ":yminBasis");
+				ymaxBasis = ymax;
+				yminBasis = ymin;
+				xmaxBasis = xmax;
+				xminBasis = xmin;
 				
 				//Reset the data series and datafolder
 				Set_ColdAtomInfo(ColdAtomSave);
@@ -160,7 +182,7 @@ function GS_CreateBasis(ProjectID)
 				
 				//mask out the atom region
 				Duplicate/FREE/O/D BasisStack, BasisStack_mask;
-				BasisStack_mask *= ( x < xmaxtemp && x > xmintemp && y < ymaxtemp && y > ymintemp ? 0 : 1);
+				BasisStack_mask *= ( x < xmaxBasis && x > xminBasis && y < ymaxBasis && y > yminBasis ? 0 : 1);
 				
 				//Make the orthogonal basis using Gram-Schmidt
 				variable i;
@@ -188,7 +210,7 @@ function GS_CreateBasis(ProjectID)
 				
 				//remask out the atom region
 				Duplicate/FREE/O/D BasisStack, BasisStack_mask;
-				BasisStack_mask *= ( x < xmaxtemp && x > xmintemp && y < ymaxtemp && y > ymintemp ? 0 : 1);
+				BasisStack_mask *= ( x < xmaxBasis && x > xminBasis && y < ymaxBasis && y > yminBasis ? 0 : 1);
 				
 				//Normalize the Basis
 				variable k;
