@@ -1,5 +1,7 @@
 #pragma rtGlobals=2		// Use modern global access method.
 
+//Use this procedure to include all additional procedure files
+//This is for easier use with GitHub.
 //#include <AllStatsProcedures>
 #include "CastinDum_v3_3_Sr"
 #include "FigureProcessing_v3_3_Sr"

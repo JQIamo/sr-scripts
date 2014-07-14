@@ -485,11 +485,29 @@ Function Load_Img(ImageName,FileName)
 							
 							//Mask out the atom region
 							Duplicate/O/D/FREE Raw1, Raw1_mask;
+							Raw1_mask -= Raw3;    //Remove the dark counts;
 							Raw1_mask *= ( x < xmaxBasis && x > xminBasis && y < ymaxBasis && y > yminBasis ? 0 : 1);
 							
-							//Compute the dot product
+							//Prepare waves to store dot products and the reconstructed probe image
 							Redimension/D/N=(Dimsize(BasisStack, 2)) PrAlpha;
-							MatrixOP/O PrAlpha = ((Raw1_mask).(BasisStack[][][p]));
+							Raw4 = 0;
+							
+							//loop over the basis
+							variable k;
+							For(k = 0; k < Dimsize(BasisStack, 2); k += 1)
+							
+								//compute the dot product
+								MatrixOP/FREE/O AlphaTemp = ((Raw1_mask).(BasisStack[][][k]));
+								//store dot products
+								PrAlpha[k] = AlphaTemp;
+								//create probe image
+								Raw4 += PrAlpha[k]*BasisStack[p][q][k];
+								
+							endfor
+							
+							//remake ImageName and Isat using the new probe image
+							ImageName = (Raw1-Raw3)/Raw4;
+							Isat = Raw4/ISatCounts;
 							
 						else
 							
