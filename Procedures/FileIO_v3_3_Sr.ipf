@@ -474,9 +474,32 @@ Function Load_Img(ImageName,FileName)
 					elseif(exists(BasisPath + ":BasisStack") == 1)
 						//Project image onto the basis.
 						
-						
-						
-						
+						//Check that the ROI matches the Basis
+						NVAR ymax=:fit_info:ymax,ymin=:fit_info:ymin;
+						NVAR xmax=:fit_info:xmax,xmin=:fit_info:xmin;
+						NVAR xmaxBasis = $(BasisPath + ":xmaxBasis"), xminBasis = $(BasisPath + ":xminBasis");
+						NVAR ymaxBasis = $(BasisPath + ":ymaxBasis"), yminBasis = $(BasisPath + ":yminBasis");
+						If((xmax == xmaxBasis) && (xmin == xminBasis) && (ymax == ymaxBasis) && (ymin == yminBasis))
+							//Since the ROIs match, we can project onto the basis.
+							wave BasisStack = $(BasisPath + ":BasisStack");
+							
+							//Mask out the atom region
+							Duplicate/O/D/FREE Raw1, Raw1_mask;
+							Raw1_mask *= ( x < xmaxBasis && x > xminBasis && y < ymaxBasis && y > yminBasis ? 0 : 1);
+							
+							//Compute the dot product
+							Redimension/D/N=(Dimsize(BasisStack, 2)) PrAlpha;
+							MatrixOP/O PrAlpha = ((Raw1_mask).(BasisStack[][][p]));
+							
+						else
+							
+							print "FileIO: Basis ROI does not match image ROI, remake the basis";	
+							
+						endif
+					else
+					
+						print "FileIO: Basis has unexpected data type";	
+					
 					endif
 				endif
 				
