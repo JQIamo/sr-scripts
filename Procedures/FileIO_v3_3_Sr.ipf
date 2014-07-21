@@ -446,14 +446,14 @@ Function Load_Img(ImageName,FileName)
 	Update_Magnification();	
 	ComputeTrapProperties();
 	
-	SetScale/P x dimoffset(ImageName,0)*magnification,Dimdelta(ImageName,0)*magnification,"", Raw1;
-	SetScale/P y dimoffset(ImageName,1)*magnification,Dimdelta(ImageName,1)*magnification,"", Raw1;
-	SetScale/P x dimoffset(ImageName,0)*magnification,Dimdelta(ImageName,0)*magnification,"", Raw2;
-	SetScale/P y dimoffset(ImageName,1)*magnification,Dimdelta(ImageName,1)*magnification,"", Raw2;
-	SetScale/P x dimoffset(ImageName,0)*magnification,Dimdelta(ImageName,0)*magnification,"", Raw3;
-	SetScale/P y dimoffset(ImageName,1)*magnification,Dimdelta(ImageName,1)*magnification,"", Raw3;
-	SetScale/P x dimoffset(ImageName,0)*magnification,Dimdelta(ImageName,0)*magnification,"", Raw4;
-	SetScale/P y dimoffset(ImageName,1)*magnification,Dimdelta(ImageName,1)*magnification,"", Raw4;
+	SetScale/P x dimoffset(ImageName,0),Dimdelta(ImageName,0),"", Raw1;
+	SetScale/P y dimoffset(ImageName,1),Dimdelta(ImageName,1),"", Raw1;
+	SetScale/P x dimoffset(ImageName,0),Dimdelta(ImageName,0),"", Raw2;
+	SetScale/P y dimoffset(ImageName,1),Dimdelta(ImageName,1),"", Raw2;
+	SetScale/P x dimoffset(ImageName,0),Dimdelta(ImageName,0),"", Raw3;
+	SetScale/P y dimoffset(ImageName,1),Dimdelta(ImageName,1),"", Raw3;
+	SetScale/P x dimoffset(ImageName,0),Dimdelta(ImageName,0),"", Raw4;
+	SetScale/P y dimoffset(ImageName,1),Dimdelta(ImageName,1),"", Raw4;
 	SetScale/P x dimoffset(ImageName,0),Dimdelta(ImageName,0),"", ISat;
 	SetScale/P y dimoffset(ImageName,1),Dimdelta(ImageName,1),"", ISat;
 	
@@ -534,6 +534,7 @@ Function Load_Img(ImageName,FileName)
 			
 			case "Fluorescence":
 				ImageName = ImageName;
+				//for Isat calibration:
 				MatrixOP/O IsatCtsWave = sum(ImageName);
 			break
 
