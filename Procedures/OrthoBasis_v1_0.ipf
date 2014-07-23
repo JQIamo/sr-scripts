@@ -48,21 +48,9 @@ function New_ProbeStack(ProjectID)
 		Make/T/N=0 ProbeFiles;
 	endif
 	
-	//Initialize global variables to track basis ROI
-	If(exists(ProbePath + ":xmaxBasis") == 0)
-		Variable/G $(ProbePath + ":xmaxBasis") = 0;
-	endif
-	
-	If(exists(ProbePath + ":ymaxBasis") == 0)
-		Variable/G $(ProbePath + ":ymaxBasis") = 0;
-	endif
-	
-	If(exists(ProbePath + ":xminBasis") == 0)
-		Variable/G $(ProbePath + ":xminBasis") = 0;
-	endif
-	
-	If(exists(ProbePath + ":yminBasis") == 0)
-		Variable/G $(ProbePath + ":yminBasis") = 0;
+	//Initialize wave to track basis ROI
+	If(exists(ProbePath + ":BasisROI") == 0)
+		Make/D/N=(0,0) BasisROI;
 	endif
 
 	SetDataFolder fldrSav;
@@ -158,6 +146,7 @@ function GS_CreateBasis(ProjectID)
 			
 				Duplicate/O/D ProbeStack, $basisRef;
 				wave/D BasisStack = :BasisStack;
+				wave/D BasisROI = :BasisROI;
 				
 				//Get the ROI from the correct data series
 				SVAR CurrentPath = root:Packages:ColdAtom:CurrentPath;
@@ -166,15 +155,9 @@ function GS_CreateBasis(ProjectID)
 				Set_ColdAtomInfo(ProjectFolder);
 				SetDataFolder ProjectFolder;
 				
-				//The ROI bounds
-				NVAR ymax=:fit_info:ymax,ymin=:fit_info:ymin;
-				NVAR xmax=:fit_info:xmax,xmin=:fit_info:xmin;
-				NVAR xmaxBasis = $(ProbePath + ":xmaxBasis"), xminBasis = $(ProbePath + ":xminBasis");
-				NVAR ymaxBasis = $(ProbePath + ":ymaxBasis"), yminBasis = $(ProbePath + ":yminBasis");
-				ymaxBasis = ymax;
-				yminBasis = ymin;
-				xmaxBasis = xmax;
-				xminBasis = xmin;
+				//get and set the ROI for the basis
+				wave/D ROI_mask = :ROI_mask;
+				BasisROI = ROI_mask;
 				
 				//Reset the data series and datafolder
 				Set_ColdAtomInfo(ColdAtomSave);
@@ -182,7 +165,7 @@ function GS_CreateBasis(ProjectID)
 				
 				//mask out the atom region
 				Duplicate/O/D/FREE BasisStack, BasisStack_mask;
-				BasisStack_mask *= ( x < xmaxBasis && x > xminBasis && y < ymaxBasis && y > yminBasis ? 0 : 1);
+				BasisStack_mask *= BasisROI;
 				
 				//Make the orthogonal basis using Gram-Schmidt
 				variable i;
@@ -214,7 +197,7 @@ function GS_CreateBasis(ProjectID)
 				
 				//remask out the atom region
 				BasisStack_mask = BasisStack;
-				BasisStack_mask *= ( x < xmaxBasis && x > xminBasis && y < ymaxBasis && y > yminBasis ? 0 : 1);
+				BasisStack_mask *= BasisROI;
 				
 				//Normalize the Basis
 				variable k;

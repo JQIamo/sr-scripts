@@ -1750,6 +1750,8 @@ Function SetROI(ctrlName,popNum,popStr) : PopupMenuControl
 	NVAR ymax=:fit_info:ymax,ymin=:fit_info:ymin
 	NVAR xmax=:fit_info:xmax,xmin=:fit_info:xmin
 	Variable hold
+	wave RotationMap = :RotationMap;
+	wave ROI_mask = :ROI_mask;
 
 	// First, reset the ROI if requested
 	if (popNum==1 || popNum==2)
@@ -1769,6 +1771,25 @@ Function SetROI(ctrlName,popNum,popStr) : PopupMenuControl
 			xmin = xmax
 			xmax = hold
 		endif
+		
+		variable yqmax = max(qcsr(A,WindowName),qcsr(B,WindowName));
+		variable yqmin = min(qcsr(A,WindowName),qcsr(B,WindowName));
+		variable xpmax = max(pcsr(A,WindowName),pcsr(B,WindowName));
+		variable xpmin = min(pcsr(A,WindowName),pcsr(B,WindowName));
+		
+		//construct the ROI_mask
+		ROI_mask[][] = 1;
+		Variable i;
+		For(i=yqmin+1;i<yqmax;i+=1)
+			 
+			Variable j;
+			For(j=xpmin+1;j<xpmax;j+=1)
+			
+				ROI_mask[mod((RotationMap[j][i]-1),Dimsize(RotationMap,0))][floor((RotationMap[j][i]-1)/(Dimsize(RotationMap,0)))] = 0;
+			
+			endfor
+		endfor
+		
 	endif
 		
 	// Now rescale

@@ -471,6 +471,9 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	// Create some initial waves for the traces and images
 	make/O/N=(100,100) $(ProjectFolder + ":optdepth")
 	make/O/N=(100,100) $(ProjectFolder + ":ISat")
+	make/O/N=(100,100) $(ProjectFolder + ":RotationMap")/WAVE=Temp_ref
+	Temp_ref = 1 + p + q*Dimsize(Temp_ref,0);
+	make/O/N=(100,100) $(ProjectFolder + ":ROI_mask")
 	make/O/N=(100,100) $(ProjectFolder + ":Raw1")
 	make/O/N=(100,100) $(ProjectFolder + ":Raw2")
 	make/O/N=(100,100) $(ProjectFolder + ":Raw3")

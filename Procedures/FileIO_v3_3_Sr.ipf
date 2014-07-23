@@ -171,6 +171,8 @@ Function Load_Img(ImageName,FileName)
 	Wave Raw2 = :Raw2;
 	Wave Raw3 = :Raw3;
 	Wave Raw4 = :Raw4;
+	Wave RotationMap = :RotationMap;
+	Wave ROI_mask = :ROI_mask;
 	Wave PrAlpha = :Fit_Info:PrAlpha;
 
 	// FileName should include the full path to the file i.e., "D:Experiment:Data Acquisition:PFabsimg.ibw"
@@ -333,7 +335,7 @@ Function Load_Img(ImageName,FileName)
 			strswitch(Camera)
 				case "PIXIS":
 					xsize = dimsize(ImageName,0)/3;
-					redimension/D/N=(xsize, dimsize(ImageName,1)) Raw1, Raw2, Raw3, Raw4, Isat;	
+					redimension/D/N=(xsize, dimsize(ImageName,1)) Raw1, Raw2, Raw3, Raw4, Isat, RotationMap, ROI_mask;	
 					Raw1 = ImageName[p][q];
 					Raw2 = ImageName[p + xsize][q];
 					Raw3 = ImageName[p + 2*xsize][q];
@@ -343,11 +345,12 @@ Function Load_Img(ImageName,FileName)
 					Raw1 -= dark;
 					Raw2 -= dark;
 					Raw3 -= dark;
+					RotationMap = 1 + p + q*DimSize(RotationMap, 0);
 					RotateImage = 1;
 				break;
 				Default:
 					xsize = dimsize(ImageName,0)/3;
-					redimension/D/N=(xsize, dimsize(ImageName,1)) Raw1, Raw2, Raw3, Raw4, Isat;	
+					redimension/D/N=(xsize, dimsize(ImageName,1)) Raw1, Raw2, Raw3, Raw4, Isat, RotationMap, ROI_mask;	
 					Raw1 = ImageName[p][q];
 					Raw2 = ImageName[p + xsize][q];
 					Raw3 = ImageName[p + 2*xsize][q];
@@ -358,6 +361,7 @@ Function Load_Img(ImageName,FileName)
 					Raw1 -= dark;
 					Raw2 -= dark;
 					Raw3 -= dark;
+					RotationMap = 1 + p + q*DimSize(RotationMap, 0);
 					RotateImage = 0;
 				break;
 			endswitch
@@ -456,6 +460,10 @@ Function Load_Img(ImageName,FileName)
 	SetScale/P y dimoffset(ImageName,1),Dimdelta(ImageName,1),"", Raw4;
 	SetScale/P x dimoffset(ImageName,0),Dimdelta(ImageName,0),"", ISat;
 	SetScale/P y dimoffset(ImageName,1),Dimdelta(ImageName,1),"", ISat;
+	SetScale/P x dimoffset(ImageName,0),Dimdelta(ImageName,0),"", RotationMap;
+	SetScale/P y dimoffset(ImageName,1),Dimdelta(ImageName,1),"", RotationMap;
+	SetScale/P x dimoffset(ImageName,0),Dimdelta(ImageName,0),"", ROI_mask;
+	SetScale/P y dimoffset(ImageName,1),Dimdelta(ImageName,1),"", ROI_mask;
 	
 	strswitch(DataType)
 			case "Absorption":
@@ -475,18 +483,17 @@ Function Load_Img(ImageName,FileName)
 						//Project image onto the basis.
 						
 						//Check that the ROI matches the Basis
-						NVAR ymax=:fit_info:ymax,ymin=:fit_info:ymin;
-						NVAR xmax=:fit_info:xmax,xmin=:fit_info:xmin;
-						NVAR xmaxBasis = $(BasisPath + ":xmaxBasis"), xminBasis = $(BasisPath + ":xminBasis");
-						NVAR ymaxBasis = $(BasisPath + ":ymaxBasis"), yminBasis = $(BasisPath + ":yminBasis");
-						If((xmax == xmaxBasis) && (xmin == xminBasis) && (ymax == ymaxBasis) && (ymin == yminBasis))
+						wave/D BasisROI = $(BasisPath + ":BasisROI");
+						MatrixOP/FREE/O EqBasis = sum(Abs((BasisROI - ROI_mask)));
+						
+						If(EqBasis == 0)
 							//Since the ROIs match, we can project onto the basis.
 							wave BasisStack = $(BasisPath + ":BasisStack");
 							
 							//Mask out the atom region
 							Duplicate/O/D/FREE Raw1, Raw1_mask;
 							Raw1_mask -= Raw3;    //Remove the dark counts;
-							Raw1_mask *= ( x < xmaxBasis && x > xminBasis && y < ymaxBasis && y > yminBasis ? 0 : 1);
+							Raw1_mask *= BasisROI;
 							
 							//Prepare waves to store dot products and the reconstructed probe image
 							Redimension/D/N=(Dimsize(BasisStack, 2)) PrAlpha;
@@ -553,8 +560,12 @@ Function Load_Img(ImageName,FileName)
 
 	
 	if (RotateImage)
-		ImageRotate/Q/O/E=0/A=54 ImageName;
-		Update_Magnification();			// CDH: why is this here??		
+		Variable RotAng = 54;
+		ImageRotate/Q/O/E=0/A=(RotAng) ImageName;
+		ImageRotate/Q/O/E=0/A=(RotAng) RotationMap;
+		Update_Magnification();			// CDH: why is this here??	
+		SetScale/P x dimoffset(ImageName,0),Dimdelta(ImageName,0),"", RotationMap;
+		SetScale/P y dimoffset(ImageName,1),Dimdelta(ImageName,1),"", RotationMap;	
 	endif
 	
 	SetDataFolder fldrSav;

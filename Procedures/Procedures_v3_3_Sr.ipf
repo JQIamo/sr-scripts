@@ -384,10 +384,10 @@ Function SimpleThermalFit1D(inputimage,cursorname)
 
 	// Get the background average
 	
-	bgymax = max(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
-	bgymin = min(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
-	bgxmax = max(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
-	bgxmin = min(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgymax = max(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgymin = min(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgxmax = max(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
+	bgxmin = min(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
 	
 	Duplicate /O inputimage, bg_mask;
 	bg_mask *= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? 1 : 0);
@@ -493,10 +493,10 @@ Function SimpleThermalFit2D(inputimage)
 
 	// Get the background average
 	
-	bgymax = max(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
-	bgymin = min(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
-	bgxmax = max(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
-	bgxmin = min(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgymax = max(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgymin = min(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgxmax = max(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
+	bgxmin = min(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
 	
 	Duplicate /O inputimage, bg_mask;
 	bg_mask *= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? 1 : 0);
@@ -571,10 +571,10 @@ Function ThomasFermiFit1D(inputimage,cursorname,graphname,fit_type)
 
 	// Get the background average
 	
-	bgymax = max(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
-	bgymin = min(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
-	bgxmax = max(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
-	bgxmin = min(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgymax = max(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgymin = min(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgxmax = max(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
+	bgxmin = min(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
 	
 	Duplicate /O inputimage, bg_mask;
 	bg_mask *= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? 1 : 0);
@@ -812,10 +812,10 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 
 	// Get the background average
 	
-	bgymax = max(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
-	bgymin = min(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
-	bgxmax = max(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
-	bgxmin = min(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgymax = max(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgymin = min(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgxmax = max(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
+	bgxmin = min(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
 	
 	Duplicate /O inputimage, bg_mask;
 	bg_mask *= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? 1 : 0);
