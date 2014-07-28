@@ -290,6 +290,7 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	// Experimental properties
 	String/G $(ProjectFolder + ":Experimental_Info:Experiment") = ExperimentID;
 	Variable/G $(ProjectFolder + ":Experimental_Info:RotateImage") = 0;
+	Variable/G $(ProjectFolder + ":Experimental_Info:RotAng") = 0;
 	String/G $(ProjectFolder + ":Experimental_Info:Camera") = "";
 	String/G $(ProjectFolder + ":Experimental_Info:DataType") = "Absorption";
 	String/G $(ProjectFolder + ":Experimental_Info:ImageType") = "Raw";
@@ -471,9 +472,7 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	// Create some initial waves for the traces and images
 	make/O/N=(100,100) $(ProjectFolder + ":optdepth")
 	make/O/N=(100,100) $(ProjectFolder + ":ISat")
-	make/O/N=(100,100) $(ProjectFolder + ":RotationMap")/WAVE=Temp_ref
-	Temp_ref = 1 + p + q*Dimsize(Temp_ref,0);
-	make/O/N=(100,100) $(ProjectFolder + ":ROI_mask")
+	make/O/I/N=(100,100) $(ProjectFolder + ":ROI_mask")
 	make/O/N=(100,100) $(ProjectFolder + ":Raw1")
 	make/O/N=(100,100) $(ProjectFolder + ":Raw2")
 	make/O/N=(100,100) $(ProjectFolder + ":Raw3")

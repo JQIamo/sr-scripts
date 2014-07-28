@@ -50,7 +50,7 @@ function New_ProbeStack(ProjectID)
 	
 	//Initialize wave to track basis ROI
 	If(exists(ProbePath + ":BasisROI") == 0)
-		Make/D/N=(0,0) BasisROI;
+		Make/I/N=(0,0) BasisROI;
 	endif
 
 	SetDataFolder fldrSav;
@@ -146,7 +146,7 @@ function GS_CreateBasis(ProjectID)
 			
 				Duplicate/O/D ProbeStack, $basisRef;
 				wave/D BasisStack = :BasisStack;
-				wave/D BasisROI = :BasisROI;
+				wave/I BasisROI = :BasisROI;
 				
 				//Get the ROI from the correct data series
 				SVAR CurrentPath = root:Packages:ColdAtom:CurrentPath;
@@ -156,25 +156,25 @@ function GS_CreateBasis(ProjectID)
 				SetDataFolder ProjectFolder;
 				
 				//get and set the ROI for the basis
-				wave/D ROI_mask = :ROI_mask;
-				BasisROI = ROI_mask;
+				wave/I ROI_mask = :ROI_mask;
+				Duplicate/I/O ROI_mask, BasisROI;
 				
 				//Reset the data series and datafolder
 				Set_ColdAtomInfo(ColdAtomSave);
 				SetDataFolder(ProbePath);
 				
 				//mask out the atom region
-				Duplicate/O/D/FREE BasisStack, BasisStack_mask;
-				BasisStack_mask *= BasisROI;
-				
-				//Make the orthogonal basis using Gram-Schmidt
+				//this mask will contain the original probe vectors
+				//Duplicate/O/D/FREE BasisStack, BasisStack_maskA, BasisStack_maskB;
+			
 				variable i;
+				//Make the orthogonal basis using Gram-Schmidt
 				For(i=0; i<DimSize(BasisStack, 2); i+=1)
 				
 					//loop through all vectors i.
 					
 					//for debugging
-					//print "i = " + num2str(i);
+					print "i = " + num2str(i);
 					
 					//make orthogonal to previous vectors
 					variable j;
@@ -182,34 +182,34 @@ function GS_CreateBasis(ProjectID)
 					
 						//loop through the j vectors previous to i.
 						//Get projection of i onto j.
-						MatrixOP/O/FREE Projection = (((BasisStack_mask[][][i]).(BasisStack_mask[][][j]))/((BasisStack_mask[][][j]).(BasisStack_mask[][][j])));//*BasisStack[][][j];
+						MatrixOP/O/FREE Projection = (((ProbeStack[][][i]).(BasisROI[][][0]*BasisStack[][][j]))/((BasisStack[][][j]).(BasisROI[][][0]*BasisStack[][][j])));//*BasisStack[][][j];
 						
 						//Make vector i orthogonal to vector j
 						BasisStack[][][i] = BasisStack[p][q][i] - Projection[0]*BasisStack[p][q][j];
 						
 						//for debugging
-						//print "j = " + num2str(j);
+						print "j = " + num2str(j);
 					
 					endfor
-				
 					
 				endfor
 				
 				//remask out the atom region
-				BasisStack_mask = BasisStack;
-				BasisStack_mask *= BasisROI;
+				//Duplicate/O/D/FREE BasisStack, BasisStack_mask;
+				//BasisStack_mask *= BasisROI;
 				
 				//Normalize the Basis
 				variable k;
 				For(k=0; k<DimSize(BasisStack, 2); k+=1)
 				
 					//Get norm of vector k
-					MatrixOP/O/FREE Mag_k = ((BasisStack_mask[][][k]).(BasisStack_mask[][][k]))^(1/2);
+					MatrixOP/O/FREE Mag_k = ((BasisStack[][][k]).(BasisROI[][][0]*BasisStack[][][k]));
 					//Normalize
-					BasisStack[][][k] = BasisStack[p][q][k]/Mag_k;
+					BasisStack[][][k] = BasisStack[p][q][k]/(sqrt(Mag_k[0]));
 					
 					//for debugging
 					//print "k = " + num2str(k);
+					//print "mag " + num2str(k) + " = " + num2str(sqrt(Mag_k[0]));
 				
 				endfor
 				

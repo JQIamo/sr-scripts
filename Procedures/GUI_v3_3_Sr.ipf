@@ -1747,11 +1747,12 @@ Function SetROI(ctrlName,popNum,popStr) : PopupMenuControl
 	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel;
 	String WindowName = CurrentPanel + "#ColdAtomInfoImage";
 	
-	NVAR ymax=:fit_info:ymax,ymin=:fit_info:ymin
-	NVAR xmax=:fit_info:xmax,xmin=:fit_info:xmin
-	Variable hold
-	wave RotationMap = :RotationMap;
-	wave ROI_mask = :ROI_mask;
+	NVAR ymax=:fit_info:ymax,ymin=:fit_info:ymin;
+	NVAR xmax=:fit_info:xmax,xmin=:fit_info:xmin;
+	Variable hold;
+	wave/I ROI_mask = :ROI_mask;
+	NVAR RotateImage = :Experimental_Info:RotateImage;
+	NVAR RotAng = :Experimental_Info:RotAng;
 
 	// First, reset the ROI if requested
 	if (popNum==1 || popNum==2)
@@ -1772,24 +1773,47 @@ Function SetROI(ctrlName,popNum,popStr) : PopupMenuControl
 			xmax = hold
 		endif
 		
-		variable yqmax = max(qcsr(A,WindowName),qcsr(B,WindowName));
-		variable yqmin = min(qcsr(A,WindowName),qcsr(B,WindowName));
-		variable xpmax = max(pcsr(A,WindowName),pcsr(B,WindowName));
-		variable xpmin = min(pcsr(A,WindowName),pcsr(B,WindowName));
-		
 		//construct the ROI_mask
 		ROI_mask[][] = 1;
-		Variable i;
-		For(i=yqmin+1;i<yqmax;i+=1)
-			 
-			Variable j;
-			For(j=xpmin+1;j<xpmax;j+=1)
-			
-				ROI_mask[mod((RotationMap[j][i]-1),Dimsize(RotationMap,0))][floor((RotationMap[j][i]-1)/(Dimsize(RotationMap,0)))] = 0;
-			
-			endfor
-		endfor
 		
+		if(RotateImage)
+			//Rotate ROI vertices CCW to compensate for image rotation
+			Make/O/FREE/D/N=(4,2) RotCoords
+			RotCoords[0][] = Abs(q-1)*(cos(-RotAng*pi/180)*xmin - sin(-RotAng*pi/180)*ymin) + q*(sin(-RotAng*pi/180)*xmin + cos(-RotAng*pi/180)*ymin);
+			RotCoords[1][] = Abs(q-1)*(cos(-RotAng*pi/180)*xmin - sin(-RotAng*pi/180)*ymax) + q*(sin(-RotAng*pi/180)*xmin + cos(-RotAng*pi/180)*ymax);
+			RotCoords[2][] = Abs(q-1)*(cos(-RotAng*pi/180)*xmax - sin(-RotAng*pi/180)*ymin) + q*(sin(-RotAng*pi/180)*xmax + cos(-RotAng*pi/180)*ymin);
+			RotCoords[3][] = Abs(q-1)*(cos(-RotAng*pi/180)*xmax - sin(-RotAng*pi/180)*ymax) + q*(sin(-RotAng*pi/180)*xmax + cos(-RotAng*pi/180)*ymax);
+			
+			//find maximum values in the unrotated coords
+			variable xmaxrot = max(max(RotCoords[0][0],RotCoords[1][0]),max(RotCoords[2][0],RotCoords[3][0]));
+			variable xminrot = min(min(RotCoords[0][0],RotCoords[1][0]),min(RotCoords[2][0],RotCoords[3][0]));
+			variable ymaxrot = max(max(RotCoords[0][1],RotCoords[1][1]),max(RotCoords[2][1],RotCoords[3][1]));
+			variable yminrot = min(min(RotCoords[0][1],RotCoords[1][1]),min(RotCoords[2][1],RotCoords[3][1]));
+			variable pmax = (xmaxrot - DimOffset(ROI_mask, 0))/DimDelta(ROI_mask,0);
+			variable pmin = (xminrot - DimOffset(ROI_mask, 0))/DimDelta(ROI_mask,0);
+			variable qmax = (ymaxrot - DimOffset(ROI_mask, 1))/DimDelta(ROI_mask,1);
+			variable qmin = (yminrot - DimOffset(ROI_mask, 1))/DimDelta(ROI_mask,1);
+			
+			Variable i;
+			For(i=pmin;i<=pmax;i+=1)
+			 
+			 	variable xtemp = DimOffset(ROI_mask, 0) + i*DimDelta(ROI_mask,0);
+			 	
+				Variable j;
+				For(j=qmin;j<=qmax;j+=1)
+			
+					variable ytemp = DimOffset(ROI_mask, 1) + j*DimDelta(ROI_mask,1);
+					variable xtemprot = (cos(RotAng*pi/180)*xtemp - sin(RotAng*pi/180)*ytemp);
+					variable ytemprot = (sin(RotAng*pi/180)*xtemp + cos(RotAng*pi/180)*ytemp);
+					ROI_mask[i][j] = (((xmin < xtemprot) && (xmax > xtemprot) && (ymin < ytemprot) && (ymax > ytemprot)) ? 0 : 1);
+			
+				endfor
+			endfor
+		else
+		
+			ROI_mask = (((xmin < x) && (xmax > x) && (ymin < y) && (ymax > y)) ? 0 : 1);
+		
+		endif
 	endif
 		
 	// Now rescale

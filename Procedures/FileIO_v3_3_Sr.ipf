@@ -171,8 +171,7 @@ Function Load_Img(ImageName,FileName)
 	Wave Raw2 = :Raw2;
 	Wave Raw3 = :Raw3;
 	Wave Raw4 = :Raw4;
-	Wave RotationMap = :RotationMap;
-	Wave ROI_mask = :ROI_mask;
+	Wave/I ROI_mask = :ROI_mask;
 	Wave PrAlpha = :Fit_Info:PrAlpha;
 
 	// FileName should include the full path to the file i.e., "D:Experiment:Data Acquisition:PFabsimg.ibw"
@@ -249,10 +248,10 @@ Function Load_Img(ImageName,FileName)
 				tEnd = NumberByKey_Safe(tEnd,"tEvap1",wavenote,"=","\n");
 				tau = NumberByKey_Safe(tau,"tau",wavenote,"=","\n");
 				//extract dip power at end of evap for ExpRamp2 evap shape:
-				//DipolePower = ((DipPowXi-DipPowXf)*exp(-tEnd/tau)+DipPowXf);
+				DipolePower = ((DipPowXi-DipPowXf)*exp(-tEnd/tau)+DipPowXf);
 				//DipolePower = DipPowXf;
 				//DipolePower = DipPowXRamp;
-				DipolePower = 3.5;
+				//DipolePower = 3.5;
 				CrDipolePower = DipPowZf;
 				//CrDipolePower = DipPowZRamp;
 				detuning = (1/31.83)*NumberByKey_Safe(NaN,"ProbeDet", wavenote, "=","\n"); //Sr linewidth from S. Nagel's thesis
@@ -335,7 +334,8 @@ Function Load_Img(ImageName,FileName)
 			strswitch(Camera)
 				case "PIXIS":
 					xsize = dimsize(ImageName,0)/3;
-					redimension/D/N=(xsize, dimsize(ImageName,1)) Raw1, Raw2, Raw3, Raw4, Isat, RotationMap, ROI_mask;	
+					redimension/D/N=(xsize, dimsize(ImageName,1)) Raw1, Raw2, Raw3, Raw4, Isat;	
+					redimension/I/N=(xsize, dimsize(ImageName,1)) ROI_mask;	
 					Raw1 = ImageName[p][q];
 					Raw2 = ImageName[p + xsize][q];
 					Raw3 = ImageName[p + 2*xsize][q];
@@ -345,12 +345,12 @@ Function Load_Img(ImageName,FileName)
 					Raw1 -= dark;
 					Raw2 -= dark;
 					Raw3 -= dark;
-					RotationMap = 1 + p + q*DimSize(RotationMap, 0);
 					RotateImage = 1;
 				break;
 				Default:
 					xsize = dimsize(ImageName,0)/3;
-					redimension/D/N=(xsize, dimsize(ImageName,1)) Raw1, Raw2, Raw3, Raw4, Isat, RotationMap, ROI_mask;	
+					redimension/D/N=(xsize, dimsize(ImageName,1)) Raw1, Raw2, Raw3, Raw4, Isat;	
+					redimension/I/N=(xsize, dimsize(ImageName,1)) ROI_mask;
 					Raw1 = ImageName[p][q];
 					Raw2 = ImageName[p + xsize][q];
 					Raw3 = ImageName[p + 2*xsize][q];
@@ -361,7 +361,6 @@ Function Load_Img(ImageName,FileName)
 					Raw1 -= dark;
 					Raw2 -= dark;
 					Raw3 -= dark;
-					RotationMap = 1 + p + q*DimSize(RotationMap, 0);
 					RotateImage = 0;
 				break;
 			endswitch
@@ -460,8 +459,6 @@ Function Load_Img(ImageName,FileName)
 	SetScale/P y dimoffset(ImageName,1),Dimdelta(ImageName,1),"", Raw4;
 	SetScale/P x dimoffset(ImageName,0),Dimdelta(ImageName,0),"", ISat;
 	SetScale/P y dimoffset(ImageName,1),Dimdelta(ImageName,1),"", ISat;
-	SetScale/P x dimoffset(ImageName,0),Dimdelta(ImageName,0),"", RotationMap;
-	SetScale/P y dimoffset(ImageName,1),Dimdelta(ImageName,1),"", RotationMap;
 	SetScale/P x dimoffset(ImageName,0),Dimdelta(ImageName,0),"", ROI_mask;
 	SetScale/P y dimoffset(ImageName,1),Dimdelta(ImageName,1),"", ROI_mask;
 	
@@ -483,7 +480,7 @@ Function Load_Img(ImageName,FileName)
 						//Project image onto the basis.
 						
 						//Check that the ROI matches the Basis
-						wave/D BasisROI = $(BasisPath + ":BasisROI");
+						wave/I BasisROI = $(BasisPath + ":BasisROI");
 						MatrixOP/FREE/O EqBasis = sum(Abs((BasisROI - ROI_mask)));
 						
 						If(EqBasis == 0)
@@ -504,11 +501,11 @@ Function Load_Img(ImageName,FileName)
 							For(k = 0; k < Dimsize(BasisStack, 2); k += 1)
 							
 								//compute the dot product
-								MatrixOP/FREE/O AlphaTemp = ((Raw1_mask).(BasisStack[][][k]));
+								MatrixOP/FREE/O AlphaTemp = ((Raw1_mask[][][0]).(BasisStack[][][k]));
 								//store dot products
-								PrAlpha[k] = AlphaTemp;
+								PrAlpha[k] = AlphaTemp[0];
 								//create probe image
-								Raw4 += PrAlpha[k]*BasisStack[p][q][k];
+								Raw4[][] = Raw4[p][q] + PrAlpha[k]*BasisStack[p][q][k];
 								
 							endfor
 							
@@ -560,12 +557,10 @@ Function Load_Img(ImageName,FileName)
 
 	
 	if (RotateImage)
-		Variable RotAng = 54;
+		NVAR RotAng = :Experimental_Info:RotAng;
+		RotAng = 54;
 		ImageRotate/Q/O/E=0/A=(RotAng) ImageName;
-		ImageRotate/Q/O/E=0/A=(RotAng) RotationMap;
 		Update_Magnification();			// CDH: why is this here??	
-		SetScale/P x dimoffset(ImageName,0),Dimdelta(ImageName,0),"", RotationMap;
-		SetScale/P y dimoffset(ImageName,1),Dimdelta(ImageName,1),"", RotationMap;	
 	endif
 	
 	SetDataFolder fldrSav;
