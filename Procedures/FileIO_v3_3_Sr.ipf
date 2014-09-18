@@ -236,17 +236,17 @@ Function Load_Img(ImageName,FileName)
 			case "Sr":
 				//Will need to modify as Sr progresses
 				// Most info in the header has spaces around " = "--> be sure to add space after variable name
-				IQuad = -8*NumberByKey_Safe(IQuad,"MOTcurrent",wavenote, "=","\n");
-				expand_time = NumberByKey_Safe(expand_time,"TOF",wavenote, "=","\n")*10^3;
+				IQuad = -8*NumberByKey_Safe(IQuad,"MOTcurrent ",wavenote, "=","\n");
+				expand_time = NumberByKey_Safe(expand_time,"TOF ",wavenote, "=","\n")*10^3;
 				// Dipole trap end depth defined by exponential ramp shape: A*e^(-tEnd/tau)
-				DipPowXi = NumberByKey_Safe(3, "DipPowX",wavenote,"=","\n");
-				DipPowXf = NumberByKey_Safe(3, "DipPowX2",wavenote,"=","\n");
-				DipPowXRamp = NumberByKey_Safe(3, "DipPowXLat",wavenote,"=","\n");
-				DipPowZi = NumberByKey_Safe(3, "DipPowZ",wavenote,"=","\n");
-				DipPowZf = NumberByKey_Safe(3, "DipPowZ2",wavenote,"=","\n");
-				DipPowZRamp = NumberByKey_Safe(3, "DipPowZ3",wavenote,"=","\n");
-				tEnd = NumberByKey_Safe(tEnd,"tEvap1",wavenote,"=","\n");
-				tau = NumberByKey_Safe(tau,"tau",wavenote,"=","\n");
+				DipPowXi = NumberByKey_Safe(3, "DipPowX ",wavenote,"=","\n");
+				DipPowXf = NumberByKey_Safe(3, "DipPowX2 ",wavenote,"=","\n");
+				DipPowXRamp = NumberByKey_Safe(3, "DipPowXLat ",wavenote,"=","\n");
+				DipPowZi = NumberByKey_Safe(3, "DipPowZ ",wavenote,"=","\n");
+				DipPowZf = NumberByKey_Safe(3, "DipPowZ2 ",wavenote,"=","\n");
+				DipPowZRamp = NumberByKey_Safe(3, "DipPowZ3 ",wavenote,"=","\n");
+				tEnd = NumberByKey_Safe(tEnd,"tEvap1 ",wavenote,"=","\n");
+				tau = NumberByKey_Safe(tau,"tau ",wavenote,"=","\n");
 				//extract dip power at end of evap for ExpRamp2 evap shape:
 				DipolePower = ((DipPowXi-DipPowXf)*exp(-tEnd/tau)+DipPowXf);
 				//DipolePower = DipPowXf;
@@ -254,7 +254,7 @@ Function Load_Img(ImageName,FileName)
 				//DipolePower = 3.5;
 				CrDipolePower = DipPowZf;
 				//CrDipolePower = DipPowZRamp;
-				detuning = (1/31.83)*NumberByKey_Safe(NaN,"ProbeDet", wavenote, "=","\n"); //Sr linewidth from S. Nagel's thesis
+				detuning = (1/31.83)*NumberByKey_Safe(NaN,"ProbeDet ", wavenote, "=","\n"); //Sr linewidth from S. Nagel's thesis
 			break;
 		
 			case "RbYb":
