@@ -206,10 +206,11 @@ End
 
 //The first wave is y3body = Ln(N/N0)+t/tau.
 //The second wave is x3body = const*Integrate[rhopeak(t')^2,{t',0,t}]
+//mode = 0 for thermal gas, mode = 1 for BEC
 
 //MUST SET DATAFOLDER TO BE THE PROJECT FOLDER FOR THE DATA SERIES!
 
-Function MakeLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD)
+Function MakeLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,mode)
 
 	
 	//numWave = wave of average atom numbers
@@ -221,7 +222,7 @@ Function MakeLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD)
 
 	//gam1 = Measured 1 body decay rate
 	//gam1SD = standard deviation in fit of 1 body decay rate
-	Variable gam1,gam1SD
+	Variable gam1,gam1SD,mode
 
 	//Assume that the current datafolder is the project folder
 	//and get the trap frequencies
@@ -255,20 +256,23 @@ Function MakeLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD)
 	//RefVolTrap will store the reference volume for the harmonic confinement
 	//RefVolSite will store the reference volume for an individual lattice site
 	//N_sites is the number of sites with atoms
-	Make/O/D/FREE/N=(numpnts(timeTemp)) RefVolTrap,RefVolSite,RefVolTrap_SD,RefVolSite_SD, N_sites,N_sites_SD;
+	Make/O/D/FREE/N=(numpnts(timeTemp)) RefVolSite,RefVolSite_SD, N_sites,N_sites_SD;
 	
-	//First compute the reference volume for the harmonic trap
-	RefVolTrap = (2*pi*kB*T_temp[p]*(1e-9)/mass)^(3/2)/(omgX*omgY*omgZ);
-	RefVolTrap_SD = 3/2*T_SDTemp[p]*(1e-9)*(2*pi*kB*T_temp[p]*(1e-9)/mass)^(1/2)/(omgX*omgY*omgZ);
 	//compute the reference volume for the lattice sites
 	RefVolSite = (2*pi*kB*T_temp[p]*(1e-9)/mass)^(3/2)/(omgXLat*omgY*omgZLat);
 	RefVolSite_SD = 3/2*T_SDTemp[p]*(1e-9)*(2*pi*kB*T_temp[p]*(1e-9)/mass)^(1/2)/(omgXLat*omgY*omgZLat);
-	//Number of lattice sites per unit area:
+	//Number of lattice sites per unit area for 1064 nm lattice beams:
 	Variable site_density = 1/(.532e-6)^2;
 	
 	//get approximate number of loaded sites at each step
-	N_sites = floor(site_density*(2*pi*kB*T_temp[p]*(1e-9)/(mass*omgX*omgZ)));
+	N_sites = site_density*(2*pi*kB*T_temp[p]*(1e-9)/(mass*omgX*omgZ));
 	N_sites_SD = site_density*(2*pi*kB*T_SDtemp[p]*(1e-9)/(mass*omgX*omgZ));
+	
+	//make a wave to hold computed density
+	Make/O/D/FREE/N=(numpnts(timeTemp)) rhoTemp,rhoTemp_SD;
+	
+	rhoTemp = numTemp[p]/(RefVolSite[p]*N_sites[p]);
+	rhoTemp_SD = Sqrt((numSDTemp[p]/(RefVolSite[p]*N_sites[p]))^2+(RefVolSite_SD[p]*numTemp[p]/((RefVolSite[p]^2)*N_sites[p]))^2+(N_sites_SD[p]*numTemp[p]/(RefVolSite[p]*N_sites[p]^2))^2);
 
 	//Monte Carlo to estimate integral errors
 	//Set iterations to match number of points used to compute
@@ -278,7 +282,7 @@ Function MakeLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD)
 
 	Make/FREE/D/N=(iterations,numpnts(timeTemp)) MCtemp;
 
-	Duplicate/FREE/D T_SDTemp, MCpath;
+	Duplicate/FREE/D rhoTemp_SD, MCpath;
 
 	Variable i;
 
@@ -288,7 +292,7 @@ Function MakeLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD)
 
 		//Generate fake data assuming gaussian distribution
 
-		MCpath = T_Temp[p]+gnoise(T_SDTemp[p],2);
+		MCpath = rhoTemp[p]+gnoise(rhoTemp_SD[p],2);
 
 		MCpath = MCpath^2;
 
@@ -296,13 +300,13 @@ Function MakeLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD)
 
 		Integrate/METH=1 MCpath /X=tTemp /D=integTemp;
 
-		if(1)
+		if(mode==0)
 
-			MCtemp[i][0,numpnts(tTemp)-1] = 3^(-3/2)*integTemp[q];//Thermal gas
+			MCtemp[i][0,numpnts(tTemp)-1] = 3^(-5/2)*integTemp[q]/site_density;//Thermal gas
 
 		else
 
-			MCtemp[i][0,numpnts(tTemp)-1] = (8/21)*integTemp[q];//BEC
+			MCtemp[i][0,numpnts(tTemp)-1] = (8/21)*(1/2)*integTemp[q]/site_density;//BEC
 
 		endif
 
@@ -324,17 +328,17 @@ Function MakeLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD)
 
 	
 
-	//rhoTemp = rhoTemp^2;
+	rhoTemp = rhoTemp^2;
 
 	Integrate/METH=1 rhoTemp /X=tTemp /D=integTemp;
 
-	if(1)
+	if(mode==0)
 
-		x3Body = 3^(-3/2)*integTemp;//Thermal gas
+		x3Body = 3^(-5/2)*integTemp/site_density;//Thermal gas
 
 	else
 
-		x3Body = (8/21)*integTemp;//BEC
+		x3Body = (8/21)*(1/2)*integTemp/site_density;//BEC
 
 	endif
 
