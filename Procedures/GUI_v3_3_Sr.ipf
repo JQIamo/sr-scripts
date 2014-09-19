@@ -1054,7 +1054,7 @@ function BuildSrWindow(ProjectFolder)
 	PopupMenu AnalysisType,mode=1,popvalue="1 Shot",value= #"\"1 Shot;Basis;PCA\""
 	
 	PopupMenu popup0,pos={40,151},size={127,21},bodyWidth=127,proc=SetTrapType
-	PopupMenu popup0,mode=1,popvalue="Magnetic Trap",value= #"\"Magnetic Trap;Dipole;MOT;MOT Diagnostics;Cross Dipole\""
+	PopupMenu popup0,mode=1,popvalue="Magnetic Trap",value= #"\"Magnetic Trap;Dipole;MOT;MOT Diagnostics;Cross Dipole;2D Lattice\""
 	
 	PopupMenu sriso,pos={175,151},size={47,21},proc=SetIsotope
 	PopupMenu sriso,mode=1,popvalue="86",value= #"\"84;86;87;88\""
