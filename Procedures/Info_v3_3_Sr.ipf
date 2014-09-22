@@ -642,6 +642,9 @@ Function ComputeTrapProperties()
 	NVAR freqX = :Experimental_Info:freqX
 	NVAR freqY = :Experimental_Info:freqY
 	NVAR freqZ = :Experimental_Info:freqZ
+	NVAR freqXLat = :Experimental_Info:freqXLat
+	NVAR freqYLat = :Experimental_Info:freqYLat
+	NVAR freqZLat = :Experimental_Info:freqZLat
 	NVAR Pc = :Experimental_Info:Pc
 	NVAR trapmin = :Experimental_Info:trapmin
 	NVAR trapdepth = :Experimental_Info:trapdepth
@@ -651,6 +654,9 @@ Function ComputeTrapProperties()
 	NVAR omgX = :Experimental_Info:omgX;
 	NVAR omgY = :Experimental_Info:omgY;
 	NVAR omgZ = :Experimental_Info:omgZ;
+	NVAR omgXLat = :Experimental_Info:omgXLat;
+	NVAR omgYLat = :Experimental_Info:omgYLat;
+	NVAR omgZLat = :Experimental_Info:omgZLat;
 	NVAR aspectratio_BEC = :Experimental_Info:aspectratio_BEC
 	NVAR trapmin0 = :Experimental_Info:trapmin0
 	NVAR expand_time = :Experimental_Info:expand_time
@@ -709,12 +715,16 @@ Function ComputeTrapProperties()
 			// The trap frequency in the longitudnal direction is dominated by the magnetic trap and is very
 			// insensitive to dipole power. This should be measured once and entered on the front panel in 
 			// the Trap properties section.
-			//freqY = FreqScalingY*sqrt(exp(LambertWaprx(-Pc^2/DipolePower^2)/2)*DipolePower);
-			freqY = 39.1;
 			//freqX = sqrt(0.925+CrDipolePower*FreqScalingX^2);
-			freqX = FreqScalingX*sqrt(exp(LambertWaprx(-Pc^2/DipolePower^2)/2)*(1.01+LambertWaprx(-Pc^2/DipolePower^2))*DipolePower);		
+			//freqX = FreqScalingX*sqrt(exp(LambertWaprx(-Pc^2/DipolePower^2)/2)*(1.01+LambertWaprx(-Pc^2/DipolePower^2))*DipolePower);	
+			freqX = 100
+			//freqY = FreqScalingY*sqrt(exp(LambertWaprx(-Pc^2/DipolePower^2)/2)*DipolePower);
+			freqY = 100;	
 			//freqZ = FreqScalingZ*sqrt(exp(LambertWaprx(-Pc^2/DipolePower^2)/2)*DipolePower*(LambertWaprx(-Pc^2/DipolePower^2)+1));
-			freqZ = 438;
+			freqZ = 478;
+			freqXLat = 30.5e+3;
+			freqYLat = 0;
+			freqZLat = 28.9e+3;
 		Break
 	endswitch
 
@@ -722,6 +732,9 @@ Function ComputeTrapProperties()
 	omgX = 2*Pi*freqX;	
 	omgY = 2*Pi*freqY;
 	omgZ = 2*Pi*freqZ;
+	omgXLat = 2*Pi*freqXLat;	
+	omgYLat = 2*Pi*freqYLat;
+	omgZLat = 2*Pi*freqZLat;
 
 	omg_ho = (omgX*omgY*omgZ)^(1/3);
 	a_ho = Sqrt(1.054571596e-34/(mass*omg_ho))*1e6; // hbar = 1.054571596e-34 J s, a_ho microns
