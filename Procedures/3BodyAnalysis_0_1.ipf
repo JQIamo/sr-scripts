@@ -357,3 +357,73 @@ Function MakeLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,mo
 	//CurveFit/ODR=2/H="10"/NTHR=0/TBOX=768 line  y3Body[pcsr(A),pcsr(B)] /X=x3Body /W=y3Body_SD /I=1 /D /F={0.683000, 4} /XW=x3Body_SD;
 
 End
+
+//This function numerically integrates a 2D lattice potential to find the reference volume for our Sr88 3Body measurements
+Function getEffVol(T)
+	
+	//T is temperature in nK
+	Variable T
+	
+	//define and get globals to do the integration
+	NVAR freqX = :Experimental_Info:freqX;
+	NVAR freqY = :Experimental_Info:freqY;
+	NVAR freqZ = :Experimental_Info:freqZ;
+	NVAR freqXLat = :Experimental_Info:freqXLat;
+	NVAR freqYLat = :Experimental_Info:freqYLat;
+	NVAR freqZLat = :Experimental_Info:freqZLat;
+	NVAR mass = :Experimental_Info:mass;
+	NVAR k = :Experimental_Info:k;
+	
+	//this is dangerous because it could overwrite another global
+	Variable/G tEffVol_temp = T*(1e-9);
+	
+	//set limits of integration, we could do this based on T
+	//but this works for now
+	Variable intLim = 1e-4
+	
+	Variable resultX = integrate1D(xFunc,-intLim,intLim,0,-1)
+	Variable resultY = integrate1D(yFunc,-intLim,intLim,0,-1)
+	Variable resultZ = integrate1D(zFunc,-intLim,intLim,0,-1)
+
+	KillVariables tEffVol_temp;
+
+	//print resultX*resultY*resultZ
+	return resultX*resultY*resultZ
+End
+	
+//These are helper functions for the getEffVol function
+Function xFunc(x)
+	Variable x
+	
+	NVAR freqX = :Experimental_Info:freqX;
+	NVAR freqXLat = :Experimental_Info:freqXLat;
+	NVAR mass = :Experimental_Info:mass;
+	NVAR k = :Experimental_Info:k;
+	NVAR T = tEffVol_temp;
+	
+	return exp(-4*pi^2*mass*((freqXLat/k)^2*cos(k*x)^2+freqX^2*x^2)/(2*kB*T));
+End
+
+Function yFunc(y)
+	Variable y
+	
+	NVAR freqY = :Experimental_Info:freqY;
+	NVAR freqYLat = :Experimental_Info:freqYLat;
+	NVAR mass = :Experimental_Info:mass;
+	NVAR k = :Experimental_Info:k;
+	NVAR T = tEffVol_temp;
+	
+	return exp(-4*pi^2*mass*((freqYLat/k)^2*cos(k*y)^2+freqY^2*y^2)/(2*kB*T));
+End
+
+Function zFunc(z)
+	Variable z
+	
+	NVAR freqZ = :Experimental_Info:freqZ;
+	NVAR freqZLat = :Experimental_Info:freqZLat;
+	NVAR mass = :Experimental_Info:mass;
+	NVAR k = :Experimental_Info:k;
+	NVAR T = tEffVol_temp;
+	
+	return exp(-4*pi^2*mass*((freqZLat/k)^2*cos(k*z)^2+freqZ^2*z^2)/(2*kB*T));
+End
