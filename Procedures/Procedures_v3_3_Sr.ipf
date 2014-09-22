@@ -918,6 +918,9 @@ Function TFUpdateCloudPars(Gauss3d_coef,fit_type)
 	NVAR omgX = :Experimental_Info:omgX;
 	NVAR omgY = :Experimental_Info:omgY;
 	NVAR omgZ = :Experimental_Info:omgZ;
+	NVAR omgXLat = :Experimental_Info:omgXLat;
+	NVAR omgYLat = :Experimental_Info:omgYLat;
+	NVAR omgZLat = :Experimental_Info:omgZLat;
 	NVAR aspectratio_BEC=:Experimental_Info:aspectratio_BEC
 	NVAR detuning=:Experimental_Info:detuning,expand_time=:Experimental_Info:expand_time
 	NVAR camdir=:Experimental_Info:camdir,traptype=:Experimental_Info:traptype
@@ -1127,6 +1130,9 @@ Function ThermalUpdateCloudPars(Gauss3D_coef)
 	NVAR omgX = :Experimental_Info:omgX;
 	NVAR omgY = :Experimental_Info:omgY;
 	NVAR omgZ = :Experimental_Info:omgZ;
+	NVAR omgXLat = :Experimental_Info:omgXLat;
+	NVAR omgYLat = :Experimental_Info:omgYLat;
+	NVAR omgZLat = :Experimental_Info:omgZLat;
 	NVAR aspectratio_BEC=:Experimental_Info:aspectratio_BEC
 	NVAR detuning=:Experimental_Info:detuning,expand_time=:Experimental_Info:expand_time
 	NVAR camdir=:Experimental_Info:camdir,traptype=:Experimental_Info:traptype
@@ -1231,6 +1237,11 @@ Function ThermalUpdateCloudPars(Gauss3D_coef)
 		elseif(traptype==3)	// MOT
 			yrms = (xrms+zrms)/2;
 			temperature = (mass/(4*kB))*((xrms*0.001/(expand_time))^2+(zrms*0.001/(expand_time))^2);
+			density = amplitude / (sqrt(pi)*sigma*yrms);	
+			number = amplitude*(pi)^(1)*(xrms*zrms)/(sigma);	
+		elseif(traptype==6)     //2D Lattice
+			yrms = (xrms+zrms)/2;
+			temperature = (mass/(4*kB))*(((omgZLat*zrms*10^(-6))^2)/(1+(omgZLat*.001*expand_time)^2)+((omgXLat*zrms*10^(-6))^2)/(1+(omgXLat*.001*expand_time)^2));
 			density = amplitude / (sqrt(pi)*sigma*yrms);	
 			number = amplitude*(pi)^(1)*(xrms*zrms)/(sigma);	
 		endif
