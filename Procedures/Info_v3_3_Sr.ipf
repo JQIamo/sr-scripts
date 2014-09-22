@@ -353,6 +353,7 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	Variable/G $(ProjectFolder + ":Experimental_Info:freqXLat") = nan;
 	Variable/G $(ProjectFolder + ":Experimental_Info:freqYLat") = nan;
 	Variable/G $(ProjectFolder + ":Experimental_Info:freqZLat") = nan;
+	Variable/G $(ProjectFolder + ":Experimental_Info:k") = nan;
 	Variable/G $(ProjectFolder + ":Experimental_Info:AspectRatio") = nan;
 	Variable/G $(ProjectFolder + ":Experimental_Info:IMot") = nan;
 	Variable/G $(ProjectFolder + ":Experimental_Info:Moment") = 1;
@@ -657,6 +658,7 @@ Function ComputeTrapProperties()
 	NVAR omgXLat = :Experimental_Info:omgXLat;
 	NVAR omgYLat = :Experimental_Info:omgYLat;
 	NVAR omgZLat = :Experimental_Info:omgZLat;
+	NVAR k = :Experimental_Info:k;
 	NVAR aspectratio_BEC = :Experimental_Info:aspectratio_BEC
 	NVAR trapmin0 = :Experimental_Info:trapmin0
 	NVAR expand_time = :Experimental_Info:expand_time
@@ -725,6 +727,7 @@ Function ComputeTrapProperties()
 			freqXLat = 30.5e+3;
 			freqYLat = 0;
 			freqZLat = 28.9e+3;
+			k = 2*pi/1064e-9;
 		Break
 	endswitch
 
