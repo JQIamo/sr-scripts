@@ -302,11 +302,11 @@ Function MakeLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,mo
 
 		if(mode==0)
 
-			MCtemp[i][0,numpnts(tTemp)-1] = 3^(-5/2)*integTemp[q]/site_density;//Thermal gas
+			MCtemp[i][0,numpnts(tTemp)-1] = 3^(-5/2)*integTemp[q]*10^(-12);//Thermal gas
 
 		else
 
-			MCtemp[i][0,numpnts(tTemp)-1] = (8/21)*(1/2)*integTemp[q]/site_density;//BEC
+			MCtemp[i][0,numpnts(tTemp)-1] = (8/21)*(1/2)*integTemp[q]*10^(-12);//BEC
 
 		endif
 
@@ -334,11 +334,11 @@ Function MakeLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,mo
 
 	if(mode==0)
 
-		x3Body = 3^(-5/2)*integTemp/site_density;//Thermal gas
+		x3Body = 3^(-5/2)*integTemp*10^(-12);//Thermal gas
 
 	else
 
-		x3Body = (8/21)*(1/2)*integTemp/site_density;//BEC
+		x3Body = (8/21)*(1/2)*integTemp*10^(-12);//BEC
 
 	endif
 
