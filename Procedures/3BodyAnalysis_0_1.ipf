@@ -353,13 +353,13 @@ Function MakeLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,mo
 
 	if(mode==0)
 
-		x3BodyExt = integTemp;//Thermal gas
+		x3BodyExt = integTemp*10^(24);//Thermal gas
 
 	else
 
 		//note that the getEffVol is for a thermal gas only
 		//so this is not the correct x3Body
-		x3BodyExt = integTemp;//BEC
+		x3BodyExt = integTemp*10^(24);//BEC
 
 	endif
 
@@ -414,7 +414,7 @@ Function getEffVol(T)
 
 	KillVariables tEffVol_temp;
 
-	print/D resultX*resultY*resultZ
+	//print/D resultX*resultY*resultZ
 	return resultX*resultY*resultZ
 End
 	
