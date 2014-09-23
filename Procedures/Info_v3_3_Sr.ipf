@@ -327,6 +327,7 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	Variable/G $(ProjectFolder + ":Experimental_Info:omgXLat") = nan;
 	Variable/G $(ProjectFolder + ":Experimental_Info:omgYLat") = nan;
 	Variable/G $(ProjectFolder + ":Experimental_Info:omgZLat") = nan;
+	Variable/G $(ProjectFolder + ":Experimental_Info:k") = nan;
 	Variable/G $(ProjectFolder + ":Experimental_Info:aspectratio_BEC") = nan;
 	Variable/G $(ProjectFolder + ":Experimental_Info:getscope") = 0;
 	Variable/G $(ProjectFolder + ":Experimental_Info:traptype") = 1;
@@ -353,7 +354,6 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	Variable/G $(ProjectFolder + ":Experimental_Info:freqXLat") = nan;
 	Variable/G $(ProjectFolder + ":Experimental_Info:freqYLat") = nan;
 	Variable/G $(ProjectFolder + ":Experimental_Info:freqZLat") = nan;
-	Variable/G $(ProjectFolder + ":Experimental_Info:k") = nan;
 	Variable/G $(ProjectFolder + ":Experimental_Info:AspectRatio") = nan;
 	Variable/G $(ProjectFolder + ":Experimental_Info:IMot") = nan;
 	Variable/G $(ProjectFolder + ":Experimental_Info:Moment") = 1;

@@ -251,6 +251,7 @@ Function MakeLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,mo
 	//make destination waves
 
 	Make/O/D/N=(numpnts(timeTemp)) y3Body, y3Body_SD, x3Body, x3Body_SD;
+	Make/O/D/N=(numpnts(timeTemp)) x3BodyExt, x3BodyExt_SD;
 
 	//Make waves to store the reference volumes
 	//RefVolTrap will store the reference volume for the harmonic confinement
@@ -269,10 +270,14 @@ Function MakeLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,mo
 	N_sites_SD = site_density*(2*pi*kB*T_SDtemp[p]*(1e-9)/(mass*omgX*omgZ));
 	
 	//make a wave to hold computed density
-	Make/O/D/FREE/N=(numpnts(timeTemp)) rhoTemp,rhoTemp_SD;
+	Make/O/D/FREE/N=(numpnts(timeTemp)) rhoTemp,rhoTemp_SD,rhoTempExt,rhoTempExt_SD;
 	
+	//approximate the density, in atoms/(m^3):
 	rhoTemp = numTemp[p]/(RefVolSite[p]*N_sites[p]);
 	rhoTemp_SD = Sqrt((numSDTemp[p]/(RefVolSite[p]*N_sites[p]))^2+(RefVolSite_SD[p]*numTemp[p]/((RefVolSite[p]^2)*N_sites[p]))^2+(N_sites_SD[p]*numTemp[p]/(RefVolSite[p]*N_sites[p]^2))^2);
+	//numeric integration for exact density, in atoms/(um^3)
+	rhoTempExt = numTemp[p]/getEffVol(T_temp[p]);
+	rhoTempExt_SD = 0;     //need to think about how to get standard error for numeric integral
 
 	//Monte Carlo to estimate integral errors
 	//Set iterations to match number of points used to compute
@@ -329,6 +334,8 @@ Function MakeLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,mo
 	
 
 	rhoTemp = rhoTemp^2;
+	rhoTempExt = rhoTempExt^2;
+	rhoTempExt = rhoTempExt[p]*getEffVol(T_temp[p]/3)/getEffVol(T_temp[p]);
 
 	Integrate/METH=1 rhoTemp /X=tTemp /D=integTemp;
 
@@ -339,6 +346,20 @@ Function MakeLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,mo
 	else
 
 		x3Body = (8/21)*(1/2)*integTemp*10^(-12);//BEC
+
+	endif
+	
+	Integrate/METH=1 rhoTempExt /X=tTemp /D=integTemp;
+
+	if(mode==0)
+
+		x3BodyExt = integTemp;//Thermal gas
+
+	else
+
+		//note that the getEffVol is for a thermal gas only
+		//so this is not the correct x3Body
+		x3BodyExt = integTemp;//BEC
 
 	endif
 
@@ -379,15 +400,21 @@ Function getEffVol(T)
 	
 	//set limits of integration, we could do this based on T
 	//but this works for now
-	Variable intLim = 1e-4
+	Variable intLim = 1000;     //distance in microns
+	//decrease intLim for small temperature
+	if(T<=200)
+		intLim = 250;
+	endif
 	
-	Variable resultX = integrate1D(xFunc,-intLim,intLim,0,-1)
-	Variable resultY = integrate1D(yFunc,-intLim,intLim,0,-1)
-	Variable resultZ = integrate1D(zFunc,-intLim,intLim,0,-1)
+	//romberg integration since trapezoidal seems to fail for low temperatures
+	//gaussian quadrature gives similar results but takes much longer.
+	Variable resultX = integrate1D(xFunc,-intLim,intLim,1,-1)
+	Variable resultY = integrate1D(yFunc,-intLim,intLim,1,-1)
+	Variable resultZ = integrate1D(zFunc,-intLim,intLim,1,-1)
 
 	KillVariables tEffVol_temp;
 
-	//print resultX*resultY*resultZ
+	print/D resultX*resultY*resultZ
 	return resultX*resultY*resultZ
 End
 	
@@ -401,7 +428,8 @@ Function xFunc(x)
 	NVAR k = :Experimental_Info:k;
 	NVAR T = tEffVol_temp;
 	
-	return exp(-4*pi^2*mass*((freqXLat/k)^2*cos(k*x)^2+freqX^2*x^2)/(2*kB*T));
+	//set units to microns
+	return exp(-4*pi^2*mass*((freqXLat/(k*(1e-6)))^2*cos(k*x*(1e-6))^2+freqX^2*x^2)/(2*kB*T*(1e12)));
 End
 
 Function yFunc(y)
@@ -413,7 +441,8 @@ Function yFunc(y)
 	NVAR k = :Experimental_Info:k;
 	NVAR T = tEffVol_temp;
 	
-	return exp(-4*pi^2*mass*((freqYLat/k)^2*cos(k*y)^2+freqY^2*y^2)/(2*kB*T));
+	//set units to microns
+	return exp(-4*pi^2*mass*((freqYLat/(k*(1e-6)))^2*cos(k*y*(1e-6))^2+freqY^2*y^2)/(2*kB*T*(1e12)));
 End
 
 Function zFunc(z)
@@ -425,5 +454,6 @@ Function zFunc(z)
 	NVAR k = :Experimental_Info:k;
 	NVAR T = tEffVol_temp;
 	
-	return exp(-4*pi^2*mass*((freqZLat/k)^2*cos(k*z)^2+freqZ^2*z^2)/(2*kB*T));
+	//set units to microns
+	return exp(-4*pi^2*mass*((freqZLat/(k*(1e-6)))^2*cos(k*z*(1e-6))^2+freqZ^2*z^2)/(2*kB*T*(1e12)));
 End
