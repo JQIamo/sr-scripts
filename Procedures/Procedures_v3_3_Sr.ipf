@@ -1142,6 +1142,7 @@ Function ThermalUpdateCloudPars(Gauss3D_coef)
 	NVAR mass=:Experimental_Info:mass
 	NVAR a_scatt=:Experimental_Info:a_scatt
 	NVAR theta=:Experimental_Info:theta
+	NVAR k=:Experimental_Info:k
 	
 	// extracted information 
 	NVAR chempot=:chempot, radius_TF=:radius_TF, radius_TF_t0=:radius_TF_t0
@@ -1241,9 +1242,12 @@ Function ThermalUpdateCloudPars(Gauss3D_coef)
 			number = amplitude*(pi)^(1)*(xrms*zrms)/(sigma);	
 		elseif(traptype==6)     //2D Lattice
 			yrms = (xrms+zrms)/2;
-			temperature = (mass/(4*kB))*(((omgZLat*zrms*10^(-6))^2)/(1+(omgZLat*.001*expand_time)^2)+((omgXLat*zrms*10^(-6))^2)/(1+(omgXLat*.001*expand_time)^2));
+			temperature = (mass/(4*kB))*(((omgZLat*zrms*10^(-6))^2)/(1+(omgZLat*.001*expand_time)^2)+((omgXLat*xrms*10^(-6))^2)/(1+(omgXLat*.001*expand_time)^2));
 			density = amplitude / (sqrt(pi)*sigma*yrms);	
 			number = amplitude*(pi)^(1)*(xrms*zrms)/(sigma);	
+			Variable V_0 = getEffVol(temperature*(1e9));
+			absdensity_t0 = absnumber/V_0;
+			density_t0 = number/V_0;
 		endif
 	endif
 	
