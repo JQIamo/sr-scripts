@@ -719,15 +719,15 @@ Function ComputeTrapProperties()
 			// the Trap properties section.
 			//freqX = sqrt(0.925+CrDipolePower*FreqScalingX^2);
 			//freqX = FreqScalingX*sqrt(exp(LambertWaprx(-Pc^2/DipolePower^2)/2)*(1.01+LambertWaprx(-Pc^2/DipolePower^2))*DipolePower);	
-			freqX = 88;
+			freqX = 74;
 			//freqY = FreqScalingY*sqrt(exp(LambertWaprx(-Pc^2/DipolePower^2)/2)*DipolePower);
-			freqY = 88;	
+			freqY = 74;	
 			//freqZ = FreqScalingZ*sqrt(exp(LambertWaprx(-Pc^2/DipolePower^2)/2)*DipolePower*(LambertWaprx(-Pc^2/DipolePower^2)+1));
-			freqZ = 605;
-			freqXLat = 58.9e+3;
+			freqZ = 0;
+			freqXLat = 0;
 			freqYLat = 0;
-			freqZLat = 28.7e+3;
-			k = 2*pi/1064e-9;
+			freqZLat = 30.6e+3;
+			k = 2*pi/(1064e-9);
 		Break
 	endswitch
 
