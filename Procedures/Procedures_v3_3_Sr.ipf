@@ -405,18 +405,20 @@ Function SimpleThermalFit1D(inputimage,cursorname)
 	Duplicate /O xsec_col fit_xsec_col xsec_col_mask xsec_col_weight; fit_xsec_col = nan;
 	
 	// Create weight waves which eliminate regions which have an excessive OD from the fit
-	// Using the the weight waves creates a soft boundary at PeakOD
-	xsec_row_weight = exp(-(xsec_row / PeakOD)^2)
-	xsec_col_weight = exp(-(xsec_col / PeakOD)^2)
 	
-	//Create mask waves to have a hard boundary at PeakOD if desired.
 	If(DoRealMask)
 	
+		//Create mask waves to have a hard boundary at PeakOD if desired.
 		xsec_row_mask = (xsec_row[p] > PeakOD ? 0 : 1);
 		xsec_col_mask = (xsec_col[p] > PeakOD ? 0 : 1);
+		xsec_row_weight = 1;
+		xsec_col_weight = 1;
 	
 	else
 	
+		// Using the the weight waves creates a soft boundary at PeakOD
+		xsec_row_weight = exp(-(xsec_row / PeakOD)^2);
+		xsec_col_weight = exp(-(xsec_col / PeakOD)^2);
 		xsec_row_mask = 1;
 		xsec_col_mask = 1;
 	
@@ -495,15 +497,17 @@ Function SimpleThermalFit2D(inputimage)
 
 	// Create weight waves which softly eliminate regions which have an excessive OD from the fit
 	Duplicate /O inputimage, inputimage_mask, inputimage_weight;
-	inputimage_weight = exp(-(inputimage / PeakOD)^2)
 	
-	//Create mask waves to have a hard boundary at PeakOD if desired.
+	
 	If(DoRealMask)
 	
+		//Create mask waves to have a hard boundary at PeakOD if desired.
 		inputimage_mask = (inputimage[p][q] > PeakOD ? 0 : 1);
+		inputimage_weight = 1;
 	
 	else
 	
+		inputimage_weight = exp(-(inputimage / PeakOD)^2)
 		inputimage_mask = 1;
 	
 	endif
@@ -622,18 +626,20 @@ Function ThomasFermiFit1D(inputimage,cursorname,graphname,fit_type)
 	fit_xsec_col = nan;
 	
 	// Create weight waves which eliminate regions which have an excessive OD from the fit
-	// Using the the weight waves creates a soft boundary at PeakOD
-	xsec_row_weight = exp(-(xsec_row / PeakOD)^2)
-	xsec_col_weight = exp(-(xsec_col / PeakOD)^2)
 	
-	//Create mask waves to have a hard boundary at PeakOD if desired.
 	If(DoRealMask)
 	
+		//Create mask waves to have a hard boundary at PeakOD if desired.
 		xsec_row_mask = (xsec_row[p] > PeakOD ? 0 : 1);
 		xsec_col_mask = (xsec_col[p] > PeakOD ? 0 : 1);
+		xsec_row_weight = 1;
+		xsec_col_weight = 1;
 	
 	else
 	
+		// Using the the weight waves creates a soft boundary at PeakOD
+		xsec_row_weight = exp(-(xsec_row / PeakOD)^2);
+		xsec_col_weight = exp(-(xsec_col / PeakOD)^2);
 		xsec_row_mask = 1;
 		xsec_col_mask = 1;
 	
@@ -752,23 +758,24 @@ Function ThomasFermiFit1D_free(inputimage,cursorname,graphname,fit_type)
 	fit_xsec_col = nan;
 	
 	// Create weight waves which eliminate regions which have an excessive OD from the fit
-	// Using the the weight waves creates a soft boundary at PeakOD
-	xsec_row_weight = exp(-(xsec_row / PeakOD)^2)
-	xsec_col_weight = exp(-(xsec_col / PeakOD)^2)
 	
-	//Create mask waves to have a hard boundary at PeakOD if desired.
 	If(DoRealMask)
 	
+		//Create mask waves to have a hard boundary at PeakOD if desired.
 		xsec_row_mask = (xsec_row[p] > PeakOD ? 0 : 1);
 		xsec_col_mask = (xsec_col[p] > PeakOD ? 0 : 1);
+		xsec_row_weight = 1;
+		xsec_col_weight = 1;
 	
 	else
 	
+		// Using the the weight waves creates a soft boundary at PeakOD
+		xsec_row_weight = exp(-(xsec_row / PeakOD)^2);
+		xsec_col_weight = exp(-(xsec_col / PeakOD)^2);
 		xsec_row_mask = 1;
 		xsec_col_mask = 1;
 	
 	endif
-
 	
 	// **************************************************
 	// Fit coefficients:
@@ -859,15 +866,15 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 
 	// Create weight waves which softly eliminate regions which have an excessive OD from the fit
 	Duplicate /O inputimage, inputimage_mask, inputimage_weight;
-	inputimage_weight = exp(-(inputimage / PeakOD)^2)
 	
-	//Create mask waves to have a hard boundary at PeakOD if desired.
 	If(DoRealMask)
 	
+		//Create mask waves to have a hard boundary at PeakOD if desired.
 		inputimage_mask = (inputimage[p][q] > PeakOD ? 0 : 1);
-	
+		inputimage_weight = 1;
 	else
 	
+		inputimage_weight = exp(-(inputimage / PeakOD)^2);
 		inputimage_mask = 1;
 	
 	endif
