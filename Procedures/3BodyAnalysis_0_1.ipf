@@ -202,7 +202,9 @@ End
 
 
 
-//MakeLattice3BodyWaves creates two waves for extracting 3 body decay constants from a gas trapped in a 2D Lattice.
+//Make2DLattice3BodyWaves creates two waves for extracting 3 body decay constants from a gas trapped in a 2D Lattice.
+// It will also work with a 1D or 3D Lattice provided that there is external harmonic confinement along each lattice direction
+// For a vertical lattice with no harmonic confinement, use MakeVLattice3BodyWaves instead.
 
 //The first wave is y3body = Ln(N/N0)+t/tau.
 //The second wave is x3body = const*Integrate[rhopeak(t')^2,{t',0,t}]
@@ -210,7 +212,7 @@ End
 
 //MUST SET DATAFOLDER TO BE THE PROJECT FOLDER FOR THE DATA SERIES!
 
-Function MakeLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,mode)
+Function Make2DLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,mode)
 
 	
 	//numWave = wave of average atom numbers
@@ -362,6 +364,187 @@ Function MakeLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,mo
 		x3BodyExt = integTemp*10^(24);//BEC
 
 	endif
+
+	
+
+	y3Body = ln(numTemp[p]/numTemp[0])+(timeTemp[p]-timeTemp[0])*gam1;
+
+	y3Body_SD = sqrt((numSDTemp[p]/numTemp[p])^2+(gam1SD*(timeTemp[p]-timeTemp[0]))^2);
+
+	KillWaves integTemp;
+
+
+
+	//K0=0;
+
+	//CurveFit/ODR=2/H="10"/NTHR=0/TBOX=768 line  y3Body[pcsr(A),pcsr(B)] /X=x3Body /W=y3Body_SD /I=1 /D /F={0.683000, 4} /XW=x3Body_SD;
+
+End
+
+//MakeVLattice3BodyWaves creates two waves for extracting 3 body decay constants from a gas trapped in a vertical lattice
+// which does not have external harmonic confinement along the lattice direction
+
+//The first wave is y3body = Ln(N/N0)+t/tau.
+//The second wave is x3body = const*Integrate[rhopeak(t')^2,{t',0,t}]
+//mode = 0 for thermal gas, mode = 1 for BEC
+
+//MUST SET DATAFOLDER TO BE THE PROJECT FOLDER FOR THE DATA SERIES!
+
+Function MakeVLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,z_1e_t0,z_1e_t0_SD,mode)
+
+	
+	//numWave = wave of average atom numbers
+	//numSD = wave of standard deviations of atom number
+	//T_wave = wave of average temperatures
+	//T_SD = wave of standard deviations of temperature
+	//timeWave = wave of lattice hold times
+	Wave numWave, numSD, T_Wave, T_SD, timeWave
+
+	//gam1 = Measured 1 body decay rate
+	//gam1SD = standard deviation in fit of 1 body decay rate
+	//z_1e_t0 is the in-situ 1/e size of the cloud along the lattice direction
+	//z_1e_t0_SD is standard deviation of the in-situ 1/e size
+	Variable gam1,gam1SD,mode
+	Variable z_1e_t0,z_1e_t0_SD
+
+	//Assume that the current datafolder is the project folder
+	//and get the trap frequencies
+	NVAR omgX = :Experimental_Info:omgX;
+	NVAR omgY = :Experimental_Info:omgY;
+	NVAR omgZ = :Experimental_Info:omgZ;
+	NVAR omgXLat = :Experimental_Info:omgXLat;
+	NVAR omgYLat = :Experimental_Info:omgYLat;
+	NVAR omgZLat = :Experimental_Info:omgZLat;
+	NVAR mass = :Experimental_Info:mass;
+
+	//mask the data
+
+	Duplicate/FREE/D numWave, numTemp;
+
+	Duplicate/FREE/D numSD, numSDTemp;
+
+	Duplicate/FREE/D T_Wave, T_Temp;
+
+	Duplicate/FREE/D T_SD, T_SDTemp;
+
+	Duplicate/FREE/D timeWave, timeTemp;
+
+	
+
+	//make destination waves
+
+	Make/O/D/N=(numpnts(timeTemp)) y3Body, y3Body_SD, x3Body, x3Body_SD;
+	//Make/O/D/N=(numpnts(timeTemp)) x3BodyExt, x3BodyExt_SD;
+
+	//Make waves to store the reference volumes
+	//RefVolTrap will store the reference volume for the harmonic confinement
+	//RefVolSite will store the reference volume for an individual lattice site
+	//N_sites is the number of sites with atoms
+	Make/O/D/FREE/N=(numpnts(timeTemp)) RefVolSite,RefVolSite_SD, N_sites,N_sites_SD;
+	
+	//compute the reference volume for the lattice sites
+	RefVolSite = (2*pi*kB*T_temp[p]*(1e-9)/mass)^(3/2)/(omgX*omgY*omgZLat);
+	RefVolSite_SD = 3/2*T_SDTemp[p]*(1e-9)*(2*pi*kB*T_temp[p]*(1e-9)/mass)^(1/2)/(omgX*omgY*omgZLat);
+	//Number of lattice sites per unit length for 1064 nm lattice beams:
+	Variable site_density = 1/(.532e-6);
+	
+	//get approximate number of loaded sites at each step
+	N_sites = site_density*z_1e_t0;
+	N_sites_SD = site_density*z_1e_t0_SD;
+	
+	//make a wave to hold computed density
+	Make/O/D/FREE/N=(numpnts(timeTemp)) rhoTemp,rhoTemp_SD,rhoTempExt,rhoTempExt_SD;
+	
+	//approximate the density, in atoms/(m^3):
+	rhoTemp = numTemp[p]/(RefVolSite[p]*N_sites[p]);
+	rhoTemp_SD = Sqrt((numSDTemp[p]/(RefVolSite[p]*N_sites[p]))^2+(RefVolSite_SD[p]*numTemp[p]/((RefVolSite[p]^2)*N_sites[p]))^2+(N_sites_SD[p]*numTemp[p]/(RefVolSite[p]*N_sites[p]^2))^2);
+	//numeric integration for exact density, in atoms/(um^3)
+	//rhoTempExt = numTemp[p]/getEffVol(T_temp[p]);
+	//rhoTempExt_SD = 0;     //need to think about how to get standard error for numeric integral
+
+	//Monte Carlo to estimate integral errors
+	//Set iterations to match number of points used to compute
+	//number and temperature averages
+
+	Variable iterations = 10;
+
+	Make/FREE/D/N=(iterations,numpnts(timeTemp)) MCtemp;
+
+	Duplicate/FREE/D rhoTemp_SD, MCpath;
+
+	Variable i;
+
+	//Do the Monte Carlo
+
+	For(i=0;i<iterations;i+=1)
+
+		//Generate fake data assuming gaussian distribution
+
+		MCpath = rhoTemp[p]+gnoise(rhoTemp_SD[p],2);
+
+		MCpath = MCpath^2;
+
+		//Integrate fake data
+
+		Integrate/METH=1 MCpath /X=tTemp /D=integTemp;
+
+		if(mode==0)
+
+			MCtemp[i][0,numpnts(tTemp)-1] = 3^(-5/2)*integTemp[q]*10^(-12);//Thermal gas
+
+		else
+
+			MCtemp[i][0,numpnts(tTemp)-1] = (8/21)*(1/2)*integTemp[q]*10^(-12);//BEC
+
+		endif
+
+	endFor
+
+	//Extract Uncertainties
+
+	Make/FREE/D/N=(iterations) MCpathSD;
+
+	For(i=0;i<numpnts(tTemp);i+=1)
+
+		MCpathSD=MCtemp[p][i];
+
+		WaveStats/Q/Z/M=2 MCpathSD;
+
+		x3Body_SD[i] = V_sdev;
+
+	endFor
+
+	
+
+	rhoTemp = rhoTemp^2;
+	//rhoTempExt = rhoTempExt^2;
+	//rhoTempExt = rhoTempExt[p]*getEffVol(T_temp[p]/3)/getEffVol(T_temp[p]);
+
+	Integrate/METH=1 rhoTemp /X=tTemp /D=integTemp;
+
+	if(mode==0)
+
+		x3Body = 3^(-5/2)*integTemp*10^(-12);//Thermal gas
+
+	else
+
+		x3Body = (8/21)*(1/2)*integTemp*10^(-12);//BEC
+
+	endif
+	
+	//Integrate/METH=1 rhoTempExt /X=tTemp /D=integTemp;
+
+	//if(mode==0)
+
+		//x3BodyExt = integTemp*10^(24);//Thermal gas
+
+	//else
+
+		//note that the getEffVol is for a thermal gas only
+		//so this is not the correct x3Body
+		//x3BodyExt = integTemp*10^(24);//BEC
+
+	//endif
 
 	
 
