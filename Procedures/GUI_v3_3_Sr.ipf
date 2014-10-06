@@ -1069,7 +1069,9 @@ function BuildSrWindow(ProjectFolder)
 	SetVariable PeakOD,fSize=9,format="%.2f"
 	SetVariable PeakOD,value= :Experimental_Info:PeakOD
 	
-	SetVariable theta,pos={180,384},size={108,16},bodyWidth=60,proc=Set_theta,title="Imaging Angle"
+	CheckBox DoMask,pos={145,385},size={127,16},bodyWidth=60,title="Mask",variable=$(ProjectFolder + ":fit_info:DoRealMask") 
+	
+	SetVariable theta,pos={220,384},size={108,16},bodyWidth=60,proc=Set_theta,title="Imaging Angle"
 	SetVariable theta,fSize=9,format="%.2f"
 	SetVariable theta,value= :Experimental_Info:theta
 	
@@ -1105,9 +1107,9 @@ function BuildSrWindow(ProjectFolder)
 	PopupMenu SetROI,pos={35,354},size={141,21},bodyWidth=141,proc=SetROI
 	PopupMenu SetROI,mode=1,popvalue="Set ROI",value= #"\"Set ROI;Set ROI and zoom;Zoom to ROI;Unzoom\""
 	
-	Button Slice,pos={417,377},size={45,20},proc=Call_MakeSlice,title="Slice"
+	Button Slice,pos={435,382},size={45,20},proc=Call_MakeSlice,title="Slice"
 	
-	SetVariable SliceWidth,pos={313,379},size={98,16},bodyWidth=40,title="Slice Width"
+	SetVariable SliceWidth,pos={335,384},size={98,16},bodyWidth=40,title="Slice Width"
 	SetVariable SliceWidth,fSize=9,format="%d",value= :Fit_Info:slicewidth
 	
 	SetVariable fx,pos={566,209},size={128,16},bodyWidth=75,title="X trap freq"

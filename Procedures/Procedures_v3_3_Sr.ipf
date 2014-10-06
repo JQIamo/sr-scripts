@@ -364,6 +364,7 @@ Function SimpleThermalFit1D(inputimage,cursorname)
 
 
 	NVAR slicewidth = :Fit_Info:slicewidth
+	NVAR DoRealMask = :Fit_Info:DoRealMask
 	NVAR xmax=:fit_info:xmax,xmin=:fit_info:xmin
 	NVAR ymax=:fit_info:ymax,ymin=:fit_info:ymin
 	NVAR PeakOD = :Experimental_Info:PeakOD
@@ -400,12 +401,28 @@ Function SimpleThermalFit1D(inputimage,cursorname)
 	// define the 1-D crosssections which are to be fit:
 
 	MakeSlice(inputimage,cursorname);
-	Duplicate /O xsec_row fit_xsec_row xsec_row_mask; fit_xsec_row = nan;
-	Duplicate /O xsec_col fit_xsec_col xsec_col_mask; fit_xsec_col = nan;
+	Duplicate /O xsec_row fit_xsec_row xsec_row_mask xsec_row_weight; fit_xsec_row = nan;
+	Duplicate /O xsec_col fit_xsec_col xsec_col_mask xsec_col_weight; fit_xsec_col = nan;
 	
-	// Create mask waves which eliminte from the fit regions which have an excessive OD
-	xsec_row_mask = exp(-(xsec_row / PeakOD)^2)
-	xsec_col_mask = exp(-(xsec_col / PeakOD)^2)
+	// Create weight waves which eliminate regions which have an excessive OD from the fit
+	// Using the the weight waves creates a soft boundary at PeakOD
+	xsec_row_weight = exp(-(xsec_row / PeakOD)^2)
+	xsec_col_weight = exp(-(xsec_col / PeakOD)^2)
+	
+	//Create mask waves to have a hard boundary at PeakOD if desired.
+	If(DoRealMask)
+	
+		xsec_row_mask = (xsec_row[p] > PeakOD ? 0 : 1);
+		xsec_col_mask = (xsec_col[p] > PeakOD ? 0 : 1);
+	
+	else
+	
+		xsec_row_mask = 1;
+		xsec_col_mask = 1;
+	
+	endif
+	
+	
 
 	// **************************************************
        // Fit coefficients:
@@ -424,21 +441,21 @@ Function SimpleThermalFit1D(inputimage,cursorname)
 	
 	Variable V_FitOptions=4
 	hor_coef[0] = background; hor_coef[2]=0;
-	CurveFit/Q/O/H="1000" gauss  kwCWave=hor_coef xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_mask /C=T_Constraints
+	CurveFit/Q/O/H="1000" gauss  kwCWave=hor_coef xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_weight /M=xsec_row_mask /C=T_Constraints
 	//FuncFit/N/Q/H="1010" ThermalSliceFit, hor_coef, xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_mask
 	// Perform the Actual fit
-	CurveFit /N/G/Q/H="1000" gauss kwCWave=hor_coef, xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_mask /C=T_Constraints
+	CurveFit /N/G/Q/H="1000" gauss kwCWave=hor_coef, xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_weight /M=xsec_row_mask /C=T_Constraints
 	//FuncFit/N/Q/H="0000" ThermalSliceFit, hor_coef, xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_mask
 	
 	// Fit in the vertical direction:
 	sprintf TempString, "K2 > %e", ymin; T_Constraints[0] = TempString;
 	sprintf TempString, "K2 < %e", ymax; T_Constraints[1] = TempString; 
 	ver_coef[0] = background; ver_coef[2]=0;
-	CurveFit/Q/O/H="1000" gauss  kwCWave=ver_coef, xsec_col((ymin),(ymax)) /D=fit_xsec_col /W=xsec_col_mask /C=T_Constraints 
+	CurveFit/Q/O/H="1000" gauss  kwCWave=ver_coef, xsec_col((ymin),(ymax)) /D=fit_xsec_col /W=xsec_col_weight /M=xsec_col_mask /C=T_Constraints 
 	//FuncFit/N/Q/H="1010" ThermalSliceFit, ver_coef, xsec_col((ymin),(ymax))  /D=fit_xsec_col  /W=xsec_col_mask
 	
 	// Perform the actual fit
-	CurveFit /N/G/Q/H="1000" gauss kwCWave=ver_coef, xsec_col((ymin),(ymax)) /D=fit_xsec_col /W=xsec_col_mask /C=T_Constraints
+	CurveFit /N/G/Q/H="1000" gauss kwCWave=ver_coef, xsec_col((ymin),(ymax)) /D=fit_xsec_col /W=xsec_col_weight /M=xsec_col_mask /C=T_Constraints
 	//FuncFit/N/Q/H="0000" ThermalSliceFit, ver_coef, xsec_col((ymin),(ymax)) /D=fit_xsec_col /W=xsec_col_mask
 	
 	// Fill in Coefs wave
@@ -452,6 +469,7 @@ Function SimpleThermalFit1D(inputimage,cursorname)
 	Gauss3d_coef[4] = ver_coef[2];							// Vertical position
 	Gauss3d_coef[5] = ver_coef[3];							// Vertical width
 	
+	killwaves xsec_row_mask, xsec_col_mask, xsec_row_weight, xsec_col_weight;
 	SetDataFolder fldrSav
 	return 1
 End
@@ -473,10 +491,22 @@ Function SimpleThermalFit2D(inputimage)
 	NVAR ymax=:fit_info:ymax, ymin=:fit_info:ymin
 
 	NVAR PeakOD = :Experimental_Info:PeakOD
+	NVAR DoRealMask = :fit_info:DoRealMask
 
-	// Create mask waves which eliminte from the fit regions which have an excessive OD
-	Duplicate /O inputimage, inputimage_mask;
-	inputimage_mask = exp(-(inputimage / PeakOD)^2)
+	// Create weight waves which softly eliminate regions which have an excessive OD from the fit
+	Duplicate /O inputimage, inputimage_mask, inputimage_weight;
+	inputimage_weight = exp(-(inputimage / PeakOD)^2)
+	
+	//Create mask waves to have a hard boundary at PeakOD if desired.
+	If(DoRealMask)
+	
+		inputimage_mask = (inputimage[p][q] > PeakOD ? 0 : 1);
+	
+	else
+	
+		inputimage_mask = 1;
+	
+	endif
 
 	// Coefficent wave	
 	make/O/N=7 :Fit_Info:Gauss3d_coef
@@ -510,19 +540,20 @@ Function SimpleThermalFit2D(inputimage)
 	// 1) use Igor's gaussian to get the intial guesses
 	// 2) Run a full fit with Igors Gaussian because it is fast.	
 	// 3) use the Thermal_2D function to get the final paramaters
+	// doing step three is dumb.
 	
 	Variable V_FitOptions=4
 	Variable K6 = 0;			// No corrilation term
 	Variable K0 = background;		//fix background to average OD in atom free region
-	CurveFit /O/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_mask
-	CurveFit /N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_mask
+	CurveFit /O/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
+	CurveFit /N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
 	
 	// Note the sqt(2) on the widths -- this is due to differing definitions of 1D and 2D gaussians in igor
 	redimension/N=6 Gauss3d_coef;
 	Gauss3d_coef[3] *= sqrt(2); Gauss3d_coef[5] *= sqrt(2);
-	FuncFitMD/N/Q Thermal_2D, Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask
+	//FuncFitMD/N/Q Thermal_2D, Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
 
-	killwaves inputimage_mask
+	killwaves inputimage_mask, inputimage_weight
 		
 	SetDataFolder fldrSav
 	return 1
@@ -558,6 +589,7 @@ Function ThomasFermiFit1D(inputimage,cursorname,graphname,fit_type)
 	NVAR slicewidth = :Fit_Info:slicewidth
 	NVAR xmax=:fit_info:xmax,xmin=:fit_info:xmin
 	NVAR ymax=:fit_info:ymax,ymin=:fit_info:ymin
+	NVAR DoRealMask = :fit_info:DoRealMask
 	NVAR PeakOD = :Experimental_Info:PeakOD
 	variable i = 0;
 	Variable V_FitOptions=4	// Suppress fit window
@@ -584,14 +616,28 @@ Function ThomasFermiFit1D(inputimage,cursorname,graphname,fit_type)
 	// define the 1-D crosssections which are to be fit:
 
 	MakeSlice(inputimage,cursorname);
-	Duplicate /O xsec_row fit_xsec_row xsec_row_mask;
-	Duplicate /O xsec_col fit_xsec_col xsec_col_mask ;
+	Duplicate /O xsec_row fit_xsec_row xsec_row_mask xsec_row_weight;
+	Duplicate /O xsec_col fit_xsec_col xsec_col_mask xsec_col_weight;
 	fit_xsec_row = nan;
 	fit_xsec_col = nan;
 	
-	// Create mask waves which eliminte from the fit regions which have an excessive OD
-	xsec_row_mask = exp(-(xsec_row / PeakOD)^2)
-	xsec_col_mask = exp(-(xsec_col / PeakOD)^2)
+	// Create weight waves which eliminate regions which have an excessive OD from the fit
+	// Using the the weight waves creates a soft boundary at PeakOD
+	xsec_row_weight = exp(-(xsec_row / PeakOD)^2)
+	xsec_col_weight = exp(-(xsec_col / PeakOD)^2)
+	
+	//Create mask waves to have a hard boundary at PeakOD if desired.
+	If(DoRealMask)
+	
+		xsec_row_mask = (xsec_row[p] > PeakOD ? 0 : 1);
+		xsec_col_mask = (xsec_col[p] > PeakOD ? 0 : 1);
+	
+	else
+	
+		xsec_row_mask = 1;
+		xsec_col_mask = 1;
+	
+	endif
 
 	
 	// **************************************************
@@ -609,13 +655,13 @@ Function ThomasFermiFit1D(inputimage,cursorname,graphname,fit_type)
 		TF_ver_coef[0] = background; TF_ver_coef[1] = 0;  // assume that the temperature, amplitude is zero.
 		TF_ver_coef[2] = vcsr($cursorname,ImageWindowName);TF_ver_coef[3] = 1;  // set position to the cursor.
 		TF_ver_coef[4] = .5;TF_ver_coef[5] = 50;  // guess at the TF values.
-		FuncFit /N/H="110100"/Q TF_1D, TF_ver_coef, xsec_col((ymin),(ymax))  /W=xsec_col_mask // do the fit with T=0 thermal fixed
+		FuncFit /N/H="110100"/Q TF_1D, TF_ver_coef, xsec_col((ymin),(ymax))  /W=xsec_col_weight /M=xsec_col_mask // do the fit with T=0 thermal fixed
 	else			// Thermal and TF fit
 		TF_ver_coef[0] = ver_coef[0]; TF_ver_coef[1] = ver_coef[1];  // set the known info from the thermal fit.
 		TF_ver_coef[2] = ver_coef[2]; TF_ver_coef[3] =ver_coef[3];  // set the known info from the thermal fit.
 		TF_ver_coef[4] = .5;TF_ver_coef[5] = 50;  // guess at the TF values.
-		FuncFit /N/H="111100"/Q g2TF_1D, TF_ver_coef, xsec_col((ymin),(ymax)) /W=xsec_col_mask // do the fit with manual initial guess, thermal fit fixed
-		FuncFit /N/H="100000"/Q g2TF_1D, TF_ver_coef, xsec_col((ymin),(ymax))  /W=xsec_col_mask // redo the fit with better initial guess, all values fitted
+		FuncFit /N/H="111100"/Q g2TF_1D, TF_ver_coef, xsec_col((ymin),(ymax)) /W=xsec_col_weight /M=xsec_col_mask // do the fit with manual initial guess, thermal fit fixed
+		FuncFit /N/H="100000"/Q g2TF_1D, TF_ver_coef, xsec_col((ymin),(ymax))  /W=xsec_col_weight /M=xsec_col_mask // redo the fit with better initial guess, all values fitted
 	endif			
 
 	// Fit in the horizontal direction
@@ -623,13 +669,13 @@ Function ThomasFermiFit1D(inputimage,cursorname,graphname,fit_type)
 		TF_hor_coef[0] = background; TF_hor_coef[1] = 0;  // assume that the temperature, amplitude is zero.
 		TF_hor_coef[2] = hcsr($cursorname,ImageWindowName);TF_hor_coef[3] = 1;  // set position to the cursor.
 		TF_hor_coef[4] = .5;TF_hor_coef[5] = 50;  // guess at the TF values.
-		FuncFit /N/H="110100"/Q TF_1D, TF_hor_coef, xsec_row((xmin),(xmax)) /W=xsec_row_mask  // do the fit with T=0 thermal fixed
+		FuncFit /N/H="110100"/Q TF_1D, TF_hor_coef, xsec_row((xmin),(xmax)) /W=xsec_row_weight /M=xsec_row_mask // do the fit with T=0 thermal fixed
 	else 		// Thermal and TF fit
 		TF_hor_coef[0] = hor_coef[0]; TF_hor_coef[1] = ver_coef[1];  // set the known info from the thermal fit.
 		TF_hor_coef[2] = hor_coef[2];TF_hor_coef[3] = hor_coef[3];  // set the known info from the thermal fit.
 		TF_hor_coef[4] = .5;TF_hor_coef[5] = 50;  // guess at the TF values.
-		FuncFit /N/H="111100"/Q g2TF_1D, TF_hor_coef, xsec_row((xmin),(xmax)) /W=xsec_row_mask // do the fit with manual initial guess
-		FuncFit /N/H="100000"/Q g2TF_1D, TF_hor_coef, xsec_row((xmin),(xmax)) /W=xsec_row_mask // redo the fit with better initial guess
+		FuncFit /N/H="111100"/Q g2TF_1D, TF_hor_coef, xsec_row((xmin),(xmax)) /W=xsec_row_weight /M=xsec_row_mask // do the fit with manual initial guess
+		FuncFit /N/H="100000"/Q g2TF_1D, TF_hor_coef, xsec_row((xmin),(xmax)) /W=xsec_row_weight /M=xsec_row_mask // redo the fit with better initial guess
 	endif
 	
 	// Update display waves
@@ -653,7 +699,7 @@ Function ThomasFermiFit1D(inputimage,cursorname,graphname,fit_type)
 	Gauss3d_coef[9] = TF_hor_coef[2];				// TF hor. position (constrained to be same as thermal)
 	Gauss3d_coef[10] = TF_ver_coef[2];			// TF ver. position (constrained to be same as thermal)
 	
-	killwaves xsec_row_mask, xsec_col_mask;
+	killwaves xsec_row_mask, xsec_col_mask, xsec_row_weight, xsec_col_weight;
 	
 	SetDataFolder fldrSav
 End
@@ -689,6 +735,7 @@ Function ThomasFermiFit1D_free(inputimage,cursorname,graphname,fit_type)
 	NVAR slicewidth = :Fit_Info:slicewidth
 	NVAR xmax=:fit_info:xmax,xmin=:fit_info:xmin
 	NVAR ymax=:fit_info:ymax,ymin=:fit_info:ymin
+	NVAR DoRealMask = :fit_info:DoRealMask
 	NVAR PeakOD = :Experimental_Info:PeakOD
 	variable i = 0;
 	Variable V_FitOptions=4	// Suppress fit window
@@ -699,14 +746,28 @@ Function ThomasFermiFit1D_free(inputimage,cursorname,graphname,fit_type)
 	// **************************************************
 	// define the 1-D crosssections which are to be fit:
 	MakeSlice(inputimage,cursorname);
-	Duplicate /O xsec_row fit_xsec_row xsec_row_mask;
-	Duplicate /O xsec_col fit_xsec_col xsec_col_mask ;
+	Duplicate /O xsec_row fit_xsec_row xsec_row_mask xsec_row_weight;
+	Duplicate /O xsec_col fit_xsec_col xsec_col_mask xsec_col_weight;
 	fit_xsec_row = nan;
 	fit_xsec_col = nan;
 	
-	// Create mask waves which eliminte from the fit regions which have an excessive OD
-	xsec_row_mask = exp(-(xsec_row / PeakOD)^2)
-	xsec_col_mask = exp(-(xsec_col / PeakOD)^2)
+	// Create weight waves which eliminate regions which have an excessive OD from the fit
+	// Using the the weight waves creates a soft boundary at PeakOD
+	xsec_row_weight = exp(-(xsec_row / PeakOD)^2)
+	xsec_col_weight = exp(-(xsec_col / PeakOD)^2)
+	
+	//Create mask waves to have a hard boundary at PeakOD if desired.
+	If(DoRealMask)
+	
+		xsec_row_mask = (xsec_row[p] > PeakOD ? 0 : 1);
+		xsec_col_mask = (xsec_col[p] > PeakOD ? 0 : 1);
+	
+	else
+	
+		xsec_row_mask = 1;
+		xsec_col_mask = 1;
+	
+	endif
 
 	
 	// **************************************************
@@ -730,8 +791,8 @@ Function ThomasFermiFit1D_free(inputimage,cursorname,graphname,fit_type)
 		TF_ver_coef[0] = ver_coef[0]; TF_ver_coef[1] = ver_coef[1];  // set the known info from the thermal fit.
 		TF_ver_coef[2] = ver_coef[2]; TF_ver_coef[3] =ver_coef[3];  // set the known info from the thermal fit.
 		TF_ver_coef[4] = .5;TF_ver_coef[5] = 50;  TF_ver_coef[6] = TF_ver_coef[2]; // guess at the TF values.
-		FuncFit /N/H="1111000"/Q g2TF_1D_free, TF_ver_coef, xsec_col((ymin),(ymax)) /W=xsec_col_mask // do the fit with manual initial guess, thermal fit fixed
-		FuncFit /N/H="1000000"/Q g2TF_1D_free, TF_ver_coef, xsec_col((ymin),(ymax))  /W=xsec_col_mask // redo the fit with better initial guess, all values fitted
+		FuncFit /N/H="1111000"/Q g2TF_1D_free, TF_ver_coef, xsec_col((ymin),(ymax)) /W=xsec_col_weight /M=xsec_col_mask // do the fit with manual initial guess, thermal fit fixed
+		FuncFit /N/H="1000000"/Q g2TF_1D_free, TF_ver_coef, xsec_col((ymin),(ymax))  /W=xsec_col_weight /M=xsec_col_mask // redo the fit with better initial guess, all values fitted
 	endif			
 
 	// Fit in the horizontal direction			//TFOnly won't get to *_free verision
@@ -744,8 +805,8 @@ Function ThomasFermiFit1D_free(inputimage,cursorname,graphname,fit_type)
 		TF_hor_coef[0] = hor_coef[0]; TF_hor_coef[1] = ver_coef[1];  // set the known info from the thermal fit.
 		TF_hor_coef[2] = hor_coef[2];TF_hor_coef[3] = hor_coef[3];  // set the known info from the thermal fit.
 		TF_hor_coef[4] = 2;TF_hor_coef[5] = 50;  TF_hor_coef[6] = TF_hor_coef[2]; // guess at the TF values.
-		FuncFit /N/H="1111000"/Q g2TF_1D_free, TF_hor_coef, xsec_row((xmin),(xmax)) /W=xsec_row_mask // do the fit with manual initial guess
-		FuncFit /N/H="1000000"/Q g2TF_1D_free, TF_hor_coef, xsec_row((xmin),(xmax)) /W=xsec_row_mask // redo the fit with better initial guess		
+		FuncFit /N/H="1111000"/Q g2TF_1D_free, TF_hor_coef, xsec_row((xmin),(xmax)) /W=xsec_row_weight /M=xsec_row_mask// do the fit with manual initial guess
+		FuncFit /N/H="1000000"/Q g2TF_1D_free, TF_hor_coef, xsec_row((xmin),(xmax)) /W=xsec_row_weight /M=xsec_row_mask// redo the fit with better initial guess		
 	endif
 	
 	// Update display waves
@@ -768,7 +829,7 @@ Function ThomasFermiFit1D_free(inputimage,cursorname,graphname,fit_type)
 	Gauss3d_coef[9] = TF_hor_coef[6];				// TF hor. position
 	Gauss3d_coef[10] = TF_ver_coef[6];			// TF ver. position
 	
-	killwaves xsec_row_mask, xsec_col_mask;
+	killwaves xsec_row_mask, xsec_col_mask, xsec_row_weight, xsec_col_weight;
 	
 	SetDataFolder fldrSav
 End
@@ -793,11 +854,23 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 
 	NVAR xmax=:fit_info:xmax, xmin=:fit_info:xmin
 	NVAR ymax=:fit_info:ymax, ymin=:fit_info:ymin
+	NVAR DoRealMask = :fit_info:DoRealMask
 	NVAR PeakOD = :Experimental_Info:PeakOD
 
-	// Create mask waves which eliminte from the fit regions which have an excessive OD
-	Duplicate /O inputimage, inputimage_mask;
-	inputimage_mask = exp(-(inputimage / PeakOD)^2)
+	// Create weight waves which softly eliminate regions which have an excessive OD from the fit
+	Duplicate /O inputimage, inputimage_mask, inputimage_weight;
+	inputimage_weight = exp(-(inputimage / PeakOD)^2)
+	
+	//Create mask waves to have a hard boundary at PeakOD if desired.
+	If(DoRealMask)
+	
+		inputimage_mask = (inputimage[p][q] > PeakOD ? 0 : 1);
+	
+	else
+	
+		inputimage_mask = 1;
+	
+	endif
 
 	// Coefficent wave	
 	make/O/N=7 :Fit_Info:Gauss3d_coef
@@ -834,8 +907,8 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 	Variable V_FitOptions=4
 	Variable K0 = background;
 	Variable K6 = 0;			// No corrilation term
-	CurveFit /O/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_mask
-	CurveFit /O/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_mask
+	CurveFit /O/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
+	CurveFit /O/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
 	Gauss3d_coef[3] *= sqrt(2); Gauss3d_coef[5] *= sqrt(2);
 	
 	// Note the sqt(2) on the widths -- this is due to differing definitions of 1D and 2D gaussians in igor
@@ -869,13 +942,13 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 		Hold = "110101000";
 	endif
 	
-	FuncFitMD/N/Q/H=(Hold) TF_2D, Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /D
+	FuncFitMD/N/Q/H=(Hold) TF_2D, Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /W=inputimage_weight /D
 	Gauss3d_coef[5] = Gauss3d_coef[3] ;
 	
 	// Update Display Waves
 	fit_OptDepth = TF_2D(Gauss3d_coef,x,y)
 	
-	killwaves inputimage_mask
+	killwaves inputimage_mask, inputimage_weight;
 		
 	SetDataFolder fldrSav
 	return 1
