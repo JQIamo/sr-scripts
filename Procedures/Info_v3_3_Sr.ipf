@@ -428,6 +428,7 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	New_Indexed2DWave("TF_hor_coefHistory", ":Fit_Info:TF_hor_coef")
 	New_Indexed2DWave("TF_2D_coefHisotry", ":Fit_Info:TF_2D_coefHistory")
 	New_Indexed2DWave("Gauss3d_coefHistory", ":Fit_Info:Gauss3d_coef")	// works even though Gauss3d_coef not yet made
+	New_Indexed2DWave("G3d_confidenceHistory", ":Fit_Info:G3d_confidence")
 	New_Indexed2DWave("PrAlpha_History", ":Fit_Info:PrAlpha")
 	
 	// Thermal cloud properties
@@ -525,9 +526,9 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 
 	// Fabriacate some initial data
 	Update_Magnification();		//CDH: not sure why this is called here, none of the properties have been read yet...
-	xsec_row = 4*exp(-((x) / (xmin / 8))^2);
-	xsec_col = 4*exp(-((x) / (ymin / 8))^2);
-	optdepth = 4*exp(-((x) / (xmin / 8))^2)*exp(-((y) / (ymin / 8))^2);
+	xsec_row =  (20*exp(-((x) / (xmin / 4))^2)*exp(-((y) / (ymin / 4))^2) < 4 ? 16*exp(-((x) / (xmin / 4))^2) : 4);
+	xsec_col =  (20*exp(-((x) / (xmin / 4))^2)*exp(-((y) / (ymin / 4))^2) < 4 ? 16*exp(-((y) / (ymin / 4))^2) : 4);
+	optdepth = (20*exp(-((x) / (xmin / 4))^2)*exp(-((y) / (ymin / 4))^2) < 4 ? 16*exp(-((x) / (xmin / 4))^2)*exp(-((y) / (ymin / 4))^2) : 4);
 	fit_optdepth = optdepth
 
 	// Add the cursors

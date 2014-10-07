@@ -166,6 +166,7 @@ Function AbsImg_AnalyzeImage(inputimage)
 		case 6:	// Thermal 2D
 			SimpleThermalFit2D(optdepth);  // do a simple thermal fit (gaussian) with autoguessing
 			GetCounts(optdepth)
+			UpdateCursor(Gauss3d_coef, "F");	 // put cursor F on fit center
 			ThermalUpdateCloudPars(Gauss3D_Coef) // use cursor F to adjust the on-center amplitude
 		break
 			
@@ -441,6 +442,10 @@ Function SimpleThermalFit1D(inputimage,cursorname)
 	sprintf TempString, "K2 > %e", xmin; T_Constraints[0] = TempString;
 	sprintf TempString, "K2 < %e", xmax; T_Constraints[1] = TempString; 
 	
+	// wave to store confidence intervals
+	make/O/N=10 :Fit_Info:G3d_confidence
+	Wave G3d_confidence=:Fit_Info:G3d_confidence
+	
 	Variable V_FitOptions=4
 	hor_coef[0] = background; hor_coef[2]=0;
 	CurveFit/Q/O/H="1000" gauss  kwCWave=hor_coef xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_weight /M=xsec_row_mask /C=T_Constraints
@@ -448,6 +453,15 @@ Function SimpleThermalFit1D(inputimage,cursorname)
 	// Perform the Actual fit
 	CurveFit /N/G/Q/H="1000" gauss kwCWave=hor_coef, xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_weight /M=xsec_row_mask /C=T_Constraints
 	//FuncFit/N/Q/H="0000" ThermalSliceFit, hor_coef, xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_mask
+	
+	wave W_sigma = :W_sigma;
+	//store the fitting errors
+	G3d_confidence[0] = W_sigma[0];
+	G3d_confidence[1] = W_sigma[1];
+	G3d_confidence[2] = W_sigma[2];
+	G3d_confidence[3] = W_sigma[3];
+	G3d_confidence[6] = V_chisq;
+	G3d_confidence[7] = V_npnts-V_nterms;
 	
 	// Fit in the vertical direction:
 	sprintf TempString, "K2 > %e", ymin; T_Constraints[0] = TempString;
@@ -460,8 +474,16 @@ Function SimpleThermalFit1D(inputimage,cursorname)
 	CurveFit /N/G/Q/H="1000" gauss kwCWave=ver_coef, xsec_col((ymin),(ymax)) /D=fit_xsec_col /W=xsec_col_weight /M=xsec_col_mask /C=T_Constraints
 	//FuncFit/N/Q/H="0000" ThermalSliceFit, ver_coef, xsec_col((ymin),(ymax)) /D=fit_xsec_col /W=xsec_col_mask
 	
+	//store the fitting errors
+	G3d_confidence[0] = Sqrt(((hor_coef[0]*G3d_confidence[0])^2+(ver_coef[0]*W_sigma[0])^2)/2);
+	G3d_confidence[1] = Sqrt(((hor_coef[1]*G3d_confidence[1])^2+(ver_coef[1]*W_sigma[1])^2)/2);
+	G3d_confidence[4] = W_sigma[2];
+	G3d_confidence[5] = W_sigma[3];
+	G3d_confidence[8] = V_chisq;
+	G3d_confidence[9] = V_npnts-V_nterms;
+	
 	// Fill in Coefs wave
-	make/O/N=7 :Fit_Info:Gauss3d_coef
+	make/O/N=6 :Fit_Info:Gauss3d_coef
 	Wave Gauss3d_coef=:Fit_Info:Gauss3d_coef
 
 	Gauss3d_coef[0] = (ver_coef[0] + hor_coef[0]) / 2;		// Offset
@@ -494,6 +516,8 @@ Function SimpleThermalFit2D(inputimage)
 
 	NVAR PeakOD = :Experimental_Info:PeakOD
 	NVAR DoRealMask = :fit_info:DoRealMask
+	
+	Wave fit_optdepth = :fit_info:fit_optdepth
 
 	// Create weight waves which softly eliminate regions which have an excessive OD from the fit
 	Duplicate /O inputimage, inputimage_mask, inputimage_weight;
@@ -515,6 +539,10 @@ Function SimpleThermalFit2D(inputimage)
 	// Coefficent wave	
 	make/O/N=7 :Fit_Info:Gauss3d_coef
 	Wave Gauss3d_coef=:Fit_Info:Gauss3d_coef
+	
+	// wave to store confidence intervals
+	make/O/N=9 :Fit_Info:G3d_confidence
+	Wave G3d_confidence=:Fit_Info:G3d_confidence
 	
 	// Discover the name of the current image and graph windows
 	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel;
@@ -544,7 +572,7 @@ Function SimpleThermalFit2D(inputimage)
 	// 1) use Igor's gaussian to get the intial guesses
 	// 2) Run a full fit with Igors Gaussian because it is fast.	
 	// 3) use the Thermal_2D function to get the final paramaters
-	// doing step three is dumb.
+	// doing step three is dumb, I've commented it out, DSB 2014.
 	
 	Variable V_FitOptions=4
 	Variable K6 = 0;			// No corrilation term
@@ -552,10 +580,28 @@ Function SimpleThermalFit2D(inputimage)
 	CurveFit /O/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
 	CurveFit /N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
 	
+	//store the fitted function as a wave
+	fit_optdepth = Gauss2D(Gauss3d_coef,x,y);
+	Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row
+	fit_xsec_col = fit_optdepth[pcsr(F,ImageWindowName)][p];
+	fit_xsec_row = fit_optdepth[p][qcsr(F,ImageWindowName)];
+	
 	// Note the sqt(2) on the widths -- this is due to differing definitions of 1D and 2D gaussians in igor
-	redimension/N=6 Gauss3d_coef;
+	redimension/N=7 Gauss3d_coef;
 	Gauss3d_coef[3] *= sqrt(2); Gauss3d_coef[5] *= sqrt(2);
 	//FuncFitMD/N/Q Thermal_2D, Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
+
+	wave W_sigma = :W_sigma;
+	//store the fitting errors
+	G3d_confidence[0] = W_sigma[0];
+	G3d_confidence[1] = W_sigma[1];
+	G3d_confidence[2] = W_sigma[2];
+	G3d_confidence[3] = sqrt(2)*W_sigma[3];
+	G3d_confidence[4] = W_sigma[4];
+	G3d_confidence[5] = sqrt(2)*W_sigma[5];
+	G3d_confidence[6] = W_sigma[6];
+	G3d_confidence[7] = V_chisq;
+	G3d_confidence[8] = V_npnts-V_nterms;
 
 	killwaves inputimage_mask, inputimage_weight
 		
