@@ -475,8 +475,8 @@ Function SimpleThermalFit1D(inputimage,cursorname)
 	//FuncFit/N/Q/H="0000" ThermalSliceFit, ver_coef, xsec_col((ymin),(ymax)) /D=fit_xsec_col /W=xsec_col_mask
 	
 	//store the fitting errors
-	G3d_confidence[0] = Sqrt(((hor_coef[0]*G3d_confidence[0])^2+(ver_coef[0]*W_sigma[0])^2)/2);
-	G3d_confidence[1] = Sqrt(((hor_coef[1]*G3d_confidence[1])^2+(ver_coef[1]*W_sigma[1])^2)/2);
+	G3d_confidence[0] = Sqrt(((G3d_confidence[0])^2+(W_sigma[0])^2)/4);
+	G3d_confidence[1] = Sqrt(((G3d_confidence[1])^2+(W_sigma[1])^2)/4);
 	G3d_confidence[4] = W_sigma[2];
 	G3d_confidence[5] = W_sigma[3];
 	G3d_confidence[8] = V_chisq;
@@ -702,6 +702,10 @@ Function ThomasFermiFit1D(inputimage,cursorname,graphname,fit_type)
 	// TF_*_coef[5] = TF radius.
 	Redimension/N=6 TF_hor_coef, TF_ver_coef		// ensure coef. waves have appropriate number of points
 	
+	// wave to store confidence intervals
+	make/O/N=15 :Fit_Info:G3d_confidence
+	Wave G3d_confidence=:Fit_Info:G3d_confidence
+	
 	// Fit in the vertical direction:
 	if (TFonly)	// TF fit only, no thermal fit
 		TF_ver_coef[0] = background; TF_ver_coef[1] = 0;  // assume that the temperature, amplitude is zero.
@@ -715,6 +719,18 @@ Function ThomasFermiFit1D(inputimage,cursorname,graphname,fit_type)
 		FuncFit /N/H="111100"/Q g2TF_1D, TF_ver_coef, xsec_col((ymin),(ymax)) /W=xsec_col_weight /M=xsec_col_mask // do the fit with manual initial guess, thermal fit fixed
 		FuncFit /N/H="100000"/Q g2TF_1D, TF_ver_coef, xsec_col((ymin),(ymax))  /W=xsec_col_weight /M=xsec_col_mask // redo the fit with better initial guess, all values fitted
 	endif			
+
+	wave W_sigma = :W_sigma;
+	//store the fitting errors
+	G3d_confidence[0] = W_sigma[0];
+	G3d_confidence[1] = W_sigma[1];
+	G3d_confidence[4] = W_sigma[2];
+	G3d_confidence[5] = W_sigma[3];
+	G3d_confidence[6] = W_sigma[4];
+	G3d_confidence[8] = W_sigma[5];
+	G3d_confidence[10] = W_sigma[2];
+	G3d_confidence[13] = V_chisq;
+	G3d_confidence[14] = V_npnts-V_nterms;
 
 	// Fit in the horizontal direction
 	if (TFonly)	// TF fit only, no thermal fit
@@ -733,6 +749,17 @@ Function ThomasFermiFit1D(inputimage,cursorname,graphname,fit_type)
 	// Update display waves
 	fit_xsec_col = TF_1D(TF_ver_coef,x);
 	fit_xsec_row = TF_1D(TF_hor_coef,x);
+	
+	//store the fitting errors
+	G3d_confidence[0] = Sqrt(((G3d_confidence[0])^2+(W_sigma[0])^2)/4);
+	G3d_confidence[1] = Sqrt(((G3d_confidence[1])^2+(W_sigma[1])^2)/4);
+	G3d_confidence[2] = W_sigma[2];
+	G3d_confidence[3] = W_sigma[3];
+	G3d_confidence[6] = Sqrt(((G3d_confidence[6])^2+(W_sigma[4])^2)/4);
+	G3d_confidence[7] = W_sigma[5];
+	G3d_confidence[9] = W_sigma[2];
+	G3d_confidence[11] = V_chisq;
+	G3d_confidence[12] = V_npnts-V_nterms;
 
 	// Fill in Coefs wave
 	make/O/N=11 :Fit_Info:Gauss3d_coef
@@ -834,6 +861,10 @@ Function ThomasFermiFit1D_free(inputimage,cursorname,graphname,fit_type)
 	// TF_*_coef[6] = TF position
 	Redimension/N=7 TF_hor_coef, TF_ver_coef 			// ensure coef. waves have appropriate number of points
 	
+	// wave to store confidence intervals
+	make/O/N=15 :Fit_Info:G3d_confidence
+	Wave G3d_confidence=:Fit_Info:G3d_confidence
+	
 	// Fit in the vertical direction:			//TFOnly won't get to *_free version
 	If(TFonly)  // TF fit only, no thrmal fit.
 //		TF_ver_coef[0] = 0; TF_ver_coef[1] = 0;  TF_ver_coef[2]=0; // assume that the temperature, amplitude is zero.
@@ -846,7 +877,20 @@ Function ThomasFermiFit1D_free(inputimage,cursorname,graphname,fit_type)
 		TF_ver_coef[4] = .5;TF_ver_coef[5] = 50;  TF_ver_coef[6] = TF_ver_coef[2]; // guess at the TF values.
 		FuncFit /N/H="1111000"/Q g2TF_1D_free, TF_ver_coef, xsec_col((ymin),(ymax)) /W=xsec_col_weight /M=xsec_col_mask // do the fit with manual initial guess, thermal fit fixed
 		FuncFit /N/H="1000000"/Q g2TF_1D_free, TF_ver_coef, xsec_col((ymin),(ymax))  /W=xsec_col_weight /M=xsec_col_mask // redo the fit with better initial guess, all values fitted
-	endif			
+	endif	
+	
+	wave W_sigma = :W_sigma;
+	//store the fitting errors
+	G3d_confidence[0] = W_sigma[0];
+	G3d_confidence[1] = W_sigma[1];
+	G3d_confidence[4] = W_sigma[2];
+	G3d_confidence[5] = W_sigma[3];
+	G3d_confidence[6] = W_sigma[4];
+	G3d_confidence[8] = W_sigma[5];
+	G3d_confidence[10] = W_sigma[6];
+	G3d_confidence[13] = V_chisq;
+	G3d_confidence[14] = V_npnts-V_nterms;
+		
 
 	// Fit in the horizontal direction			//TFOnly won't get to *_free verision
 	If(TFonly)  // TF fit only, no thermal fit
@@ -865,6 +909,17 @@ Function ThomasFermiFit1D_free(inputimage,cursorname,graphname,fit_type)
 	// Update display waves
 	fit_xsec_col = g2TF_1D_free(TF_ver_coef,x);
 	fit_xsec_row = g2TF_1D_free(TF_hor_coef,x);
+	
+	//store the fitting errors
+	G3d_confidence[0] = Sqrt(((G3d_confidence[0])^2+(W_sigma[0])^2)/4);
+	G3d_confidence[1] = Sqrt(((G3d_confidence[1])^2+(W_sigma[1])^2)/4);
+	G3d_confidence[2] = W_sigma[2];
+	G3d_confidence[3] = W_sigma[3];
+	G3d_confidence[6] = Sqrt(((G3d_confidence[6])^2+(W_sigma[4])^2)/4);
+	G3d_confidence[7] = W_sigma[5];
+	G3d_confidence[9] = W_sigma[6];
+	G3d_confidence[11] = V_chisq;
+	G3d_confidence[12] = V_npnts-V_nterms;
 
 	// Fill in Coefs wave
 	make/O/N=11 :Fit_Info:Gauss3d_coef
@@ -928,7 +983,11 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 	// Coefficent wave	
 	make/O/N=7 :Fit_Info:Gauss3d_coef
 	Wave Gauss3d_coef=:Fit_Info:Gauss3d_coef
-	Wave fit_optdepth = :Fit_Info:fit_optdepth;	
+	Wave fit_optdepth = :Fit_Info:fit_optdepth;
+	
+	// wave to store confidence intervals
+	make/O/N=11 :Fit_Info:G3d_confidence
+	Wave G3d_confidence=:Fit_Info:G3d_confidence	
 
 	string Hold;
 	
@@ -986,7 +1045,7 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 		Gauss3d_coef[1] /= 6;  // Based on the initial gauss peak assume that the gaussion component is 1/6 the height
 		Gauss3d_coef[3] *= 2.5;	// And Twice as wide
 		Gauss3d_coef[5] *= 2.5;
-		Hold = "100001000"; // hold the y width which is assumed to be the same as the x width
+		Hold = "100000000"; // fit both thermal widths
 	endif
 	
 	if( (fit_type == 5) )  // TF fit only, no thermal fit
@@ -996,10 +1055,27 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 	endif
 	
 	FuncFitMD/N/Q/H=(Hold) TF_2D, Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /W=inputimage_weight /D
-	Gauss3d_coef[5] = Gauss3d_coef[3] ;
+	//Gauss3d_coef[5] = Gauss3d_coef[3] ;
+	
+	wave W_sigma = :W_sigma;
+	//store the fitting errors
+	G3d_confidence[0] = W_sigma[0];
+	G3d_confidence[1] = W_sigma[1];
+	G3d_confidence[2] = W_sigma[2];
+	G3d_confidence[3] = W_sigma[3];
+	G3d_confidence[4] = W_sigma[4];
+	G3d_confidence[5] = W_sigma[5];
+	G3d_confidence[6] = W_sigma[6];
+	G3d_confidence[7] = W_sigma[7];
+	G3d_confidence[8] = W_sigma[8];
+	G3d_confidence[9] = V_chisq;
+	G3d_confidence[10] = V_npnts-V_nterms;
 	
 	// Update Display Waves
 	fit_OptDepth = TF_2D(Gauss3d_coef,x,y)
+	Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row
+	fit_xsec_col = fit_optdepth[pcsr(F,ImageWindowName)][p];
+	fit_xsec_row = fit_optdepth[p][qcsr(F,ImageWindowName)];
 	
 	killwaves inputimage_mask, inputimage_weight;
 		
