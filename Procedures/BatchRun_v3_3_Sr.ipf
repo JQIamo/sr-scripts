@@ -229,6 +229,10 @@ function ReinitializeIndexedWaves(ProjectFolder)
 	SVAR IndexedWaves=:IndexedWaves:IndexedWaves
 	SVAR IndexedVariables = :IndexedWaves:IndexedVariables;
 	
+	// 2D lists
+	SVAR Indexed2DWaveNames = :IndexedWaves:FitWaves:Indexed2DWaveNames;
+	SVAR IndexedFitWaves = :IndexedWaves:FitWaves:IndexedFitWaves;
+	
 	// IndexedWaves contains two ";" separated string lists of IndexedWaves 
 	//		and their corresponding IndexedVariables. Additionally, there is
 	//		an indexed wave of FileNames. We will redimension all of these to 0:
@@ -265,6 +269,40 @@ function ReinitializeIndexedWaves(ProjectFolder)
 		Redimension/N=0, LocalIndexedWave;
 	endfor
 	
+	// handle 2D waves
+	string Indexed2DWave, IndexedFitWave;
+	variable FitWaveLength
+	
+	npnts = ItemsInList(Indexed2DWaveNames);
+	if (npnts != ItemsInList(IndexedFitWaves) )
+		print "ReinitializeIndexedWaves:  IndexedFitWaves and Indexed2DWavesNames do not match";
+		SetDataFolder fldrSav;
+		return -1;
+	endif
+	
+	for (i = 0; i < npnts; i+= 1)
+		Indexed2DWave = ":IndexedWaves:FitWaves:" + StringFromList(i, Indexed2DWaveNames);
+		IndexedFitWave = StringFromList(i, IndexedFitWaves);
+		
+		// Verify that the wave and variable exist, if not create them
+		if (exists(Indexed2DWave)==0)
+			print "ReinitializeIndexedWaves:  Expected 2D wave", Indexed2DWave, "not found, recreating."; 
+			Make/O/N=(1,1) $(Indexed2DWave);
+		endif
+		
+		if (exists(IndexedFitWave)==0)
+			print "ReinitializeIndexedWaves:  Expected fit wave", IndexedFitWave, "not found, recreating."; 
+			Make/O/N=0 $(IndexedFitWave);
+		endif
+		
+		// Now assign the variables and update the running wave		
+		WAVE LocalIndexed2DWave = $Indexed2DWave;
+		WAVE LocalIndexedFitWave = $IndexedFitWave;
+		
+		//reset all indexed 2D waves
+		Redimension/N=(1,1), LocalIndexed2DWave;
+	endfor
+	
 	index=0;
 	
 	SetDataFolder fldrSav	// Return path
@@ -281,6 +319,10 @@ function IndexedWavesDeletePoints(ProjectFolder,firstPt,numPts)
 	NVAR index=:IndexedWaves:Index
 	SVAR IndexedWaves=:IndexedWaves:IndexedWaves
 	SVAR IndexedVariables = :IndexedWaves:IndexedVariables;
+	
+	// 2D lists
+	SVAR Indexed2DWaveNames = :IndexedWaves:FitWaves:Indexed2DWaveNames;
+	SVAR IndexedFitWaves = :IndexedWaves:FitWaves:IndexedFitWaves;
 	
 	// IndexedWaves contains two ";" separated string lists of IndexedWaves 
 	//		and their corresponding IndexedVariables. Additionally, there is
@@ -319,6 +361,45 @@ function IndexedWavesDeletePoints(ProjectFolder,firstPt,numPts)
 			DeletePoints/M=0 firstPt, numPts, LocalIndexedWave;
 		else
 			print "IndexedWavesDeletePoints: ", IndexedWave, "has insufficient points to delete.";
+			return -1;
+		endif
+	endfor
+	
+	// handle 2D waves
+	string Indexed2DWave, IndexedFitWave;
+	variable FitWaveLength
+	
+	npnts = ItemsInList(Indexed2DWaveNames);
+	if (npnts != ItemsInList(IndexedFitWaves) )
+		print "ReinitializeIndexedWaves:  IndexedFitWaves and Indexed2DWavesNames do not match";
+		SetDataFolder fldrSav;
+		return -1;
+	endif
+	
+	for (i = 0; i < npnts; i+= 1)
+		Indexed2DWave = ":IndexedWaves:FitWaves:" + StringFromList(i, Indexed2DWaveNames);
+		IndexedFitWave = StringFromList(i, IndexedFitWaves);
+		
+		// Verify that the wave and variable exist, if not create them
+		if (exists(Indexed2DWave)==0)
+			print "ReinitializeIndexedWaves:  Expected 2D wave", Indexed2DWave, "not found, recreating."; 
+			Make/O/N=(1,1) $(Indexed2DWave);
+		endif
+		
+		if (exists(IndexedFitWave)==0)
+			print "ReinitializeIndexedWaves:  Expected fit wave", IndexedFitWave, "not found, recreating."; 
+			Make/O/N=0 $(IndexedFitWave);
+		endif
+		
+		// Now assign the variables and update the running wave		
+		WAVE LocalIndexed2DWave = $Indexed2DWave;
+		WAVE LocalIndexedFitWave = $IndexedFitWave;
+		
+		//delete points from all indexed waves
+		If(DimSize(LocalIndexed2DWave,0) >= numPts)
+			DeletePoints/M=0 firstPt, numPts, LocalIndexed2DWave;
+		else
+			print "IndexedWavesDeletePoints: ", Indexed2DWave, "has insufficient points to delete.";
 			return -1;
 		endif
 	endfor
