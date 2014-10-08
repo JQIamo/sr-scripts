@@ -1102,7 +1102,7 @@ function Update_IndexedWaves()
 	
 	npnts = ItemsInList(Indexed2DWaveNames)
 	if (npnts != ItemsInList(IndexedFitWaves))
-		print "Update_IndexedWaves:  IndexedFitWaves and Indexed2DWaveNamess do not match";
+		print "Update_IndexedWaves:  IndexedFitWaves and Indexed2DWaveNames do not match";
 		SetDataFolder fldrSav;
 		return -1;
 	endif
@@ -1128,14 +1128,14 @@ function Update_IndexedWaves()
 		
 		// make sure wave is large enough
 		FitWaveLength = numpnts(LocalIndexedFitWave);
-		if (dimsize(LocalIndexed2DWave,0) < FitWaveLength)
-			Redimension/N=(FitWaveLength,-1) LocalIndexed2DWave;	// rows match Fit wave length
+		if (dimsize(LocalIndexed2DWave,1) < FitWaveLength)
+			Redimension/N=(-1,FitWaveLength) LocalIndexed2DWave;	// columns match Fit wave length
 		endif
-		if (Index >= dimsize(LocalIndexed2DWave,1))
-			redimension/N=(-1,Index +1) LocalIndexed2DWave;
+		if (Index >= dimsize(LocalIndexed2DWave,0))
+			redimension/N=(Index +1,-1) LocalIndexed2DWave;
 		endif
 		
-		LocalIndexed2DWave[][Index] = LocalIndexedFitWave[p];
+		LocalIndexed2DWave[Index][] = LocalIndexedFitWave[q];
 	endfor
 	
 	
