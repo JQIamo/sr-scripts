@@ -382,7 +382,7 @@ Function SimpleThermalFit1D(inputimage,cursorname)
 	
 	variable bgxmax, bgxmin;
 	variable bgymax, bgymin;
-	variable background;
+	variable background, bg_sdev;
 
 	// Get the background average
 	
@@ -394,6 +394,9 @@ Function SimpleThermalFit1D(inputimage,cursorname)
 	Duplicate /O inputimage, bg_mask;
 	bg_mask *= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? 1 : 0);
 	background = sum(bg_mask)/((bgxmax-bgxmin)*(bgymax-bgymin));
+	bg_mask -= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? background : 0);
+	bg_mask = bg_mask^2;
+	bg_sdev = sqrt(sum(bg_mask)/((bgxmax-bgxmin)*(bgymax-bgymin)-1))
 	
 	// In this procedure, and other image procedures, the YMIN/YMAX variable
 	// is the physical Z axes for XZ imaging.
@@ -411,15 +414,15 @@ Function SimpleThermalFit1D(inputimage,cursorname)
 	
 		//Create mask waves to have a hard boundary at PeakOD if desired.
 		xsec_row_mask = (xsec_row[p] > PeakOD ? 0 : 1);
-		xsec_col_mask = (xsec_col[p] > PeakOD ? 0 : 1);
-		xsec_row_weight = 1;
-		xsec_col_weight = 1;
+		xsec_col_mask = (xsec_col[p] > PeakOD ? 0 : 1); 
+		xsec_row_weight = 1/bg_sdev;
+		xsec_col_weight = 1/bg_sdev;
 	
 	else
 	
 		// Using the the weight waves creates a soft boundary at PeakOD
-		xsec_row_weight = exp(-(xsec_row / PeakOD)^2);
-		xsec_col_weight = exp(-(xsec_col / PeakOD)^2);
+		xsec_row_weight = (1/bg_sdev)*exp(-(xsec_row[p] / PeakOD)^2);
+		xsec_col_weight = (1/bg_sdev)*exp(-(xsec_col[p] / PeakOD)^2);
 		xsec_row_mask = 1;
 		xsec_col_mask = 1;
 	
@@ -521,20 +524,6 @@ Function SimpleThermalFit2D(inputimage)
 
 	// Create weight waves which softly eliminate regions which have an excessive OD from the fit
 	Duplicate /O inputimage, inputimage_mask, inputimage_weight;
-	
-	
-	If(DoRealMask)
-	
-		//Create mask waves to have a hard boundary at PeakOD if desired.
-		inputimage_mask = (inputimage[p][q] > PeakOD ? 0 : 1);
-		inputimage_weight = 1;
-	
-	else
-	
-		inputimage_weight = exp(-(inputimage / PeakOD)^2)
-		inputimage_mask = 1;
-	
-	endif
 
 	// Coefficent wave	
 	make/O/N=7 :Fit_Info:Gauss3d_coef
@@ -551,7 +540,7 @@ Function SimpleThermalFit2D(inputimage)
 	
 	variable bgxmax, bgxmin;
 	variable bgymax, bgymin;
-	variable background;
+	variable background, bg_sdev;
 
 	// Get the background average
 	
@@ -563,6 +552,25 @@ Function SimpleThermalFit2D(inputimage)
 	Duplicate /O inputimage, bg_mask;
 	bg_mask *= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? 1 : 0);
 	background = sum(bg_mask)/((bgxmax-bgxmin)*(bgymax-bgymin));
+	bg_mask -= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? background : 0);
+	bg_mask = bg_mask^2;
+	bg_sdev = sqrt(sum(bg_mask)/((bgxmax-bgxmin)*(bgymax-bgymin)-1))
+	
+	// Create weight waves which softly eliminate regions which have an excessive OD from the fit
+	Duplicate /O inputimage, inputimage_mask, inputimage_weight;
+	
+	If(DoRealMask)
+	
+		//Create mask waves to have a hard boundary at PeakOD if desired.
+		inputimage_mask = (inputimage[p][q] > PeakOD ? 0 : 1);
+		inputimage_weight = 1/bg_sdev;
+	
+	else
+	
+		inputimage_weight = (1/bg_sdev)*exp(-(inputimage / PeakOD)^2)
+		inputimage_mask = 1;
+	
+	endif
 	
 	// In this procedure, and other image procedures, the YMIN/YMAX variable
 	// is the physical Z axes for XZ imaging.
@@ -603,7 +611,7 @@ Function SimpleThermalFit2D(inputimage)
 	G3d_confidence[7] = V_chisq;
 	G3d_confidence[8] = V_npnts-V_nterms;
 
-	killwaves inputimage_mask, inputimage_weight
+	killwaves inputimage_mask, inputimage_weight, bg_mask
 		
 	SetDataFolder fldrSav
 	return 1
@@ -649,7 +657,7 @@ Function ThomasFermiFit1D(inputimage,cursorname,graphname,fit_type)
 	
 	variable bgxmax, bgxmin;
 	variable bgymax, bgymin;
-	variable background;
+	variable background, bg_sdev;
 
 	// Get the background average
 	
@@ -661,6 +669,9 @@ Function ThomasFermiFit1D(inputimage,cursorname,graphname,fit_type)
 	Duplicate /O inputimage, bg_mask;
 	bg_mask *= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? 1 : 0);
 	background = sum(bg_mask)/((bgxmax-bgxmin)*(bgymax-bgymin));
+	bg_mask -= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? background : 0);
+	bg_mask = bg_mask^2;
+	bg_sdev = sqrt(sum(bg_mask)/((bgxmax-bgxmin)*(bgymax-bgymin)-1))
 
 	// **************************************************
 	// define the 1-D crosssections which are to be fit:
@@ -678,14 +689,14 @@ Function ThomasFermiFit1D(inputimage,cursorname,graphname,fit_type)
 		//Create mask waves to have a hard boundary at PeakOD if desired.
 		xsec_row_mask = (xsec_row[p] > PeakOD ? 0 : 1);
 		xsec_col_mask = (xsec_col[p] > PeakOD ? 0 : 1);
-		xsec_row_weight = 1;
-		xsec_col_weight = 1;
+		xsec_row_weight = 1/bg_sdev;
+		xsec_col_weight = 1/bg_sdev;
 	
 	else
 	
 		// Using the the weight waves creates a soft boundary at PeakOD
-		xsec_row_weight = exp(-(xsec_row / PeakOD)^2);
-		xsec_col_weight = exp(-(xsec_col / PeakOD)^2);
+		xsec_row_weight = (1/bg_sdev)*exp(-(xsec_row / PeakOD)^2);
+		xsec_col_weight = (1/bg_sdev)*exp(-(xsec_col / PeakOD)^2);
 		xsec_row_mask = 1;
 		xsec_col_mask = 1;
 	
@@ -965,21 +976,6 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 	NVAR DoRealMask = :fit_info:DoRealMask
 	NVAR PeakOD = :Experimental_Info:PeakOD
 
-	// Create weight waves which softly eliminate regions which have an excessive OD from the fit
-	Duplicate /O inputimage, inputimage_mask, inputimage_weight;
-	
-	If(DoRealMask)
-	
-		//Create mask waves to have a hard boundary at PeakOD if desired.
-		inputimage_mask = (inputimage[p][q] > PeakOD ? 0 : 1);
-		inputimage_weight = 1;
-	else
-	
-		inputimage_weight = exp(-(inputimage / PeakOD)^2);
-		inputimage_mask = 1;
-	
-	endif
-
 	// Coefficent wave	
 	make/O/N=7 :Fit_Info:Gauss3d_coef
 	Wave Gauss3d_coef=:Fit_Info:Gauss3d_coef
@@ -993,7 +989,7 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 	
 	variable bgxmax, bgxmin;
 	variable bgymax, bgymin;
-	variable background;
+	variable background, bg_sdev;
 
 	// Get the background average
 	
@@ -1005,6 +1001,24 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 	Duplicate /O inputimage, bg_mask;
 	bg_mask *= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? 1 : 0);
 	background = sum(bg_mask)/((bgxmax-bgxmin)*(bgymax-bgymin));
+	bg_mask -= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? background : 0);
+	bg_mask = bg_mask^2;
+	bg_sdev = sqrt(sum(bg_mask)/((bgxmax-bgxmin)*(bgymax-bgymin)-1))
+	
+	// Create weight waves which softly eliminate regions which have an excessive OD from the fit
+	Duplicate /O inputimage, inputimage_mask, inputimage_weight;
+	
+	If(DoRealMask)
+	
+		//Create mask waves to have a hard boundary at PeakOD if desired.
+		inputimage_mask = (inputimage[p][q] > PeakOD ? 0 : 1);
+		inputimage_weight = 1/bg_sdev;
+	else
+	
+		inputimage_weight = (1/bg_sdev)*exp(-(inputimage / PeakOD)^2);
+		inputimage_mask = 1;
+	
+	endif
 	
 	// In this procedure, and other image procedures, the YMIN/YMAX variable
 	// is the physical Z axes for XZ imaging.
