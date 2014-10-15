@@ -530,7 +530,19 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	Update_Magnification();		//CDH: not sure why this is called here, none of the properties have been read yet...
 	xsec_row =  (20*exp(-((x) / (xmin / 4))^2)*exp(-((y) / (ymin / 4))^2) < 4 ? 16*exp(-((x) / (xmin / 4))^2) : 4);
 	xsec_col =  (20*exp(-((x) / (xmin / 4))^2)*exp(-((y) / (ymin / 4))^2) < 4 ? 16*exp(-((y) / (ymin / 4))^2) : 4);
-	optdepth = (20*exp(-((x) / (xmin / 4))^2)*exp(-((y) / (ymin / 4))^2) < 4 ? 16*exp(-((x) / (xmin / 4))^2)*exp(-((y) / (ymin / 4))^2) : 4);
+	//optdepth = (20*exp(-((x) / (xmin / 4))^2)*exp(-((y) / (ymin / 4))^2) < 4 ? 16*exp(-((x) / (xmin / 4))^2)*exp(-((y) / (ymin / 4))^2) : 4);
+	Make/O/D/N=8 temp_params;
+	temp_params[0] = 0;
+	temp_params[1] = 4;
+	temp_params[2] = 0;
+	temp_params[3] = xmin/8;
+	temp_params[4] = 0;
+	temp_params[5] = ymin/8;
+	temp_params[6] = 2;
+	temp_params[7] = ymin/4;
+	optdepth = TriGauss_2D(temp_params,x,y)+gnoise(.1,2);
+	xsec_row = TriGauss_2D(temp_params,x,0);
+	xsec_col = TriGauss_2D(temp_params,0,x);
 	fit_optdepth = optdepth
 
 	// Add the cursors

@@ -146,6 +146,9 @@ Function AbsImg_AnalyzeImage(inputimage)
 			ThomasFermiFit2D(optdepth, fit_type)
 			UpdateCursor(Gauss3d_coef, "F");	 // put cursor F on fit center
 			GetCounts(optdepth)
+			Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row, fit_optdepth=:Fit_Info:fit_optdepth
+			fit_xsec_col = fit_optdepth[pcsr(F,ImageWindowName)][p];
+			fit_xsec_row = fit_optdepth[p][qcsr(F,ImageWindowName)];
 			ThermalUpdateCloudPars(Gauss3D_Coef) // use cursor F to adjust the on-center amplitude
 			TFUpdateCloudPars(Gauss3d_coef, fit_type)
 		break
@@ -159,6 +162,9 @@ Function AbsImg_AnalyzeImage(inputimage)
 			ThomasFermiFit2D(optdepth, fit_type)
 			UpdateCursor(Gauss3d_coef, "F");	 // put cursor F on fit center
 			GetCounts(optdepth)
+			Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row, fit_optdepth=:Fit_Info:fit_optdepth
+			fit_xsec_col = fit_optdepth[pcsr(F,ImageWindowName)][p];
+			fit_xsec_row = fit_optdepth[p][qcsr(F,ImageWindowName)];
 			
 			TFUpdateCloudPars(Gauss3d_coef, fit_type)
 		break
@@ -167,6 +173,19 @@ Function AbsImg_AnalyzeImage(inputimage)
 			SimpleThermalFit2D(optdepth);  // do a simple thermal fit (gaussian) with autoguessing
 			GetCounts(optdepth)
 			UpdateCursor(Gauss3d_coef, "F");	 // put cursor F on fit center
+			Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row, fit_optdepth=:Fit_Info:fit_optdepth
+			fit_xsec_col = fit_optdepth[pcsr(F,ImageWindowName)][p];
+			fit_xsec_row = fit_optdepth[p][qcsr(F,ImageWindowName)];
+			ThermalUpdateCloudPars(Gauss3D_Coef) // use cursor F to adjust the on-center amplitude
+		break
+		
+		case 7:	// TriGauss 2D
+			TriGaussFit2D(optdepth);  // do a TriGauss fit with autoguessing
+			GetCounts(optdepth)
+			UpdateCursor(Gauss3d_coef, "F");	 // put cursor F on fit center
+			Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row, fit_optdepth=:Fit_Info:fit_optdepth
+			fit_xsec_col = fit_optdepth[pcsr(F,ImageWindowName)][p];
+			fit_xsec_row = fit_optdepth[p][qcsr(F,ImageWindowName)];
 			ThermalUpdateCloudPars(Gauss3D_Coef) // use cursor F to adjust the on-center amplitude
 		break
 			
@@ -585,21 +604,18 @@ Function SimpleThermalFit2D(inputimage)
 	// doing step three is dumb, I've commented it out, DSB 2014.
 	
 	Variable V_FitOptions=4
-	Variable K6 = 0;			// No corrilation term
-	Variable K0 = background;		//fix background to average OD in atom free region
 	CurveFit /O/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
-	CurveFit /N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
+	Gauss3d_coef[6] = 0;			// No corrilation term
+	Gauss3d_coef[0] = background;		//fix background to average OD in atom free region
+	CurveFit /G/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
 	
 	//store the fitted function as a wave
 	fit_optdepth = Gauss2D(Gauss3d_coef,x,y);
-	Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row
-	fit_xsec_col = fit_optdepth[pcsr(F,ImageWindowName)][p];
-	fit_xsec_row = fit_optdepth[p][qcsr(F,ImageWindowName)];
 	
 	// Note the sqt(2) on the widths -- this is due to differing definitions of 1D and 2D gaussians in igor
 	redimension/N=7 Gauss3d_coef;
 	Gauss3d_coef[3] *= sqrt(2); Gauss3d_coef[5] *= sqrt(2);
-	//FuncFitMD/N/Q Thermal_2D, Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
+	//FuncFitMD/N/Q/H="100000" Thermal_2D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
 
 	wave W_sigma = :W_sigma;
 	//store the fitting errors
@@ -621,6 +637,123 @@ Function SimpleThermalFit2D(inputimage)
 End
 
 // ******************** SimpleThermalFit2D ****************************************************************************
+
+// ******************** TriGaussFit2D *************************************************************************
+// This function fits the input image to 3 vertically separated 2D gaussian and fills in the suitable variables with the result.
+
+Function TriGaussFit2D(inputimage)
+	Wave inputimage
+
+	// Get the current path and active windows
+	String ProjectFolder = Activate_Top_ColdAtomInfo();
+	String fldrSav= GetDataFolder(1)
+	SetDataFolder ProjectFolder
+
+	NVAR xmax=:fit_info:xmax, xmin=:fit_info:xmin
+	NVAR ymax=:fit_info:ymax, ymin=:fit_info:ymin
+
+	NVAR PeakOD = :Experimental_Info:PeakOD
+	NVAR DoRealMask = :fit_info:DoRealMask
+	
+	Wave fit_optdepth = :fit_info:fit_optdepth
+
+	// Create weight waves which softly eliminate regions which have an excessive OD from the fit
+	Duplicate /O inputimage, inputimage_mask, inputimage_weight;
+
+	// Coefficent wave	
+	make/O/N=7 :Fit_Info:Gauss3d_coef
+	Wave Gauss3d_coef=:Fit_Info:Gauss3d_coef
+	
+	// wave to store confidence intervals
+	make/O/N=12 :Fit_Info:G3d_confidence
+	Wave G3d_confidence=:Fit_Info:G3d_confidence
+	
+	// Discover the name of the current image and graph windows
+	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel;
+	String ImageWindowName = CurrentPanel + "#ColdAtomInfoImage";
+	String GraphWindowName = CurrentPanel + "#ColdAtomInfoSections";
+	
+	variable bgxmax, bgxmin;
+	variable bgymax, bgymin;
+	variable background, bg_sdev;
+
+	// Get the background average
+	
+	bgymax = max(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgymin = min(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgxmax = max(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
+	bgxmin = min(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
+	
+	Duplicate /O inputimage, bg_mask;
+	bg_mask *= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? 1 : 0);
+	background = sum(bg_mask)/((bgxmax-bgxmin)*(bgymax-bgymin));
+	bg_mask -= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? background : 0);
+	bg_mask = bg_mask^2;
+	bg_sdev = sqrt(sum(bg_mask)/((bgxmax-bgxmin)*(bgymax-bgymin)-1))
+	
+	// Create weight waves which softly eliminate regions which have an excessive OD from the fit
+	Duplicate /O inputimage, inputimage_mask, inputimage_weight;
+	
+	If(DoRealMask)
+	
+		//Create mask waves to have a hard boundary at PeakOD if desired.
+		inputimage_mask = (inputimage[p][q] > PeakOD ? 0 : 1);
+		inputimage_weight = 1/bg_sdev;
+	
+	else
+	
+		inputimage_weight = (1/bg_sdev)*exp(-(inputimage / PeakOD)^2)
+		inputimage_mask = 1;
+	
+	endif
+	
+	// In this procedure, and other image procedures, the YMIN/YMAX variable
+	// is the physical Z axes for XZ imaging.
+	
+	// **************************************************
+	// Perform the fit
+	// 1) use Igor's gaussian to get the intial guesses
+	// 2) Run a full fit with Igors Gaussian because it is fast.	
+	// 3) use the TriGauss_2D function to get the final parameters
+	// doing step three is dumb, I've commented it out, DSB 2014.
+	
+	Variable V_FitOptions=4
+	CurveFit /O/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
+	Gauss3d_coef[6] = 0;			// No corrilation term
+	Gauss3d_coef[0] = background;		//fix background to average OD in atom free region
+	CurveFit /G/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
+	
+	// Note the sqt(2) on the widths -- this is due to differing definitions of 1D and 2D gaussians in igor
+	redimension/N=8 Gauss3d_coef;
+	Gauss3d_coef[3] *= sqrt(2); Gauss3d_coef[5] *= sqrt(2)/2;
+	Gauss3d_coef[6] = Gauss3d_coef[1]/2; Gauss3d_coef[7] = 2*Gauss3d_coef[5];
+	FuncFitMD/NTHR=0/G/N/Q/H="10000000" TriGauss_2D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
+
+	//store the fitted function as a wave
+	fit_optdepth = TriGauss_2D(Gauss3d_coef,x,y);
+
+	wave W_sigma = :W_sigma;
+	//store the fitting errors
+	G3d_confidence[0] = W_sigma[0];
+	G3d_confidence[1] = W_sigma[1];
+	G3d_confidence[2] = W_sigma[2];
+	G3d_confidence[3] = W_sigma[3];
+	G3d_confidence[4] = W_sigma[4];
+	G3d_confidence[5] = W_sigma[5];
+	G3d_confidence[6] = W_sigma[6];
+	G3d_confidence[7] = W_sigma[7];
+	G3d_confidence[8] = W_sigma[8];
+	G3d_confidence[9] = V_chisq;
+	G3d_confidence[10] = V_npnts-V_nterms;
+	G3d_confidence[11] = G3d_confidence[7]/G3d_confidence[8];
+
+	killwaves inputimage_mask, inputimage_weight, bg_mask
+		
+	SetDataFolder fldrSav
+	return 1
+End
+
+// ******************** TriGaussFit2D ****************************************************************************
 
 // ******************** ThomasFermiFit1D *************************************************************************
 // This function takes a given image, cuts two cross sections (vert, horiz, defined by a cursor in "image") 
@@ -725,13 +858,13 @@ Function ThomasFermiFit1D(inputimage,cursorname,graphname,fit_type)
 		TF_ver_coef[0] = background; TF_ver_coef[1] = 0;  // assume that the temperature, amplitude is zero.
 		TF_ver_coef[2] = vcsr($cursorname,ImageWindowName);TF_ver_coef[3] = 1;  // set position to the cursor.
 		TF_ver_coef[4] = .5;TF_ver_coef[5] = 50;  // guess at the TF values.
-		FuncFit /N/H="110100"/Q TF_1D, TF_ver_coef, xsec_col((ymin),(ymax))  /W=xsec_col_weight /M=xsec_col_mask // do the fit with T=0 thermal fixed
+		FuncFit /G/N/H="110100"/Q TF_1D, TF_ver_coef, xsec_col((ymin),(ymax))  /W=xsec_col_weight /M=xsec_col_mask // do the fit with T=0 thermal fixed
 	else			// Thermal and TF fit
 		TF_ver_coef[0] = ver_coef[0]; TF_ver_coef[1] = ver_coef[1];  // set the known info from the thermal fit.
 		TF_ver_coef[2] = ver_coef[2]; TF_ver_coef[3] =ver_coef[3];  // set the known info from the thermal fit.
 		TF_ver_coef[4] = .5;TF_ver_coef[5] = 50;  // guess at the TF values.
-		FuncFit /N/H="111100"/Q g2TF_1D, TF_ver_coef, xsec_col((ymin),(ymax)) /W=xsec_col_weight /M=xsec_col_mask // do the fit with manual initial guess, thermal fit fixed
-		FuncFit /N/H="100000"/Q g2TF_1D, TF_ver_coef, xsec_col((ymin),(ymax))  /W=xsec_col_weight /M=xsec_col_mask // redo the fit with better initial guess, all values fitted
+		FuncFit /G/N/H="111100"/Q g2TF_1D, TF_ver_coef, xsec_col((ymin),(ymax)) /W=xsec_col_weight /M=xsec_col_mask // do the fit with manual initial guess, thermal fit fixed
+		FuncFit /G/N/H="100000"/Q g2TF_1D, TF_ver_coef, xsec_col((ymin),(ymax))  /W=xsec_col_weight /M=xsec_col_mask // redo the fit with better initial guess, all values fitted
 	endif			
 
 	wave W_sigma = :W_sigma;
@@ -752,13 +885,13 @@ Function ThomasFermiFit1D(inputimage,cursorname,graphname,fit_type)
 		TF_hor_coef[0] = background; TF_hor_coef[1] = 0;  // assume that the temperature, amplitude is zero.
 		TF_hor_coef[2] = hcsr($cursorname,ImageWindowName);TF_hor_coef[3] = 1;  // set position to the cursor.
 		TF_hor_coef[4] = .5;TF_hor_coef[5] = 50;  // guess at the TF values.
-		FuncFit /N/H="110100"/Q TF_1D, TF_hor_coef, xsec_row((xmin),(xmax)) /W=xsec_row_weight /M=xsec_row_mask // do the fit with T=0 thermal fixed
+		FuncFit /G/N/H="110100"/Q TF_1D, TF_hor_coef, xsec_row((xmin),(xmax)) /W=xsec_row_weight /M=xsec_row_mask // do the fit with T=0 thermal fixed
 	else 		// Thermal and TF fit
 		TF_hor_coef[0] = hor_coef[0]; TF_hor_coef[1] = ver_coef[1];  // set the known info from the thermal fit.
 		TF_hor_coef[2] = hor_coef[2];TF_hor_coef[3] = hor_coef[3];  // set the known info from the thermal fit.
 		TF_hor_coef[4] = .5;TF_hor_coef[5] = 50;  // guess at the TF values.
-		FuncFit /N/H="111100"/Q g2TF_1D, TF_hor_coef, xsec_row((xmin),(xmax)) /W=xsec_row_weight /M=xsec_row_mask // do the fit with manual initial guess
-		FuncFit /N/H="100000"/Q g2TF_1D, TF_hor_coef, xsec_row((xmin),(xmax)) /W=xsec_row_weight /M=xsec_row_mask // redo the fit with better initial guess
+		FuncFit /G/N/H="111100"/Q g2TF_1D, TF_hor_coef, xsec_row((xmin),(xmax)) /W=xsec_row_weight /M=xsec_row_mask // do the fit with manual initial guess
+		FuncFit /G/N/H="100000"/Q g2TF_1D, TF_hor_coef, xsec_row((xmin),(xmax)) /W=xsec_row_weight /M=xsec_row_mask // redo the fit with better initial guess
 	endif
 	
 	// Update display waves
@@ -891,8 +1024,8 @@ Function ThomasFermiFit1D_free(inputimage,cursorname,graphname,fit_type)
 		TF_ver_coef[0] = ver_coef[0]; TF_ver_coef[1] = ver_coef[1];  // set the known info from the thermal fit.
 		TF_ver_coef[2] = ver_coef[2]; TF_ver_coef[3] =ver_coef[3];  // set the known info from the thermal fit.
 		TF_ver_coef[4] = .5;TF_ver_coef[5] = 50;  TF_ver_coef[6] = TF_ver_coef[2]; // guess at the TF values.
-		FuncFit /N/H="1111000"/Q g2TF_1D_free, TF_ver_coef, xsec_col((ymin),(ymax)) /W=xsec_col_weight /M=xsec_col_mask // do the fit with manual initial guess, thermal fit fixed
-		FuncFit /N/H="1000000"/Q g2TF_1D_free, TF_ver_coef, xsec_col((ymin),(ymax))  /W=xsec_col_weight /M=xsec_col_mask // redo the fit with better initial guess, all values fitted
+		FuncFit /G/N/H="1111000"/Q g2TF_1D_free, TF_ver_coef, xsec_col((ymin),(ymax)) /W=xsec_col_weight /M=xsec_col_mask // do the fit with manual initial guess, thermal fit fixed
+		FuncFit /G/N/H="1000000"/Q g2TF_1D_free, TF_ver_coef, xsec_col((ymin),(ymax))  /W=xsec_col_weight /M=xsec_col_mask // redo the fit with better initial guess, all values fitted
 	endif	
 	
 	wave W_sigma = :W_sigma;
@@ -919,8 +1052,8 @@ Function ThomasFermiFit1D_free(inputimage,cursorname,graphname,fit_type)
 		TF_hor_coef[0] = hor_coef[0]; TF_hor_coef[1] = ver_coef[1];  // set the known info from the thermal fit.
 		TF_hor_coef[2] = hor_coef[2];TF_hor_coef[3] = hor_coef[3];  // set the known info from the thermal fit.
 		TF_hor_coef[4] = 2;TF_hor_coef[5] = 50;  TF_hor_coef[6] = TF_hor_coef[2]; // guess at the TF values.
-		FuncFit /N/H="1111000"/Q g2TF_1D_free, TF_hor_coef, xsec_row((xmin),(xmax)) /W=xsec_row_weight /M=xsec_row_mask// do the fit with manual initial guess
-		FuncFit /N/H="1000000"/Q g2TF_1D_free, TF_hor_coef, xsec_row((xmin),(xmax)) /W=xsec_row_weight /M=xsec_row_mask// redo the fit with better initial guess		
+		FuncFit /G/N/H="1111000"/Q g2TF_1D_free, TF_hor_coef, xsec_row((xmin),(xmax)) /W=xsec_row_weight /M=xsec_row_mask// do the fit with manual initial guess
+		FuncFit /G/N/H="1000000"/Q g2TF_1D_free, TF_hor_coef, xsec_row((xmin),(xmax)) /W=xsec_row_weight /M=xsec_row_mask// redo the fit with better initial guess		
 	endif
 	
 	// Update display waves
@@ -1041,7 +1174,9 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 	Variable K0 = background;
 	Variable K6 = 0;			// No corrilation term
 	CurveFit /O/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
-	CurveFit /O/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
+	Gauss3d_coef[6] = 0;			// No corrilation term
+	Gauss3d_coef[0] = background;		//fix background to average OD in atom free region
+	CurveFit /G/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
 	Gauss3d_coef[3] *= sqrt(2); Gauss3d_coef[5] *= sqrt(2);
 	
 	// Note the sqt(2) on the widths -- this is due to differing definitions of 1D and 2D gaussians in igor
@@ -1075,7 +1210,7 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 		Hold = "110101000";
 	endif
 	
-	FuncFitMD/N/Q/H=(Hold) TF_2D, Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /W=inputimage_weight /D
+	FuncFitMD/G/N/Q/H=(Hold) TF_2D, Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /W=inputimage_weight /D
 	//Gauss3d_coef[5] = Gauss3d_coef[3] ;
 	
 	wave W_sigma = :W_sigma;
@@ -1095,9 +1230,6 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 	
 	// Update Display Waves
 	fit_OptDepth = TF_2D(Gauss3d_coef,x,y)
-	Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row
-	fit_xsec_col = fit_optdepth[pcsr(F,ImageWindowName)][p];
-	fit_xsec_row = fit_optdepth[p][qcsr(F,ImageWindowName)];
 	
 	killwaves inputimage_mask, inputimage_weight;
 		
@@ -1610,6 +1742,32 @@ Function TF_2D(w,x,z) : FitFunc
 	duplicate/O w w_therm ; w_therm[5] = w[2]; // The TF2D fit assumes that the X and Y widths are the same
 	
 	return Thermal_2d(w_therm,x,z) + w[6]*( ( (z-w[4])/(w[8]) )^2+((x-w[2])/(w[7]))^2<1?(1-( (z-w[4])/(w[8]) )^2-( (x-w[2])/(w[7]) )^2)^(3/2):0)
+End
+
+Function TriGauss_2D(w,x,z) : FitFunc
+	Wave w
+	Variable x
+	Variable z
+
+	//CurveFitDialog/ These comments were created by the Curve Fitting dialog. Altering them will
+	//CurveFitDialog/ make the function less convenient to work with in the Curve Fitting dialog.
+	//CurveFitDialog/ Equation:
+	//CurveFitDialog/ f(x,z) = offset + Atherm*exp(-((x-x0)/xrmstherm)^2-((z-z0)/(zrmstherm))^2)
+	//CurveFitDialog/ End of Equation
+	//CurveFitDialog/ Independent Variables 2
+	//CurveFitDialog/ x
+	//CurveFitDialog/ z
+	//CurveFitDialog/ Coefficients 8
+	//CurveFitDialog/ w[0] = offset
+	//CurveFitDialog/ w[1] = AmpCenter
+	//CurveFitDialog/ w[2] = x0
+	//CurveFitDialog/ w[3] = xrmstherm
+	//CurveFitDialog/ w[4] = z0
+	//CurveFitDialog/ w[5] = zrmstherm
+	//CurveFitDialog/ w[6] = AmpSide
+	//CurveFitDialog/ w[7] = PeakSep
+
+	return w[0] + w[1]*exp(-((x-w[2])/w[3])^2-((z-w[4])/(w[5]))^2) + w[6]*(exp(-((x-w[2])/w[3])^2-((z-w[4]-w[7])/(w[5]))^2) + exp(-((x-w[2])/w[3])^2-((z-w[4]+w[7])/(w[5]))^2));
 End
 
 
