@@ -376,6 +376,8 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	New_IndexedWave("rho_t0", ":density_t0");
 	New_IndexedWave("absrho_t0",":absdensity_t0");
 	New_IndexedWave("temp", ":temperature");
+	New_IndexedWave("tempH", ":thoriz");
+	New_IndexedWave("tempV", ":tvert");
 	New_IndexedWave("xpos", ":xposition");
 	New_IndexedWave("ypos", ":yposition");
 	New_IndexedWave("zpos", ":zposition");

@@ -1054,7 +1054,7 @@ function BuildSrWindow(ProjectFolder)
 	PopupMenu AnalysisType,mode=1,popvalue="1 Shot",value= #"\"1 Shot;Basis;PCA\""
 	
 	PopupMenu popup0,pos={40,151},size={127,21},bodyWidth=127,proc=SetTrapType
-	PopupMenu popup0,mode=1,popvalue="Magnetic Trap",value= #"\"Magnetic Trap;Dipole;MOT;MOT Diagnostics;Cross Dipole;2D Lattice\""
+	PopupMenu popup0,mode=1,popvalue="Magnetic Trap",value= #"\"Magnetic Trap;Dipole;MOT;MOT Diagnostics;Cross Dipole;Vert. Lattice\""
 	
 	PopupMenu sriso,pos={175,151},size={47,21},proc=SetIsotope
 	PopupMenu sriso,mode=1,popvalue="86",value= #"\"84;86;87;88\""
@@ -1127,8 +1127,14 @@ function BuildSrWindow(ProjectFolder)
 	SetVariable TrapDepth,pos={539,285},size={155,16},bodyWidth=75,title="Trap Depth [nK]"
 	SetVariable TrapDepth,limits={-inf,inf,0},value= :Experimental_Info:TrapDepth,noedit= 1
 	
-	SetVariable temp,pos={300,178},size={161,16},bodyWidth=75,title="Temperature [nK]"
+	SetVariable temp,pos={245,175},size={115,16},bodyWidth=35,title="T\Bavg\M [nk]"
 	SetVariable temp,limits={-inf,inf,0},value= :temperature,noedit= 1
+	
+	SetVariable temph,pos={299,175},size={115,16},bodyWidth=35,title="T\Bh"
+	SetVariable temph,limits={-inf,inf,0},value= :thoriz,noedit= 1
+	
+	SetVariable tempv,pos={353,175},size={115,16},bodyWidth=35,title="T\Bv"
+	SetVariable tempv,limits={-inf,inf,0},value= :tvert,noedit= 1
 	
 	SetVariable number,pos={247,197},size={116,16},bodyWidth=57,title="N (fit)"
 	SetVariable number,limits={-inf,inf,0},value= :number,format="%.3e",noedit= 1

@@ -161,7 +161,7 @@ Function NBodyDecay(w, t) : FitFunc
 End
 
 
-
+//n0 = density, t0 = time coord of first point in fit
 Function ExactBodyDecay(w, t) : FitFunc
 
 	Wave w
@@ -186,11 +186,11 @@ Function ExactBodyDecay(w, t) : FitFunc
 
 	//CurveFitDialog/ Coefficients 4
 
-	//CurveFitDialog/ w[0] = N0
+	//CurveFitDialog/ w[0] = n0
 
-	//CurveFitDialog/ w[1] = gam1
+	//CurveFitDialog/ w[1] = K1
 
-	//CurveFitDialog/ w[2] = gam3
+	//CurveFitDialog/ w[2] = K3
 
 	//CurveFitDialog/ w[3] = t0
 
@@ -429,12 +429,13 @@ Function MakeVLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,z
 
 	Duplicate/FREE/D timeWave, timeTemp;
 
-	
+	//T_Temp = 1900;
 
 	//make destination waves
 
 	Make/O/D/N=(numpnts(timeTemp)) y3Body, y3Body_SD, x3Body, x3Body_SD;
 	//Make/O/D/N=(numpnts(timeTemp)) x3BodyExt, x3BodyExt_SD;
+	Make/O/D/N=(numpnts(timeTemp)) rho3Body, rho3Body_SD;
 
 	//Make waves to store the reference volumes
 	//RefVolTrap will store the reference volume for the harmonic confinement
@@ -449,15 +450,17 @@ Function MakeVLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,z
 	Variable site_density = 1/(.532e-6);
 	
 	//get approximate number of loaded sites at each step
-	N_sites = site_density*z_1e_t0;
-	N_sites_SD = site_density*z_1e_t0_SD;
+	N_sites = site_density*sqrt(pi)*z_1e_t0*1e-6;
+	N_sites_SD = site_density*sqrt(pi)*z_1e_t0_SD*1e-6;
 	
 	//make a wave to hold computed density
 	Make/O/D/FREE/N=(numpnts(timeTemp)) rhoTemp,rhoTemp_SD,rhoTempExt,rhoTempExt_SD;
 	
 	//approximate the density, in atoms/(m^3):
 	rhoTemp = numTemp[p]/(RefVolSite[p]*N_sites[p]);
+	rho3Body = rhoTemp*10^(-6);
 	rhoTemp_SD = Sqrt((numSDTemp[p]/(RefVolSite[p]*N_sites[p]))^2+(RefVolSite_SD[p]*numTemp[p]/((RefVolSite[p]^2)*N_sites[p]))^2+(N_sites_SD[p]*numTemp[p]/(RefVolSite[p]*N_sites[p]^2))^2);
+	rho3Body_SD = rhoTemp_SD*10^(-6);
 	//numeric integration for exact density, in atoms/(um^3)
 	//rhoTempExt = numTemp[p]/getEffVol(T_temp[p]);
 	//rhoTempExt_SD = 0;     //need to think about how to get standard error for numeric integral
@@ -490,7 +493,7 @@ Function MakeVLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,z
 
 		if(mode==0)
 
-			MCtemp[i][0,numpnts(tTemp)-1] = 3^(-5/2)*integTemp[q]*10^(-12);//Thermal gas
+			MCtemp[i][0,numpnts(tTemp)-1] = 3^(-2)*integTemp[q]*10^(-12);//Thermal gas
 
 		else
 
@@ -524,7 +527,7 @@ Function MakeVLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,z
 
 	if(mode==0)
 
-		x3Body = 3^(-5/2)*integTemp*10^(-12);//Thermal gas
+		x3Body = 3^(-2)*integTemp*10^(-12);//Thermal gas
 
 	else
 

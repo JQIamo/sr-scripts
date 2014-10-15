@@ -446,7 +446,7 @@ Function SimpleThermalFit1D(inputimage,cursorname)
 	sprintf TempString, "K2 < %e", xmax; T_Constraints[1] = TempString; 
 	
 	// wave to store confidence intervals
-	make/O/N=10 :Fit_Info:G3d_confidence
+	make/O/N=12 :Fit_Info:G3d_confidence
 	Wave G3d_confidence=:Fit_Info:G3d_confidence
 	
 	Variable V_FitOptions=4
@@ -465,6 +465,7 @@ Function SimpleThermalFit1D(inputimage,cursorname)
 	G3d_confidence[3] = W_sigma[3];
 	G3d_confidence[6] = V_chisq;
 	G3d_confidence[7] = V_npnts-V_nterms;
+	G3d_confidence[8] = G3d_confidence[6]/G3d_confidence[7];
 	
 	// Fit in the vertical direction:
 	sprintf TempString, "K2 > %e", ymin; T_Constraints[0] = TempString;
@@ -482,8 +483,9 @@ Function SimpleThermalFit1D(inputimage,cursorname)
 	G3d_confidence[1] = Sqrt(((G3d_confidence[1])^2+(W_sigma[1])^2)/4);
 	G3d_confidence[4] = W_sigma[2];
 	G3d_confidence[5] = W_sigma[3];
-	G3d_confidence[8] = V_chisq;
-	G3d_confidence[9] = V_npnts-V_nterms;
+	G3d_confidence[9] = V_chisq;
+	G3d_confidence[10] = V_npnts-V_nterms;
+	G3d_confidence[11] = G3d_confidence[9]/G3d_confidence[10];
 	
 	// Fill in Coefs wave
 	make/O/N=6 :Fit_Info:Gauss3d_coef
@@ -530,7 +532,7 @@ Function SimpleThermalFit2D(inputimage)
 	Wave Gauss3d_coef=:Fit_Info:Gauss3d_coef
 	
 	// wave to store confidence intervals
-	make/O/N=9 :Fit_Info:G3d_confidence
+	make/O/N=10 :Fit_Info:G3d_confidence
 	Wave G3d_confidence=:Fit_Info:G3d_confidence
 	
 	// Discover the name of the current image and graph windows
@@ -610,6 +612,7 @@ Function SimpleThermalFit2D(inputimage)
 	G3d_confidence[6] = W_sigma[6];
 	G3d_confidence[7] = V_chisq;
 	G3d_confidence[8] = V_npnts-V_nterms;
+	G3d_confidence[9] = G3d_confidence[7]/G3d_confidence[8];
 
 	killwaves inputimage_mask, inputimage_weight, bg_mask
 		
@@ -714,7 +717,7 @@ Function ThomasFermiFit1D(inputimage,cursorname,graphname,fit_type)
 	Redimension/N=6 TF_hor_coef, TF_ver_coef		// ensure coef. waves have appropriate number of points
 	
 	// wave to store confidence intervals
-	make/O/N=15 :Fit_Info:G3d_confidence
+	make/O/N=17 :Fit_Info:G3d_confidence
 	Wave G3d_confidence=:Fit_Info:G3d_confidence
 	
 	// Fit in the vertical direction:
@@ -740,8 +743,9 @@ Function ThomasFermiFit1D(inputimage,cursorname,graphname,fit_type)
 	G3d_confidence[6] = W_sigma[4];
 	G3d_confidence[8] = W_sigma[5];
 	G3d_confidence[10] = W_sigma[2];
-	G3d_confidence[13] = V_chisq;
-	G3d_confidence[14] = V_npnts-V_nterms;
+	G3d_confidence[14] = V_chisq;
+	G3d_confidence[15] = V_npnts-V_nterms;
+	G3d_confidence[16] = G3d_confidence[14]/G3d_confidence[15];
 
 	// Fit in the horizontal direction
 	if (TFonly)	// TF fit only, no thermal fit
@@ -771,6 +775,7 @@ Function ThomasFermiFit1D(inputimage,cursorname,graphname,fit_type)
 	G3d_confidence[9] = W_sigma[2];
 	G3d_confidence[11] = V_chisq;
 	G3d_confidence[12] = V_npnts-V_nterms;
+	G3d_confidence[13] = G3d_confidence[11]/G3d_confidence[12];
 
 	// Fill in Coefs wave
 	make/O/N=11 :Fit_Info:Gauss3d_coef
@@ -873,7 +878,7 @@ Function ThomasFermiFit1D_free(inputimage,cursorname,graphname,fit_type)
 	Redimension/N=7 TF_hor_coef, TF_ver_coef 			// ensure coef. waves have appropriate number of points
 	
 	// wave to store confidence intervals
-	make/O/N=15 :Fit_Info:G3d_confidence
+	make/O/N=17 :Fit_Info:G3d_confidence
 	Wave G3d_confidence=:Fit_Info:G3d_confidence
 	
 	// Fit in the vertical direction:			//TFOnly won't get to *_free version
@@ -899,8 +904,9 @@ Function ThomasFermiFit1D_free(inputimage,cursorname,graphname,fit_type)
 	G3d_confidence[6] = W_sigma[4];
 	G3d_confidence[8] = W_sigma[5];
 	G3d_confidence[10] = W_sigma[6];
-	G3d_confidence[13] = V_chisq;
-	G3d_confidence[14] = V_npnts-V_nterms;
+	G3d_confidence[14] = V_chisq;
+	G3d_confidence[15] = V_npnts-V_nterms;
+	G3d_confidence[16] = G3d_confidence[14]/G3d_confidence[15];
 		
 
 	// Fit in the horizontal direction			//TFOnly won't get to *_free verision
@@ -931,6 +937,7 @@ Function ThomasFermiFit1D_free(inputimage,cursorname,graphname,fit_type)
 	G3d_confidence[9] = W_sigma[6];
 	G3d_confidence[11] = V_chisq;
 	G3d_confidence[12] = V_npnts-V_nterms;
+	G3d_confidence[13] = G3d_confidence[11]/G3d_confidence[12];
 
 	// Fill in Coefs wave
 	make/O/N=11 :Fit_Info:Gauss3d_coef
@@ -982,7 +989,7 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 	Wave fit_optdepth = :Fit_Info:fit_optdepth;
 	
 	// wave to store confidence intervals
-	make/O/N=11 :Fit_Info:G3d_confidence
+	make/O/N=12 :Fit_Info:G3d_confidence
 	Wave G3d_confidence=:Fit_Info:G3d_confidence	
 
 	string Hold;
@@ -1084,6 +1091,7 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 	G3d_confidence[8] = W_sigma[8];
 	G3d_confidence[9] = V_chisq;
 	G3d_confidence[10] = V_npnts-V_nterms;
+	G3d_confidence[11] = G3d_confidence[9]/G3d_confidence[10];
 	
 	// Update Display Waves
 	fit_OptDepth = TF_2D(Gauss3d_coef,x,y)
@@ -1363,6 +1371,7 @@ Function ThermalUpdateCloudPars(Gauss3D_coef)
 	// extracted information 
 	NVAR chempot=:chempot, radius_TF=:radius_TF, radius_TF_t0=:radius_TF_t0
 	NVAR density=:density, number=:number, absnumber=:absnumber,temperature=:temperature
+	NVAR thoriz=:thoriz, tvert=:tvert
 	NVAR xrms=:xrms, yrms=:yrms,zrms=:zrms
 	NVAR xposition=:xposition, yposition=:yposition, zposition=:zposition
 	NVAR AspectRatio_meas=:AspectRatio_meas,amplitude=:amplitude
@@ -1454,21 +1463,29 @@ Function ThermalUpdateCloudPars(Gauss3D_coef)
 		elseif(traptype==3)	// MOT
 			yrms = (xrms+zrms)/2;
 			temperature = (mass/(4*kB))*((xrms*0.001/(expand_time))^2+(zrms*0.001/(expand_time))^2);
+			thoriz = (mass/(2*kB))*(xrms*0.001/expand_time)^2;
+			tvert = (mass/(2*kB))*(zrms*0.001/expand_time)^2;
 			density = amplitude / (sqrt(pi)*sigma*yrms);	
 			number = amplitude*(pi)^(1)*(xrms*zrms)/(sigma);	
-		elseif(traptype==6)     //2D Lattice
+		elseif(traptype==6)     //Vertical 1D Lattice
 			yrms = (xrms+zrms)/2;
-			temperature = (mass/(4*kB))*(((omgZLat*zrms*10^(-6))^2)/(1+(omgZLat*.001*expand_time)^2)+((omgXLat*xrms*10^(-6))^2)/(1+(omgXLat*.001*expand_time)^2));
+			temperature = (mass/(4*kB))*(((omgZLat*zrms*10^(-6))^2)/(1+(omgZLat*.001*expand_time)^2)+((omgX*xrms*10^(-6))^2)/(1+(omgX*.001*expand_time)^2));
+			thoriz = (mass/(2*kB))*((omgX*xrms*10^(-6))^2)/(1+(omgX*.001*expand_time)^2);
+			tvert = (mass/(2*kB))*((omgZLat*zrms*10^(-6))^2)/(1+(omgZLat*.001*expand_time)^2);
+			zrms_t0 = zrms/sqrt(1+(omgZLat*expand_time*0.001)^2);
+			xrms_t0 = xrms/sqrt(1+(omgX*expand_time*0.001)^2);
 			density = amplitude / (sqrt(pi)*sigma*yrms);	
 			number = amplitude*(pi)^(1)*(xrms*zrms)/(sigma);	
-			Variable V_0 = getEffVol(temperature*(1e9));
-			absdensity_t0 = absnumber/V_0;
-			density_t0 = number/V_0;
+			//Variable V_0 = getEffVol(temperature*(1e9));
+			//absdensity_t0 = absnumber/V_0;
+			//density_t0 = number/V_0;
 		endif
 	endif
 	
 	PSD = density_t0*10^18*(2*pi*hbar^2/(mass*kB*temperature))^1.5					// Phase space density at t=0
-	temperature *= 1e9;															// Temperature in nK.
+	temperature *= 1e9;
+	thoriz *= 1e9;
+	tvert *= 1e9;															// Temperature in nK.
 	
 	
 	// Transition Temperature		--CDH: 31.Jan.2012: this is only expressly true just at Tc (where number=Nc)
