@@ -1082,7 +1082,7 @@ function BuildSrWindow(ProjectFolder)
 	PopupMenu DataType_popup,mode=1,popvalue="Absorption",value= #"\"Absorption;Fluorescence;PhaseContrast;\""
 	
 	PopupMenu FitTypePopup,pos={40,201},size={109,21},bodyWidth=109,proc=SetFit_Type
-	PopupMenu FitTypePopup,mode=1,popvalue="Thermal 1D",value= #"\"Thermal 1D;TF+Thermal 1D;TF only 1D;TF+Thermal 2D;TF only 2D;Thermal 2D;TriGauss 2D;None\""
+	PopupMenu FitTypePopup,mode=1,popvalue="Thermal 1D",value= #"\"Thermal 1D;TF+Thermal 1D;TF only 1D;TF+Thermal 2D;TF only 2D;Thermal 2D;TriGauss 2D;BandMap 1D;None\""
 	
 	CheckBox DualAxisImage,pos={155,205},size={80,16},bodyWidth=60,proc=Set_DualAxis,title="2 Axis Img"
 	CheckBox DualAxisImage,value=0

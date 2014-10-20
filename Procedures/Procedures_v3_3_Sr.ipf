@@ -194,6 +194,16 @@ Function AbsImg_AnalyzeImage(inputimage)
 			ThermalUpdateCloudPars(Gauss3D_Coef) // use cursor F to adjust the on-center amplitude
 		break
 			
+		case 8:	// BandMap 1D
+			BandMapFit1D(optdepth);  // do a BandMap fit with autoguessing
+			GetCounts(optdepth)
+			UpdateCursor(Gauss3d_coef, "F");	 // put cursor F on fit center
+			Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row, fit_optdepth=:Fit_Info:fit_optdepth
+			fit_xsec_col = ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)][p] : 0);
+			fit_xsec_row = ((p > pmin) && (p < pmax) ? fit_optdepth[p][qcsr(F,ImageWindowName)] : 0);
+			ThermalUpdateCloudPars(Gauss3D_Coef) // use cursor F to adjust the on-center amplitude
+		break	
+			
 		default: // Do nothing, just count counts
 			GetCounts(optdepth)
 		break;
@@ -738,7 +748,7 @@ Function TriGaussFit2D(inputimage)
 	// Note the sqt(2) on the widths -- this is due to differing definitions of 1D and 2D gaussians in igor
 	redimension/N=8 Gauss3d_coef;
 	Gauss3d_coef[3] *= sqrt(2); Gauss3d_coef[5] *= sqrt(2)/2;
-	Gauss3d_coef[6] = Gauss3d_coef[1]/2; Gauss3d_coef[7] = 1.5*hbar*k*expand_time*(1e3)/mass; // 1e3 converts m to um and ms to s
+	Gauss3d_coef[6] = Gauss3d_coef[1]/2; Gauss3d_coef[7] = 1.5*hbar*k*expand_time*(1e3)/mass; // 1e3 converts m to um and ms to s simultaneously
 	FuncFitMD/NTHR=0/G/N/Q/H="10000000" TriGauss_2D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
 
 	//store the fitted function as a wave
@@ -769,6 +779,139 @@ Function TriGaussFit2D(inputimage)
 End
 
 // ******************** TriGaussFit2D ****************************************************************************
+
+// ******************** BandMapFit1D *************************************************************************
+// This function fits the input image to 3 vertically separated 2D gaussian and fills in the suitable variables with the result.
+
+Function BandMapFit1D(inputimage)
+	Wave inputimage
+
+	// Get the current path and active windows
+	String ProjectFolder = Activate_Top_ColdAtomInfo();
+	String fldrSav= GetDataFolder(1)
+	SetDataFolder ProjectFolder
+
+	NVAR xmax=:fit_info:xmax, xmin=:fit_info:xmin
+	NVAR ymax=:fit_info:ymax, ymin=:fit_info:ymin
+
+	NVAR PeakOD = :Experimental_Info:PeakOD
+	NVAR DoRealMask = :fit_info:DoRealMask
+	NVAR k=:Experimental_Info:k
+	NVAR mass=:Experimental_Info:mass
+	NVAR expand_time=:Experimental_Info:expand_time
+	
+	Wave fit_optdepth = :fit_info:fit_optdepth
+
+	// Create weight waves which softly eliminate regions which have an excessive OD from the fit
+	Duplicate /O inputimage, inputimage_mask, inputimage_weight;
+
+	// Coefficent wave	
+	make/O/N=7 :Fit_Info:Gauss3d_coef
+	Wave Gauss3d_coef=:Fit_Info:Gauss3d_coef
+	
+	// wave to store confidence intervals
+	make/O/N=12 :Fit_Info:G3d_confidence
+	Wave G3d_confidence=:Fit_Info:G3d_confidence
+	
+	// Discover the name of the current image and graph windows
+	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel;
+	String ImageWindowName = CurrentPanel + "#ColdAtomInfoImage";
+	String GraphWindowName = CurrentPanel + "#ColdAtomInfoSections";
+	
+	variable bgxmax, bgxmin;
+	variable bgymax, bgymin;
+	variable background, bg_sdev;
+
+	// Get the background average
+	
+	bgymax = max(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgymin = min(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgxmax = max(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
+	bgxmin = min(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
+	
+	Duplicate /O inputimage, bg_mask;
+	bg_mask *= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? 1 : 0);
+	background = sum(bg_mask)/((bgxmax-bgxmin)*(bgymax-bgymin));
+	bg_mask -= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? background : 0);
+	bg_mask = bg_mask^2;
+	bg_sdev = sqrt(sum(bg_mask)/((bgxmax-bgxmin)*(bgymax-bgymin)-1))
+	
+	// Create weight waves which softly eliminate regions which have an excessive OD from the fit
+	Duplicate /O inputimage, inputimage_mask, inputimage_weight;
+	
+	If(DoRealMask)
+	
+		//Create mask waves to have a hard boundary at PeakOD if desired.
+		inputimage_mask = (inputimage[p][q] > PeakOD ? 0 : 1);
+		inputimage_weight = 1/bg_sdev;
+	
+	else
+	
+		inputimage_weight = (1/bg_sdev)*exp(-(inputimage / PeakOD)^2)
+		inputimage_mask = 1;
+	
+	endif
+	
+	// In this procedure, and other image procedures, the YMIN/YMAX variable
+	// is the physical Z axes for XZ imaging.
+	
+	// **************************************************
+	// Perform the fit
+	// 1) use Igor's gaussian to get the intial guesses
+	// 2) Run a full fit with Igors Gaussian because it is fast.	
+	// 3) use the BandMap_1D function to get the final parameters
+	// w[0] = offset
+	// w[1] = Agband
+	// w[2] = x0
+	// w[3] = xrmstherm
+	// w[4] = hbk
+	// w[5] = z0
+	// w[6] = BetaJ0
+	// w[7] = Aeband
+	// w[8] = BetaJ1 
+	
+	Variable V_FitOptions=4
+	CurveFit /O/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
+	Gauss3d_coef[6] = 0;			// No corrilation term
+	Gauss3d_coef[0] = background;		//fix background to average OD in atom free region
+	CurveFit /G/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
+	
+	// Note the sqt(2) on the widths -- this is due to differing definitions of 1D and 2D gaussians in igor
+	redimension/N=9 Gauss3d_coef;
+	Gauss3d_coef[3] *= sqrt(2); Gauss3d_coef[5] = Gauss3d_coef[4];
+	Gauss3d_coef[7] = Gauss3d_coef[1]/2; Gauss3d_coef[4] = hbar*k*expand_time*(1e3)/mass; // 1e3 converts m to um and ms to s simultaneously
+	Gauss3d_coef[6] = .01; Gauss3d_coef[8] = .01;
+	FuncFitMD/NTHR=0/G/N/Q/H="100010000" BandMap_1D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
+
+	//store the fitted function as a wave
+	variable pmax = (xmax - DimOffset(inputimage, 0))/DimDelta(inputimage,0);
+	variable pmin = (xmin - DimOffset(inputimage, 0))/DimDelta(inputimage,0);
+	variable qmax = (ymax - DimOffset(inputimage, 1))/DimDelta(inputimage,1);
+	variable qmin = (ymin - DimOffset(inputimage, 1))/DimDelta(inputimage,1);
+	fit_optdepth[pmin,pmax][qmin,qmax] = BandMap_1D(Gauss3d_coef,x,y);
+
+	wave W_sigma = :W_sigma;
+	//store the fitting errors
+	G3d_confidence[0] = W_sigma[0];
+	G3d_confidence[1] = W_sigma[1];
+	G3d_confidence[2] = W_sigma[2];
+	G3d_confidence[3] = W_sigma[3];
+	G3d_confidence[4] = W_sigma[4];
+	G3d_confidence[5] = W_sigma[5];
+	G3d_confidence[6] = W_sigma[6];
+	G3d_confidence[7] = W_sigma[7];
+	G3d_confidence[8] = W_sigma[8];
+	G3d_confidence[9] = V_chisq;
+	G3d_confidence[10] = V_npnts-V_nterms;
+	G3d_confidence[11] = G3d_confidence[9]/G3d_confidence[10];
+
+	killwaves inputimage_mask, inputimage_weight, bg_mask
+		
+	SetDataFolder fldrSav
+	return 1
+End
+
+// ******************** BandMapFit1D ****************************************************************************
 
 // ******************** ThomasFermiFit1D *************************************************************************
 // This function takes a given image, cuts two cross sections (vert, horiz, defined by a cursor in "image") 
@@ -1789,6 +1932,34 @@ Function TriGauss_2D(w,x,z) : FitFunc
 	return w[0] + w[1]*exp(-((x-w[2])/w[3])^2-((z-w[4])/(w[5]))^2) + w[6]*(exp(-((x-w[2])/w[3])^2-((z-w[4]-w[7])/(w[5]))^2) + exp(-((x-w[2])/w[3])^2-((z-w[4]+w[7])/(w[5]))^2));
 End
 
+
+// parameter w[4] is the hbar*k momentum converted into position units and must be computed and held for fitting
+Function BandMap_1D(w,x,z) : FitFunc
+	Wave w
+	Variable x
+	Variable z
+
+	//CurveFitDialog/ These comments were created by the Curve Fitting dialog. Altering them will
+	//CurveFitDialog/ make the function less convenient to work with in the Curve Fitting dialog.
+	//CurveFitDialog/ Equation:
+	//CurveFitDialog/ f(x,z) = offset + exp(-((x-x0)/xrmstherm)^2)*((((z-z0) <= hbk) && ((z-z0) >= -hbk)) ? Agband*exp(-2*BetaJ0*(1-cos(pi*(z-z0)/hbk))) : (((((z-z0) <= 2*hbk) && ((z-z0) > hbk)) || (((z-z0) >= -2*hbk) && ((z-z0) < -hbk))) ? Aeband*exp(-2*BetaJ1*(1-cos(pi*(z-z0/hbk))) : 0));
+	//CurveFitDialog/ End of Equation
+	//CurveFitDialog/ Independent Variables 2
+	//CurveFitDialog/ x
+	//CurveFitDialog/ z
+	//CurveFitDialog/ Coefficients 9
+	//CurveFitDialog/ w[0] = offset
+	//CurveFitDialog/ w[1] = Agband
+	//CurveFitDialog/ w[2] = x0
+	//CurveFitDialog/ w[3] = xrmstherm
+	//CurveFitDialog/ w[4] = hbk
+	//CurveFitDialog/ w[5] = z0
+	//CurveFitDialog/ w[6] = BetaJ0
+	//CurveFitDialog/ w[7] = Aeband
+	//CurveFitDialog/ w[8] = BetaJ1 
+
+	return w[0] + exp(-((x-w[2])/w[3])^2)*((((z-w[5]) <= w[4]) && ((z-w[5]) >= -w[4])) ? w[1]*exp(-2*w[6]*(1-cos(pi*(z-w[5])/w[4]))) : (((((z-w[5]) <= 2*w[4]) && ((z-w[5]) > w[4])) || (((z-w[5]) >= -2*w[4]) && ((z-w[5]) < -w[4]))) ? w[7]*exp(-2*w[8]*(1-cos(pi*(z-w[5])/w[4]))) : 0));
+End
 
 // ******* IntegrateROI ****************************************************************************************
 // 
