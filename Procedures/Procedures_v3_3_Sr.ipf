@@ -61,6 +61,11 @@ Function AbsImg_AnalyzeImage(inputimage)
 	Wave TF_2D_coef=:Fit_Info:TF_2D_coef
 	Wave optdepth=:optdepth
 	Variable row
+	
+	variable pmax = (xmax - DimOffset(inputimage, 0))/DimDelta(inputimage,0);
+	variable pmin = (xmin - DimOffset(inputimage, 0))/DimDelta(inputimage,0);
+	variable qmax = (ymax - DimOffset(inputimage, 1))/DimDelta(inputimage,1);
+	variable qmin = (ymin - DimOffset(inputimage, 1))/DimDelta(inputimage,1);
 
 	// Be sure that the desired image is on the active panel display, and that all of the cursors exist;
 	UpdatePanelImage(NameOfWave(optdepth));
@@ -147,8 +152,8 @@ Function AbsImg_AnalyzeImage(inputimage)
 			UpdateCursor(Gauss3d_coef, "F");	 // put cursor F on fit center
 			GetCounts(optdepth)
 			Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row, fit_optdepth=:Fit_Info:fit_optdepth
-			fit_xsec_col = fit_optdepth[pcsr(F,ImageWindowName)][p];
-			fit_xsec_row = fit_optdepth[p][qcsr(F,ImageWindowName)];
+			fit_xsec_col = ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)][p] : 0);
+			fit_xsec_row = ((p > pmin) && (p < pmax) ? fit_optdepth[p][qcsr(F,ImageWindowName)] : 0);
 			ThermalUpdateCloudPars(Gauss3D_Coef) // use cursor F to adjust the on-center amplitude
 			TFUpdateCloudPars(Gauss3d_coef, fit_type)
 		break
@@ -163,8 +168,8 @@ Function AbsImg_AnalyzeImage(inputimage)
 			UpdateCursor(Gauss3d_coef, "F");	 // put cursor F on fit center
 			GetCounts(optdepth)
 			Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row, fit_optdepth=:Fit_Info:fit_optdepth
-			fit_xsec_col = fit_optdepth[pcsr(F,ImageWindowName)][p];
-			fit_xsec_row = fit_optdepth[p][qcsr(F,ImageWindowName)];
+			fit_xsec_col = ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)][p] : 0);
+			fit_xsec_row = ((p > pmin) && (p < pmax) ? fit_optdepth[p][qcsr(F,ImageWindowName)] : 0);
 			
 			TFUpdateCloudPars(Gauss3d_coef, fit_type)
 		break
@@ -174,8 +179,8 @@ Function AbsImg_AnalyzeImage(inputimage)
 			GetCounts(optdepth)
 			UpdateCursor(Gauss3d_coef, "F");	 // put cursor F on fit center
 			Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row, fit_optdepth=:Fit_Info:fit_optdepth
-			fit_xsec_col = fit_optdepth[pcsr(F,ImageWindowName)][p];
-			fit_xsec_row = fit_optdepth[p][qcsr(F,ImageWindowName)];
+			fit_xsec_col = ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)][p] : 0);
+			fit_xsec_row = ((p > pmin) && (p < pmax) ? fit_optdepth[p][qcsr(F,ImageWindowName)] : 0);
 			ThermalUpdateCloudPars(Gauss3D_Coef) // use cursor F to adjust the on-center amplitude
 		break
 		
@@ -184,8 +189,8 @@ Function AbsImg_AnalyzeImage(inputimage)
 			GetCounts(optdepth)
 			UpdateCursor(Gauss3d_coef, "F");	 // put cursor F on fit center
 			Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row, fit_optdepth=:Fit_Info:fit_optdepth
-			fit_xsec_col = fit_optdepth[pcsr(F,ImageWindowName)][p];
-			fit_xsec_row = fit_optdepth[p][qcsr(F,ImageWindowName)];
+			fit_xsec_col = ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)][p] : 0);
+			fit_xsec_row = ((p > pmin) && (p < pmax) ? fit_optdepth[p][qcsr(F,ImageWindowName)] : 0);
 			ThermalUpdateCloudPars(Gauss3D_Coef) // use cursor F to adjust the on-center amplitude
 		break
 			
@@ -610,7 +615,11 @@ Function SimpleThermalFit2D(inputimage)
 	CurveFit /G/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
 	
 	//store the fitted function as a wave
-	fit_optdepth = Gauss2D(Gauss3d_coef,x,y);
+	variable pmax = (xmax - DimOffset(inputimage, 0))/DimDelta(inputimage,0);
+	variable pmin = (xmin - DimOffset(inputimage, 0))/DimDelta(inputimage,0);
+	variable qmax = (ymax - DimOffset(inputimage, 1))/DimDelta(inputimage,1);
+	variable qmin = (ymin - DimOffset(inputimage, 1))/DimDelta(inputimage,1);
+	fit_optdepth[pmin,pmax][qmin,qmax] = Gauss2D(Gauss3d_coef,x,y);
 	
 	// Note the sqt(2) on the widths -- this is due to differing definitions of 1D and 2D gaussians in igor
 	redimension/N=7 Gauss3d_coef;
@@ -654,6 +663,9 @@ Function TriGaussFit2D(inputimage)
 
 	NVAR PeakOD = :Experimental_Info:PeakOD
 	NVAR DoRealMask = :fit_info:DoRealMask
+	NVAR k=:Experimental_Info:k
+	NVAR mass=:Experimental_Info:mass
+	NVAR expand_time=:Experimental_Info:expand_time
 	
 	Wave fit_optdepth = :fit_info:fit_optdepth
 
@@ -665,7 +677,7 @@ Function TriGaussFit2D(inputimage)
 	Wave Gauss3d_coef=:Fit_Info:Gauss3d_coef
 	
 	// wave to store confidence intervals
-	make/O/N=12 :Fit_Info:G3d_confidence
+	make/O/N=11 :Fit_Info:G3d_confidence
 	Wave G3d_confidence=:Fit_Info:G3d_confidence
 	
 	// Discover the name of the current image and graph windows
@@ -726,11 +738,15 @@ Function TriGaussFit2D(inputimage)
 	// Note the sqt(2) on the widths -- this is due to differing definitions of 1D and 2D gaussians in igor
 	redimension/N=8 Gauss3d_coef;
 	Gauss3d_coef[3] *= sqrt(2); Gauss3d_coef[5] *= sqrt(2)/2;
-	Gauss3d_coef[6] = Gauss3d_coef[1]/2; Gauss3d_coef[7] = 2*Gauss3d_coef[5];
+	Gauss3d_coef[6] = Gauss3d_coef[1]/2; Gauss3d_coef[7] = 1.5*hbar*k*expand_time*(1e3)/mass; // 1e3 converts m to um and ms to s
 	FuncFitMD/NTHR=0/G/N/Q/H="10000000" TriGauss_2D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
 
 	//store the fitted function as a wave
-	fit_optdepth = TriGauss_2D(Gauss3d_coef,x,y);
+	variable pmax = (xmax - DimOffset(inputimage, 0))/DimDelta(inputimage,0);
+	variable pmin = (xmin - DimOffset(inputimage, 0))/DimDelta(inputimage,0);
+	variable qmax = (ymax - DimOffset(inputimage, 1))/DimDelta(inputimage,1);
+	variable qmin = (ymin - DimOffset(inputimage, 1))/DimDelta(inputimage,1);
+	fit_optdepth[pmin,pmax][qmin,qmax] = TriGauss_2D(Gauss3d_coef,x,y);
 
 	wave W_sigma = :W_sigma;
 	//store the fitting errors
@@ -742,10 +758,9 @@ Function TriGaussFit2D(inputimage)
 	G3d_confidence[5] = W_sigma[5];
 	G3d_confidence[6] = W_sigma[6];
 	G3d_confidence[7] = W_sigma[7];
-	G3d_confidence[8] = W_sigma[8];
-	G3d_confidence[9] = V_chisq;
-	G3d_confidence[10] = V_npnts-V_nterms;
-	G3d_confidence[11] = G3d_confidence[7]/G3d_confidence[8];
+	G3d_confidence[8] = V_chisq;
+	G3d_confidence[9] = V_npnts-V_nterms;
+	G3d_confidence[10] = G3d_confidence[8]/G3d_confidence[9];
 
 	killwaves inputimage_mask, inputimage_weight, bg_mask
 		
@@ -1229,7 +1244,11 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 	G3d_confidence[11] = G3d_confidence[9]/G3d_confidence[10];
 	
 	// Update Display Waves
-	fit_OptDepth = TF_2D(Gauss3d_coef,x,y)
+	variable pmax = (xmax - DimOffset(inputimage, 0))/DimDelta(inputimage,0);
+	variable pmin = (xmin - DimOffset(inputimage, 0))/DimDelta(inputimage,0);
+	variable qmax = (ymax - DimOffset(inputimage, 1))/DimDelta(inputimage,1);
+	variable qmin = (ymin - DimOffset(inputimage, 1))/DimDelta(inputimage,1);
+	fit_optdepth[pmin,pmax][qmin,qmax] = TF_2D(Gauss3d_coef,x,y)
 	
 	killwaves inputimage_mask, inputimage_weight;
 		
