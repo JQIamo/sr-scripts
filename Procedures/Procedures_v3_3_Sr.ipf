@@ -864,8 +864,8 @@ Function BandMapFit1D(inputimage)
 	// w[1] = Agband
 	// w[2] = x0
 	// w[3] = xrmstherm
-	// w[4] = hbk
-	// w[5] = z0
+	// w[4] = z0
+	// w[5] = hbk
 	// w[6] = BetaJ0
 	// w[7] = Aeband
 	// w[8] = BetaJ1 
@@ -878,10 +878,10 @@ Function BandMapFit1D(inputimage)
 	
 	// Note the sqt(2) on the widths -- this is due to differing definitions of 1D and 2D gaussians in igor
 	redimension/N=9 Gauss3d_coef;
-	Gauss3d_coef[3] *= sqrt(2); Gauss3d_coef[5] = Gauss3d_coef[4];
-	Gauss3d_coef[7] = Gauss3d_coef[1]/2; Gauss3d_coef[4] = hbar*k*expand_time*(1e3)/mass; // 1e3 converts m to um and ms to s simultaneously
+	Gauss3d_coef[3] *= sqrt(2);
+	Gauss3d_coef[7] = Gauss3d_coef[1]/2; Gauss3d_coef[5] = hbar*k*expand_time*(1e3)/mass; // 1e3 converts m to um and ms to s simultaneously
 	Gauss3d_coef[6] = .01; Gauss3d_coef[8] = .01;
-	FuncFitMD/NTHR=0/G/N/Q/H="100010000" BandMap_1D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
+	FuncFitMD/NTHR=0/G/N/Q/H="100001000" BandMap_1D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
 
 	//store the fitted function as a wave
 	variable pmax = (xmax - DimOffset(inputimage, 0))/DimDelta(inputimage,0);
@@ -1952,13 +1952,13 @@ Function BandMap_1D(w,x,z) : FitFunc
 	//CurveFitDialog/ w[1] = Agband
 	//CurveFitDialog/ w[2] = x0
 	//CurveFitDialog/ w[3] = xrmstherm
-	//CurveFitDialog/ w[4] = hbk
-	//CurveFitDialog/ w[5] = z0
+	//CurveFitDialog/ w[4] = z0
+	//CurveFitDialog/ w[5] = hbk
 	//CurveFitDialog/ w[6] = BetaJ0
 	//CurveFitDialog/ w[7] = Aeband
 	//CurveFitDialog/ w[8] = BetaJ1 
 
-	return w[0] + exp(-((x-w[2])/w[3])^2)*((((z-w[5]) <= w[4]) && ((z-w[5]) >= -w[4])) ? w[1]*exp(-2*w[6]*(1-cos(pi*(z-w[5])/w[4]))) : (((((z-w[5]) <= 2*w[4]) && ((z-w[5]) > w[4])) || (((z-w[5]) >= -2*w[4]) && ((z-w[5]) < -w[4]))) ? w[7]*exp(-2*w[8]*(1-cos(pi*(z-w[5])/w[4]))) : 0));
+	return w[0] + exp(-((x-w[2])/w[3])^2)*((((z-w[4]) <= w[5]) && ((z-w[4]) >= -w[5])) ? w[1]*exp(-2*w[6]*(1-cos(pi*(z-w[4])/w[5]))) : (((((z-w[4]) <= 2*w[5]) && ((z-w[4]) > w[5])) || (((z-w[4]) >= -2*w[5]) && ((z-w[4]) < -w[5]))) ? w[7]*exp(-2*w[8]*(1-cos(pi*(z-w[4])/w[5]))) : 0));
 End
 
 // ******* IntegrateROI ****************************************************************************************
