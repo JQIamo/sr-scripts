@@ -62,3 +62,39 @@ Function LambertWaprx(z)
 
 	return e*z/(1+((2*e*z+2)^(-1/2)+1/(e-1)-1/sqrt(2))^(-1))
 End
+
+Function VertFreqFit(w, pow) : FitFunc
+	Wave w
+	Variable pow
+	
+	//CurveFitDialog/ These comments were created by the Curve Fitting dialog. Altering them will
+	//CurveFitDialog/ make the function less convenient to work with in the Curve Fitting dialog.
+	//CurveFitDialog/ Equation:
+	//CurveFitDialog/ f(pow) = sqrt(w[0]+w[1]*pow)
+	//CurveFitDialog/ End of Equation
+	//CurveFitDialog/ Independent Variables 1
+	//CurveFitDialog/ pow
+	//CurveFitDialog/ Coefficients 2
+	//CurveFitDialog/ w[0] = Amp
+	//CurveFitDialog/ w[1] = Pcritical
+
+	return (abs(pow) >= (sqrt(e)*w[1]) ? 2*w[0]*Sqrt(exp(LambertWaprx(-w[1]^2/pow^2)/2)*pow*(LambertWaprx(-w[1]^2/pow^2)+1)) : 0)
+End
+
+Function TransFreqFit(w, pow) : FitFunc
+	Wave w
+	Variable pow
+	
+	//CurveFitDialog/ These comments were created by the Curve Fitting dialog. Altering them will
+	//CurveFitDialog/ make the function less convenient to work with in the Curve Fitting dialog.
+	//CurveFitDialog/ Equation:
+	//CurveFitDialog/ f(pow) = sqrt(w[0]+w[1]*pow)
+	//CurveFitDialog/ End of Equation
+	//CurveFitDialog/ Independent Variables 1
+	//CurveFitDialog/ pow
+	//CurveFitDialog/ Coefficients 2
+	//CurveFitDialog/ w[0] = Amp
+	//CurveFitDialog/ w[1] = Pcritical
+
+	return (abs(pow) >= (sqrt(e)*w[1]) ? 2*w[0]*Sqrt(exp(LambertWaprx(-w[1]^2/pow^2)/2)*pow) : 0)
+End

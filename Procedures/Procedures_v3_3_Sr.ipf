@@ -737,7 +737,6 @@ Function TriGaussFit2D(inputimage)
 	// 1) use Igor's gaussian to get the intial guesses
 	// 2) Run a full fit with Igors Gaussian because it is fast.	
 	// 3) use the TriGauss_2D function to get the final parameters
-	// doing step three is dumb, I've commented it out, DSB 2014.
 	
 	Variable V_FitOptions=4
 	CurveFit /O/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
@@ -748,7 +747,7 @@ Function TriGaussFit2D(inputimage)
 	// Note the sqt(2) on the widths -- this is due to differing definitions of 1D and 2D gaussians in igor
 	redimension/N=8 Gauss3d_coef;
 	Gauss3d_coef[3] *= sqrt(2); Gauss3d_coef[5] *= sqrt(2)/2;
-	Gauss3d_coef[6] = Gauss3d_coef[1]/2; Gauss3d_coef[7] = 1.5*hbar*k*expand_time*(1e3)/mass; // 1e3 converts m to um and ms to s simultaneously
+	Gauss3d_coef[6] = Gauss3d_coef[1]/2; Gauss3d_coef[7] = Gauss3d_coef[5]*2/sqrt(2);//2*hbar*k*expand_time*(1e3)/mass; // 1e3 converts m to um and ms to s simultaneously
 	FuncFitMD/NTHR=0/G/N/Q/H="10000000" TriGauss_2D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
 
 	//store the fitted function as a wave
