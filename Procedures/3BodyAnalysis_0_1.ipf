@@ -254,6 +254,8 @@ Function Make2DLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,
 
 	Make/O/D/N=(numpnts(timeTemp)) y3Body, y3Body_SD, x3Body, x3Body_SD;
 	Make/O/D/N=(numpnts(timeTemp)) x3BodyExt, x3BodyExt_SD;
+	Make/O/D/N=(numpnts(timeTemp)) rho3Body, rho3Body_SD;
+	Make/O/D/N=(numpnts(timeTemp)) rho3BodyExt, rho3BodyExt_SD;
 
 	//Make waves to store the reference volumes
 	//RefVolTrap will store the reference volume for the harmonic confinement
@@ -262,14 +264,14 @@ Function Make2DLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,
 	Make/O/D/FREE/N=(numpnts(timeTemp)) RefVolSite,RefVolSite_SD, N_sites,N_sites_SD;
 	
 	//compute the reference volume for the lattice sites
-	RefVolSite = (2*pi*kB*T_temp[p]*(1e-9)/mass)^(3/2)/(omgXLat*omgY*omgZLat);
-	RefVolSite_SD = 3/2*T_SDTemp[p]*(1e-9)*(2*pi*kB*T_temp[p]*(1e-9)/mass)^(1/2)/(omgXLat*omgY*omgZLat);
-	//Number of lattice sites per unit area for 1064 nm lattice beams:
-	Variable site_density = 1/(.532e-6)^2;
+	RefVolSite = (2*pi*kB*T_temp[p]*(1e-9)/mass)^(3/2)/(omgXLat*omgY*omgZ);
+	RefVolSite_SD = 3/2*T_SDTemp[p]*(1e-9)*(2*pi*kB*T_temp[p]*(1e-9)/mass)^(1/2)/(omgXLat*omgY*omgZ);
+	//Number of lattice sites per unit length for 1064 nm lattice beams:
+	Variable site_density = 1/(.532e-6);
 	
 	//get approximate number of loaded sites at each step
-	N_sites = site_density*(2*pi*kB*T_temp[p]*(1e-9)/(mass*omgX*omgZ));
-	N_sites_SD = site_density*(2*pi*kB*T_SDtemp[p]*(1e-9)/(mass*omgX*omgZ));
+	N_sites = site_density*sqrt(2*pi*kB*T_temp[p]*(1e-9)/mass)/omgX;
+	N_sites_SD = site_density*sqrt(2*pi*kB*T_SDtemp[p]*(1e-9)/mass)/omgX;
 	
 	//make a wave to hold computed density
 	Make/O/D/FREE/N=(numpnts(timeTemp)) rhoTemp,rhoTemp_SD,rhoTempExt,rhoTempExt_SD;
@@ -277,9 +279,13 @@ Function Make2DLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,
 	//approximate the density, in atoms/(m^3):
 	rhoTemp = numTemp[p]/(RefVolSite[p]*N_sites[p]);
 	rhoTemp_SD = Sqrt((numSDTemp[p]/(RefVolSite[p]*N_sites[p]))^2+(RefVolSite_SD[p]*numTemp[p]/((RefVolSite[p]^2)*N_sites[p]))^2+(N_sites_SD[p]*numTemp[p]/(RefVolSite[p]*N_sites[p]^2))^2);
+	rho3Body = rhoTemp*10^(-6);
+	rho3Body_SD = rhoTemp_SD*10^(-6);
 	//numeric integration for exact density, in atoms/(um^3)
 	rhoTempExt = numTemp[p]/getEffVol(T_temp[p]);
 	rhoTempExt_SD = 0;     //need to think about how to get standard error for numeric integral
+	rho3BodyExt = rhoTempExt*10^(12);
+	rho3BodyExt_SD = rhoTempExt_SD*10^(12);
 
 	//Monte Carlo to estimate integral errors
 	//Set iterations to match number of points used to compute
@@ -287,9 +293,9 @@ Function Make2DLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,
 
 	Variable iterations = 10;
 
-	Make/FREE/D/N=(iterations,numpnts(timeTemp)) MCtemp;
+	Make/O/FREE/D/N=(iterations,numpnts(timeTemp)) MCtemp;
 
-	Duplicate/FREE/D rhoTemp_SD, MCpath;
+	Duplicate/FREE/O/D rhoTemp_SD, MCpath;
 
 	Variable i;
 
@@ -298,22 +304,22 @@ Function Make2DLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,
 	For(i=0;i<iterations;i+=1)
 
 		//Generate fake data assuming gaussian distribution
-
 		MCpath = rhoTemp[p]+gnoise(rhoTemp_SD[p],2);
 
 		MCpath = MCpath^2;
 
 		//Integrate fake data
 
-		Integrate/METH=1 MCpath /X=tTemp /D=integTemp;
-
+		Integrate/METH=1 MCpath /X=timeTemp /D=integTemp;
+		
 		if(mode==0)
 
-			MCtemp[i][0,numpnts(tTemp)-1] = 3^(-5/2)*integTemp[q]*10^(-12);//Thermal gas
+			MCtemp[i][0,numpnts(timeTemp)-1] = 3^(-2)*integTemp[q]*10^(-12);//Thermal gas
+			print i
 
 		else
 
-			MCtemp[i][0,numpnts(tTemp)-1] = (8/21)*(1/2)*integTemp[q]*10^(-12);//BEC
+			MCtemp[i][0,numpnts(timeTemp)-1] = (8/21)*(1/2)*integTemp[q]*10^(-12);//BEC
 
 		endif
 
@@ -323,7 +329,7 @@ Function Make2DLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,
 
 	Make/FREE/D/N=(iterations) MCpathSD;
 
-	For(i=0;i<numpnts(tTemp);i+=1)
+	For(i=0;i<numpnts(timeTemp);i+=1)
 
 		MCpathSD=MCtemp[p][i];
 
@@ -339,11 +345,11 @@ Function Make2DLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,
 	rhoTempExt = rhoTempExt^2;
 	rhoTempExt = rhoTempExt[p]*getEffVol(T_temp[p]/3)/getEffVol(T_temp[p]);
 
-	Integrate/METH=1 rhoTemp /X=tTemp /D=integTemp;
+	Integrate/METH=1 rhoTemp /X=timeTemp /D=integTemp;
 
 	if(mode==0)
 
-		x3Body = 3^(-5/2)*integTemp*10^(-12);//Thermal gas
+		x3Body = 3^(-2)*integTemp*10^(-12);//Thermal gas
 
 	else
 
@@ -351,7 +357,7 @@ Function Make2DLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,
 
 	endif
 	
-	Integrate/METH=1 rhoTempExt /X=tTemp /D=integTemp;
+	Integrate/METH=1 rhoTempExt /X=timeTemp /D=integTemp;
 
 	if(mode==0)
 
@@ -489,15 +495,15 @@ Function MakeVLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,z
 
 		//Integrate fake data
 
-		Integrate/METH=1 MCpath /X=tTemp /D=integTemp;
+		Integrate/METH=1 MCpath /X=timeTemp /D=integTemp;
 
 		if(mode==0)
 
-			MCtemp[i][0,numpnts(tTemp)-1] = 3^(-2)*integTemp[q]*10^(-12);//Thermal gas
+			MCtemp[i][0,numpnts(timeTemp)-1] = 3^(-2)*integTemp[q]*10^(-12);//Thermal gas
 
 		else
 
-			MCtemp[i][0,numpnts(tTemp)-1] = (8/21)*(1/2)*integTemp[q]*10^(-12);//BEC
+			MCtemp[i][0,numpnts(timeTemp)-1] = (8/21)*(1/2)*integTemp[q]*10^(-12);//BEC
 
 		endif
 
@@ -507,7 +513,7 @@ Function MakeVLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,z
 
 	Make/FREE/D/N=(iterations) MCpathSD;
 
-	For(i=0;i<numpnts(tTemp);i+=1)
+	For(i=0;i<numpnts(timeTemp);i+=1)
 
 		MCpathSD=MCtemp[p][i];
 
@@ -523,7 +529,7 @@ Function MakeVLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,z
 	//rhoTempExt = rhoTempExt^2;
 	//rhoTempExt = rhoTempExt[p]*getEffVol(T_temp[p]/3)/getEffVol(T_temp[p]);
 
-	Integrate/METH=1 rhoTemp /X=tTemp /D=integTemp;
+	Integrate/METH=1 rhoTemp /X=timeTemp /D=integTemp;
 
 	if(mode==0)
 
@@ -586,7 +592,7 @@ Function getEffVol(T)
 	
 	//set limits of integration, we could do this based on T
 	//but this works for now
-	Variable intLim = 1000;     //distance in microns
+	Variable intLim = 2000;     //distance in microns
 	//decrease intLim for small temperature
 	if(T<=200)
 		intLim = 250;
@@ -594,14 +600,14 @@ Function getEffVol(T)
 	
 	//romberg integration since trapezoidal seems to fail for low temperatures
 	//gaussian quadrature gives similar results but takes much longer.
-	Variable resultX = integrate1D(xFunc,-intLim,intLim,1,-1)
-	Variable resultY = integrate1D(yFunc,-intLim,intLim,1,-1)
-	Variable resultZ = integrate1D(zFunc,-intLim,intLim,1,-1)
+	Variable resultX = integrate1D(xFunc,0,intLim,1,-1)
+	Variable resultY = integrate1D(yFunc,0,intLim,1,-1)
+	Variable resultZ = integrate1D(zFunc,0,intLim,1,-1)
 
 	KillVariables tEffVol_temp;
 
 	//print/D resultX*resultY*resultZ
-	return resultX*resultY*resultZ
+	return 8*resultX*resultY*resultZ
 End
 	
 //These are helper functions for the getEffVol function

@@ -415,7 +415,9 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	make/O/N=100 $(ProjectFolder + ":Fit_Info:xsec_row")
 	make/O/N=100 $(ProjectFolder + ":Fit_Info:slice")
 	make/O/N=100 $(ProjectFolder + ":Fit_Info:fit_xsec_col")
+	make/O/N=100 $(ProjectFolder + ":Fit_Info:res_xsec_col")
 	make/O/N=100 $(ProjectFolder + ":Fit_Info:fit_xsec_row")
+	make/O/N=100 $(ProjectFolder + ":Fit_Info:res_xsec_row")
 	make/O/N=4 $(ProjectFolder + ":Fit_Info:W_coef")
 	make/O/N=4 $(ProjectFolder + ":Fit_Info:ver_coef")
 	make/O/N=4 $(ProjectFolder + ":Fit_Info:hor_coef")
@@ -489,13 +491,14 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	make/O/N=(100,100) $(ProjectFolder + ":Raw3")
 	make/O/N=(100,100) $(ProjectFolder + ":Raw4")
 	make/O/N=(100,100) $(ProjectFolder + ":Fit_Info:fit_optdepth")	//-CDH: why make this? 2D fits?
-	
+	make/O/N=(100,100) $(ProjectFolder + ":Fit_Info:res_optdepth")
 	
 	// References to 
 	wave xsec_row = $(ProjectFolder + ":Fit_Info:xsec_row")
 	wave xsec_col = $(ProjectFolder + ":Fit_Info:xsec_col")
 	wave optdepth = $(ProjectFolder + ":optdepth");
 	Wave fit_optdepth = $(ProjectFolder + ":Fit_Info:fit_optdepth")
+	Wave res_optdepth = $(ProjectFolder + ":Fit_Info:res_optdepth")
 
 	NVAR xmin=$(ProjectFolder + ":fit_info:xmin");
 	NVAR ymin=$(ProjectFolder + ":fit_info:ymin"); 
@@ -528,8 +531,8 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 
 	// Fabriacate some initial data
 	Update_Magnification();		//CDH: not sure why this is called here, none of the properties have been read yet...
-	xsec_row =  (20*exp(-((x) / (xmin / 4))^2)*exp(-((y) / (ymin / 4))^2) < 4 ? 16*exp(-((x) / (xmin / 4))^2) : 4);
-	xsec_col =  (20*exp(-((x) / (xmin / 4))^2)*exp(-((y) / (ymin / 4))^2) < 4 ? 16*exp(-((y) / (ymin / 4))^2) : 4);
+	//xsec_row =  (20*exp(-((x) / (xmin / 4))^2)*exp(-((y) / (ymin / 4))^2) < 4 ? 16*exp(-((x) / (xmin / 4))^2) : 4);
+	//xsec_col =  (20*exp(-((x) / (xmin / 4))^2)*exp(-((y) / (ymin / 4))^2) < 4 ? 16*exp(-((y) / (ymin / 4))^2) : 4);
 	//optdepth = (20*exp(-((x) / (xmin / 4))^2)*exp(-((y) / (ymin / 4))^2) < 4 ? 16*exp(-((x) / (xmin / 4))^2)*exp(-((y) / (ymin / 4))^2) : 4);
 	Make/O/D/N=8 temp_params;
 	temp_params[0] = 0;
@@ -541,9 +544,10 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	temp_params[6] = 2;
 	temp_params[7] = ymin/4;
 	optdepth = TriGauss_2D(temp_params,x,y)+gnoise(.1,2);
-	xsec_row = TriGauss_2D(temp_params,x,0);
-	xsec_col = TriGauss_2D(temp_params,0,x);
+	xsec_row = TriGauss_2D(temp_params,x,0)+gnoise(.1,2);
+	xsec_col = TriGauss_2D(temp_params,0,x)+gnoise(.1,2);
 	fit_optdepth = optdepth
+	res_optdepth = optdepth
 
 	// Add the cursors
 	// Transfer the cursors
@@ -785,17 +789,22 @@ Function Update_Magnification()
 	Wave optdepth=:optdepth
 	
 	duplicate/O optdepth :Fit_Info:fit_optdepth
+	duplicate/O optdepth :Fit_Info:res_optdepth
 	Wave fit_optdepth = :Fit_Info:fit_optdepth;
+	Wave res_optdepth = :Fit_Info:res_optdepth;
 
 	// Make sure all of the derived waves are of the correct size
 	make/O/N=(DimSize(OptDepth,0)) :Fit_Info:xsec_row;
 	make/O/N=(DimSize(OptDepth,0)) :Fit_Info:fit_xsec_row;
+	make/O/N=(DimSize(OptDepth,0)) :Fit_Info:res_xsec_row;
 	make/O/N=(DimSize(OptDepth,1)) :Fit_Info:xsec_col;
 	make/O/N=(DimSize(OptDepth,1)) :Fit_Info:fit_xsec_col;
+	make/O/N=(DimSize(OptDepth,1)) :Fit_Info:res_xsec_col;
 	make/O/N=(DimSize(OptDepth, 0)) :LineProfiles:Slice
 
 	Wave xsec_col=:Fit_Info:xsec_col,xsec_row=:Fit_Info:xsec_row
 	Wave fit_xsec_col=:Fit_Info:fit_xsec_col,fit_xsec_row=:Fit_Info:fit_xsec_row
+	Wave res_xsec_col=:Fit_Info:res_xsec_col,res_xsec_row=:Fit_Info:res_xsec_row
 	Wave Slice = :LineProfiles:Slice
 	Variable delta_X, delta_Y, starty, startx
 	
@@ -853,12 +862,16 @@ Function Update_Magnification()
 	SetScale/P y starty,delta_Y,"", optdepth
 	SetScale/P x startx,delta_X,"", fit_optdepth
 	SetScale/P y starty,delta_Y,"", fit_optdepth
+	SetScale/P x startx,delta_X,"", res_optdepth
+	SetScale/P y starty,delta_Y,"", res_optdepth
 	
 	SetScale/P x startx,delta_X,"", slice
 	SetScale/P x starty,delta_Y,"", xsec_col
 	SetScale/P x startx,delta_X,"", xsec_row
 	SetScale/P x starty,delta_Y,"", fit_xsec_col
 	SetScale/P x startx,delta_X,"", fit_xsec_row
+	SetScale/P x starty,delta_Y,"", res_xsec_col
+	SetScale/P x startx,delta_X,"", res_xsec_row
 
 	// Sanity check the ROI
 	NVAR ymax=:fit_info:ymax, ymin=:fit_info:ymin

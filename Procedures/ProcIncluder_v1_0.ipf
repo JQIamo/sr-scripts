@@ -98,3 +98,17 @@ Function TransFreqFit(w, pow) : FitFunc
 
 	return (abs(pow) >= (sqrt(e)*w[1]) ? 2*w[0]*Sqrt(exp(LambertWaprx(-w[1]^2/pow^2)/2)*pow) : 0)
 End
+
+Function AxialFreq(P,f_y,f_z,f_lat)
+	Variable P, f_y, f_z, f_lat;
+	
+	//This function returns the axial trap frequency given the transverse trap frequencies.
+	//The function is only valid for Sr88 but the numerical prefactor (A) can be changed to switch species.
+	
+	Variable q = 2*pi/(1.064e-6);
+	Variable A = 2*pi*5.6051*10^(-7); //see SrLatticePot.nb in AeroFS folder
+	Variable T = (q^2*A*sqrt(P*f_z*f_y)/(pi*f_lat^2)-1)^(-1);
+	//print T
+	//print sqrt(8*pi^3*(f_y^4+f_z^4)/sqrt(f_y*f_z*(1+T)^2*P*A^2*q^4))/(2*pi)
+	return round(10*sqrt(8*pi^3*(f_y^4+f_z^4)/sqrt(f_y*f_z*(1+T)^2*P*A^2*q^4))/(2*pi))/10
+End

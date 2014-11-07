@@ -619,10 +619,10 @@ Function SimpleThermalFit2D(inputimage)
 	// doing step three is dumb, I've commented it out, DSB 2014.
 	
 	Variable V_FitOptions=4
-	CurveFit /O/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
-	Gauss3d_coef[6] = 0;			// No corrilation term
-	Gauss3d_coef[0] = background;		//fix background to average OD in atom free region
-	CurveFit /G/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
+	CurveFit /O/N/Q/H="0000000" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
+	//Gauss3d_coef[6] = 0;			// No corrilation term
+	//Gauss3d_coef[0] = background;		//fix background to average OD in atom free region
+	CurveFit /G/N/Q/H="0000000" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
 	
 	//store the fitted function as a wave
 	variable pmax = (xmax - DimOffset(inputimage, 0))/DimDelta(inputimage,0);

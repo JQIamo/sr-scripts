@@ -101,6 +101,7 @@ Function AutoRunV3(ProjectID, FileName)
 	// First load the image
 	Load_Img(OptDepth,FileName);
 	duplicate/O OptDepth :Fit_Info:fit_optdepth
+	duplicate/O OptDepth :Fit_Info:res_optdepth
 	AbsImg_AnalyzeImage(OptDepth);
 
 	// load scope data if checked also build "typical" scope
