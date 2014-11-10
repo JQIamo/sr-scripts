@@ -534,20 +534,36 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	//xsec_row =  (20*exp(-((x) / (xmin / 4))^2)*exp(-((y) / (ymin / 4))^2) < 4 ? 16*exp(-((x) / (xmin / 4))^2) : 4);
 	//xsec_col =  (20*exp(-((x) / (xmin / 4))^2)*exp(-((y) / (ymin / 4))^2) < 4 ? 16*exp(-((y) / (ymin / 4))^2) : 4);
 	//optdepth = (20*exp(-((x) / (xmin / 4))^2)*exp(-((y) / (ymin / 4))^2) < 4 ? 16*exp(-((x) / (xmin / 4))^2)*exp(-((y) / (ymin / 4))^2) : 4);
-	Make/O/D/N=8 temp_params;
+	
+	//For TriGauss
+	//Make/O/D/N=8 temp_params;
+	//temp_params[0] = 0;
+	//temp_params[1] = 4;
+	//temp_params[2] = 0;
+	//temp_params[3] = xmin/8;
+	//temp_params[4] = 0;
+	//temp_params[5] = ymin/8;
+	//temp_params[6] = 2;
+	//temp_params[7] = ymin/4;
+	//optdepth = TriGauss_2D(temp_params,x,y)+gnoise(.1,2);
+	//xsec_row = TriGauss_2D(temp_params,x,0)+gnoise(.1,2);
+	//xsec_col = TriGauss_2D(temp_params,0,x)+gnoise(.1,2);
+	
+	//For Gauss2D
+	Make/O/D/N=7 temp_params;
 	temp_params[0] = 0;
-	temp_params[1] = 4;
+	temp_params[1] = .2;
 	temp_params[2] = 0;
-	temp_params[3] = xmin/8;
+	temp_params[3] = abs(xmin/8);
 	temp_params[4] = 0;
-	temp_params[5] = ymin/8;
-	temp_params[6] = 2;
-	temp_params[7] = ymin/4;
-	optdepth = TriGauss_2D(temp_params,x,y)+gnoise(.1,2);
-	xsec_row = TriGauss_2D(temp_params,x,0)+gnoise(.1,2);
-	xsec_col = TriGauss_2D(temp_params,0,x)+gnoise(.1,2);
+	temp_params[5] = abs(ymin/8);
+	temp_params[6] = 0;
+	optdepth = Gauss2D(temp_params,x,y)+gnoise(.1,2);
+	xsec_row = Gauss2D(temp_params,x,0)+gnoise(.1,2);
+	xsec_col = Gauss2D(temp_params,0,x)+gnoise(.1,2);
 	fit_optdepth = optdepth
 	res_optdepth = optdepth
+	print sqrt(2)*temp_params[5]
 
 	// Add the cursors
 	// Transfer the cursors

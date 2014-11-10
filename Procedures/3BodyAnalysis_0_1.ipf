@@ -270,8 +270,8 @@ Function Make2DLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,
 	Variable site_density = 1/(.532e-6);
 	
 	//get approximate number of loaded sites at each step
-	N_sites = site_density*sqrt(2*pi*kB*T_temp[p]*(1e-9)/mass)/omgX;
-	N_sites_SD = site_density*sqrt(2*pi*kB*T_SDtemp[p]*(1e-9)/mass)/omgX;
+	N_sites = site_density*sqrt(pi)*400*1e-6;//sqrt(2*pi*kB*T_temp[p]*(1e-9)/mass)/omgX;
+	N_sites_SD = site_density*sqrt(pi)*25*1e-6;//sqrt(2*pi*kB*T_SDtemp[p]*(1e-9)/mass)/omgX;
 	
 	//make a wave to hold computed density
 	Make/O/D/FREE/N=(numpnts(timeTemp)) rhoTemp,rhoTemp_SD,rhoTempExt,rhoTempExt_SD;
