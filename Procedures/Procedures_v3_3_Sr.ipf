@@ -1701,6 +1701,7 @@ Function ThermalUpdateCloudPars(Gauss3D_coef)
 	NVAR AspectRatio_BEC_meas=:AspectRatio_BEC_meas, AspectRatio_BEC_meas_t0=:AspectRatio_BEC_meas_t0
 	NVAR amplitude_TF=:amplitude_TF,number_BEC=:number_BEC,number_TF=:number_TF
 	NVAR Tc = :Tc, PSD=:PSD;
+	NVAR N2T3var = :N2T3var;
 	
 	// sigma=3*lambda^2/(2*pi*(1+satpar+4*detuning^2))      //cross-section, modulo... DETUNING IN LINEWIDTHS
 	// sigma=3*lambda^2/(2*pi) ;     //cross-section, detuning and Isat are now included in the optical depth image
@@ -1804,7 +1805,7 @@ Function ThermalUpdateCloudPars(Gauss3D_coef)
 	temperature *= 1e9;
 	thoriz *= 1e9;
 	tvert *= 1e9;															// Temperature in nK.
-	
+	N2T3var = absnumber^2/(temperature^3)
 	
 	// Transition Temperature		--CDH: 31.Jan.2012: this is only expressly true just at Tc (where number=Nc)
 	//	Tc = (number / 1.2)^(1/3) * hbar * (omgX * omgY * omgZ)^(1/3) / (1.38e-32);

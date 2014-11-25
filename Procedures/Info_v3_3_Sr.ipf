@@ -393,6 +393,7 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	New_IndexedWave("zsize_BEC", ":zwidth_BEC");
 	New_IndexedWave("detun", ":Experimental_Info:detuning");
 	New_IndexedWave("X_Point_Number", ":IndexedWaves:Index");
+	New_IndexedWave("N2T3",":N2T3var");
 
 
 	Variable/G $(ProjectFolder + ":LineProfiles:slicesource") = 0;
