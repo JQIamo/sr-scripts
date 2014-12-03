@@ -128,6 +128,16 @@ Function AutoRunV3(ProjectID, FileName)
 	SetDataFolder fldrSav	
 end
 
+//AutoRunV4 handles camera imaging
+Function AutoRunV4(ProjectID1, FileName1, ProjectID2, FileName2)
+	
+	String ProjectID1, FileName1, ProjectID2, FileName2;
+	
+	AutoRunV3(ProjectID1, FileName1)
+	AutoRunV3(ProjectID2, FileName2)
+	
+end
+
 //**************************************************************************************************
 // This loads an IGOR binary file saved by labview containing one image and header information.
 // In the past there were several functions which loaded files for each different camera,
