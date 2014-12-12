@@ -250,6 +250,10 @@ function Dialog_New_ColdAtomInfo()
 		return -1		// User canceled
 	endif
 	
+	//prevent errors in series creation
+	string temp = CleanupName(ProjectID,0)
+	ProjectID = temp
+	
 	String ExperimentID = StringFromList(ExperimentNum, "Sr;RbYb;Rubidium_I;Rubidium_II");
 	New_ColdAtomInfo(ProjectID, ExperimentID)
 end

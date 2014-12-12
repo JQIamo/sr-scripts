@@ -136,7 +136,6 @@ function Dialog_Graph_IndexedWaves()
 end
 
 
-
 // ******************** BuildRubidiumIWindow **********************************************************************
 function BuildRubidiumIWindow(ProjectFolder)
 	String ProjectFolder

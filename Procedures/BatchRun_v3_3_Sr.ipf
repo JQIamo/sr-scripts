@@ -3,6 +3,7 @@
 Menu "ColdAtom"
 	"-",""	//make divider line
 	"Set BatchRun base name...", Dialog_SetBasePath();
+	"Copy BatchRun base name...", Dialog_CopyBasePath();
 End
 
 
@@ -200,6 +201,55 @@ function Dialog_SetBasePath()
 	
 	//set base name
 	SetBasePath(baseName)
+end
+
+// Pop-up which copies BasePath from one data series to another
+Function Dialog_CopyBasePath()
+
+	variable TargProjectNum;
+	variable HostProjectNum;
+
+	Init_ColdAtomInfo();	// Creates the needed variables if they do not already exist
+
+	// Create a dialog box with a list of active InfoProjects
+	SVAR ActivePaths = root:Packages:ColdAtom:ActivePaths
+	SVAR CurrentPath = root:Packages:ColdAtom:CurrentPath
+	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel
+	
+	Prompt HostProjectNum, "Copy Path From...", popup, ActivePaths
+	Prompt TargProjectNum, "To...", popup, ActivePaths
+	DoPrompt "Copy BatchRun base name", HostProjectNum, TargProjectNum
+	
+	if(V_Flag)
+		return -1		// User canceled
+	endif
+	
+	if(HostProjectNum != TargProjectNum)
+	
+		String HostPath = StringFromList(HostProjectNum-1, ActivePaths)
+		String TargPath = StringFromList(TargProjectNum-1, ActivePaths)
+		
+		if(exists(HostPath + ":Experimental_Info:BatchFileBasePath"))
+			
+			SVAR CopiedPath = $(HostPath + ":Experimental_Info:BatchFileBasePath")
+			String TempPanel = CurrentPanel
+			String TempPath = CurrentPath
+			
+			Set_ColdAtomInfo(TargPath)
+			
+			SetBasePath(CopiedPath)
+			
+			Set_ColdAtomInfo(TempPath)
+			
+		else
+		
+			print "CopyBasePath: No Base Path to copy"
+			return 0
+			
+		endif
+	endif
+	
+
 end
 
 // Runs from the temp file location (C:Experiment:Data:<filename>), assuming a Flea2 or Flea3 camera
