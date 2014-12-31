@@ -409,6 +409,10 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	Variable/G $(ProjectFolder + ":fit_info:ymax") = inf;
 	Variable/G $(ProjectFolder + ":fit_info:xmin") = -inf;
 	Variable/G $(ProjectFolder + ":fit_info:ymin") = -inf;
+	Variable/G $(ProjectFolder + ":fit_info:bgxmax") = inf;
+	Variable/G $(ProjectFolder + ":fit_info:bgymax") = inf;
+	Variable/G $(ProjectFolder + ":fit_info:bgxmin") = -inf;
+	Variable/G $(ProjectFolder + ":fit_info:bgymin") = -inf;
 	Variable/G $(ProjectFolder + ":fit_info:findmax") = 1;
 	Variable/G $(ProjectFolder + ":fit_info:Fit_Type") = 1;
 	Variable/G $(ProjectFolder + ":Fit_Info:slicewidth") = 10;

@@ -11,11 +11,16 @@
 
 Menu "ColdAtom"
 	"New data series...", Dialog_New_ColdAtomInfo();
-	"Graph indexed Waves...", Dialog_Graph_IndexedWaves();
-	"View image header...", Dialog_ViewHeader();
 	"Rename data series...", Dialog_Rename_ColdAtomInfo();
 	"Delete data series...", Dialog_Delete_ColdAtomInfo();
 	"Bring to front...", Dialog_Set_ColdAtomInfo();
+	"Graph indexed Waves...", Dialog_Graph_IndexedWaves();
+	"View image header...", Dialog_ViewHeader();
+	"Copy ROI cursors...", Dialog_CopyROI();
+	"Sort data series...", Dialog_SortIndexedWaves();
+	"-",""	//make divider line
+	"Set BatchRun base name...", Dialog_SetBasePath();
+	"Copy BatchRun base name...", Dialog_CopyBasePath();
 End
 
 
@@ -133,6 +138,68 @@ function Dialog_Graph_IndexedWaves()
 
 	Graph_IndexedWaves(StringFromList(XIndexNum-1, IndexedWaves), StringFromList(YIndexNum-1, IndexedWaves));
 	SetDataFolder fldrSav;
+end
+
+function Dialog_CopyROI()
+	
+	variable TargProjectNum;
+	variable HostProjectNum;
+
+	Init_ColdAtomInfo();	// Creates the needed variables if they do not already exist
+
+	// Create a dialog box with a list of active InfoProjects
+	SVAR ActivePaths = root:Packages:ColdAtom:ActivePaths
+	SVAR CurrentPath = root:Packages:ColdAtom:CurrentPath
+	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel
+	
+	Prompt HostProjectNum, "Copy ROI From...", popup, ActivePaths
+	Prompt TargProjectNum, "To...", popup, ActivePaths
+	DoPrompt "Copy ROI cursor positions", HostProjectNum, TargProjectNum
+	
+	if(V_Flag)
+		return -1		// User canceled
+	endif
+	
+	if(HostProjectNum != TargProjectNum)
+	
+		String HostPath = StringFromList(HostProjectNum-1, ActivePaths)
+		String TargPath = StringFromList(TargProjectNum-1, ActivePaths)
+		
+		String SavePanel = CurrentPanel
+		String SavePath = CurrentPath
+		String fldrSav= GetDataFolder(1)
+		
+		Set_ColdAtomInfo(HostPath)
+		String ImageWindowName = CurrentPanel + "#ColdAtomInfoImage";
+		
+		String ProjectFolder = Activate_Top_ColdAtomInfo();
+		SetDataFolder ProjectFolder
+		
+		NVAR ymax=:fit_info:ymax,ymin=:fit_info:ymin;
+		NVAR xmax=:fit_info:xmax,xmin=:fit_info:xmin;
+		NVAR bgymax=:fit_info:bgymax,bgymin=:fit_info:bgymin;
+		NVAR bgxmax=:fit_info:bgxmax,bgxmin=:fit_info:bgxmin;
+		
+		variable x_A = xmax
+		variable y_A = ymax
+		variable x_B = xmin
+		variable y_B = ymin
+		variable x_C = bgxmax
+		variable y_C = bgymax
+		variable x_D = bgxmin
+		variable y_D = bgymin
+		
+		Set_ColdAtomInfo(TargPath)
+		ImageWindowName = CurrentPanel + "#ColdAtomInfoImage";
+		Cursor/I/W=$(ImageWindowName) A, optdepth, x_A, y_A;
+		Cursor/I/W=$(ImageWindowName) B, optdepth, x_B, y_B;
+		Cursor/I/W=$(ImageWindowName) C, optdepth, x_C, y_C;
+		Cursor/I/W=$(ImageWindowName) D, optdepth, x_D, y_D;
+		SetROI("",1,"")
+		
+		Set_ColdAtomInfo(SavePath)
+		SetDataFolder fldrSav
+	endif
 end
 
 
@@ -1058,10 +1125,10 @@ function BuildSrWindow(ProjectFolder)
 	PopupMenu sriso,pos={175,151},size={47,21},proc=SetIsotope
 	PopupMenu sriso,mode=1,popvalue="86",value= #"\"84;86;87;88\""
 	
-	SetVariable magn,pos={250,357},size={127,16},bodyWidth=60,proc=Set_Mag,title="Magnification"
+	SetVariable magn,pos={280,357},size={127,16},bodyWidth=60,proc=Set_Mag,title="Magnification"
 	SetVariable magn,value= :Experimental_Info:magnification
 	
-	CheckBox CentFix,pos={390,357},size={127,16},bodyWidth=60,proc=Set_center,title="Fix Centers"
+	CheckBox CentFix,pos={415,357},size={127,16},bodyWidth=60,proc=Set_center,title="Fix Centers"
 	CheckBox CentFix,value=1
 	
 	SetVariable PeakOD,pos={32,384},size={108,16},bodyWidth=60,proc=Set_PeakOD,title="Peak OD"
@@ -1086,8 +1153,6 @@ function BuildSrWindow(ProjectFolder)
 	CheckBox DualAxisImage,pos={155,205},size={80,16},bodyWidth=60,proc=Set_DualAxis,title="2 Axis Img"
 	CheckBox DualAxisImage,value=0
 	
-	Button refit,pos={186,355},size={45,20},proc=Refit,title="Refit"
-	
 	PopupMenu AutoUpdate,pos={43,300},size={152,21},bodyWidth=152,proc=SetAutoUpdate
 	PopupMenu AutoUpdate,mode=2,popvalue="Auto increment",value= #"\"No update;Auto increment;Index from file;\""
 	
@@ -1103,8 +1168,12 @@ function BuildSrWindow(ProjectFolder)
 	CheckBox GetScopeTrace,pos={42,280},size={100,14},proc=GetScopeTrace,title="Get Scope Trace"
 	CheckBox GetScopeTrace,value= 0
 	
-	PopupMenu SetROI,pos={35,354},size={141,21},bodyWidth=141,proc=SetROI
+	PopupMenu SetROI,pos={33,354},size={121,21},bodyWidth=121,proc=SetROI
 	PopupMenu SetROI,mode=1,popvalue="Set ROI",value= #"\"Set ROI;Set ROI and zoom;Zoom to ROI;Unzoom\""
+	
+	Button refit,pos={160,355},size={45,20},proc=Refit,title="Refit"
+	
+	Button resetcur,pos={210,355},size={65,20},proc=CursorsToROI,title="Cur. to ROI"
 	
 	Button Slice,pos={435,382},size={45,20},proc=Call_MakeSlice,title="Slice"
 	
@@ -1767,6 +1836,8 @@ Function SetROI(ctrlName,popNum,popStr) : PopupMenuControl
 	
 	NVAR ymax=:fit_info:ymax,ymin=:fit_info:ymin;
 	NVAR xmax=:fit_info:xmax,xmin=:fit_info:xmin;
+	NVAR bgymax=:fit_info:bgymax,bgymin=:fit_info:bgymin;
+	NVAR bgxmax=:fit_info:bgxmax,bgxmin=:fit_info:bgxmin;
 	Variable hold;
 	wave/I ROI_mask = :ROI_mask;
 	NVAR RotateImage = :Experimental_Info:RotateImage;
@@ -1774,22 +1845,15 @@ Function SetROI(ctrlName,popNum,popStr) : PopupMenuControl
 
 	// First, reset the ROI if requested
 	if (popNum==1 || popNum==2)
-		ymax = vcsr(A,WindowName)
-		ymin = vcsr(B,WindowName)
-		xmax = hcsr(B,WindowName)
-		xmin = hcsr(A,WindowName)
-
-		if(ymax < ymin)
-			hold = ymin
-			ymin = ymax
-			ymax = hold
-		endif
-
-		if(xmax < xmin)
-			hold = xmin
-			xmin = xmax
-			xmax = hold
-		endif
+		ymax = max(vcsr(A,WindowName),vcsr(B,WindowName));
+		ymin = min(vcsr(A,WindowName),vcsr(B,WindowName));
+		xmax = max(hcsr(A,WindowName),hcsr(B,WindowName));
+		xmin = min(hcsr(A,WindowName),hcsr(B,WindowName));
+		
+		bgymax = max(vcsr(C,WindowName),vcsr(D,WindowName));
+		bgymin = min(vcsr(C,WindowName),vcsr(D,WindowName));
+		bgxmax = max(hcsr(C,WindowName),hcsr(D,WindowName));
+		bgxmin = min(hcsr(C,WindowName),hcsr(D,WindowName));
 		
 		//construct the ROI_mask
 		ROI_mask[][] = 1;
@@ -1879,6 +1943,30 @@ Function SetROI(ctrlName,popNum,popStr) : PopupMenuControl
 			break;	
 	endswitch
 
+	SetDataFolder fldrSav
+End
+
+Function CursorsToROI(ctrlName) : ButtonControl
+	String ctrlName
+	
+	// Get the current path
+	String ProjectFolder = Activate_Top_ColdAtomInfo();
+	String fldrSav= GetDataFolder(1)
+	SetDataFolder ProjectFolder
+
+	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel;
+	String WindowName = CurrentPanel + "#ColdAtomInfoImage";
+	
+	NVAR ymax=:fit_info:ymax,ymin=:fit_info:ymin;
+	NVAR xmax=:fit_info:xmax,xmin=:fit_info:xmin;
+	NVAR bgymax=:fit_info:bgymax,bgymin=:fit_info:bgymin;
+	NVAR bgxmax=:fit_info:bgxmax,bgxmin=:fit_info:bgxmin;
+	
+	Cursor/I/W=$(WindowName) A, optdepth, xmax, ymax;
+	Cursor/I/W=$(WindowName) B, optdepth, xmin, ymin;
+	Cursor/I/W=$(WindowName) C, optdepth, bgxmax, bgymax;
+	Cursor/I/W=$(WindowName) D, optdepth, bgxmin, bgymin;
+	
 	SetDataFolder fldrSav
 End
 
