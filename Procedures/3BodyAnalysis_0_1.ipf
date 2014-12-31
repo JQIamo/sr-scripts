@@ -571,6 +571,61 @@ Function MakeVLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,z
 
 End
 
+//Make2DLatticeDensityWave creates a wave for extracting 3 body decay constants from a gas trapped in a 2D Lattice.
+//
+
+//The first wave is y3body = Ln(N/N0)+t/tau.
+//The second wave is x3body = const*Integrate[rhopeak(t')^2,{t',0,t}]
+//mode = 0 for thermal gas, mode = 1 for BEC
+
+//MUST SET DATAFOLDER TO BE THE PROJECT FOLDER FOR THE DATA SERIES!
+
+Function Make2DLatticeDensityWave(numWave,Tx_Wave,Tz_Wave,timeWave,xw_t0,xw_t0_SD,mode)
+
+	
+	//numWave = wave of average atom numbers
+	//Tx_wave = wave of axial temperatures
+	//Tz_wave = wave of vertical temperatures
+	//timeWave = wave of lattice hold times
+	Wave numWave, Tx_Wave, Tz_Wave, timeWave
+
+	//gam1 = Measured 1 body decay rate
+	//gam1SD = standard deviation in fit of 1 body decay rate
+	Variable xw_t0,xw_t0_SD,mode
+
+	//Assume that the current datafolder is the project folder
+	//and get the trap frequencies
+	NVAR omgX = :Experimental_Info:omgX;
+	NVAR omgY = :Experimental_Info:omgY;
+	NVAR omgZ = :Experimental_Info:omgZ;
+	NVAR omgXLat = :Experimental_Info:omgXLat;
+	NVAR omgYLat = :Experimental_Info:omgYLat;
+	NVAR omgZLat = :Experimental_Info:omgZLat;
+	NVAR mass = :Experimental_Info:mass;
+
+	//mask the data
+
+	Duplicate/FREE/D numWave, numTemp;
+	Duplicate/FREE/D Tx_Wave, Tx_Temp;
+	Duplicate/FREE/D Tz_Wave, Tz_Temp;
+	Duplicate/FREE/D timeWave, timeTemp;
+
+	//make destination waves
+
+	//Make/O/D/N=(numpnts(timeTemp)) rho3Body, rho3Body_SD;
+	Make/O/D/N=(numpnts(timeTemp)) rho3BodyExt
+	
+	//make a wave to hold computed density
+	Make/O/D/FREE/N=(numpnts(timeTemp)) rhoTempExt;
+	
+	//numeric integration for exact density, in atoms/(um^3)
+	rhoTempExt = numTemp[p]/getEffVol_insitu(Tx_temp[p]-1000,Tz_Temp[p],xw_t0);
+	//rhoTempExt_SD = 0;     //need to think about how to get standard error for numeric integral
+	rho3BodyExt = rhoTempExt*10^(12);     //convert to atoms/(cm^3)
+	//rho3BodyExt_SD = rhoTempExt_SD*10^(12);
+
+End
+
 //This function numerically integrates a 2D lattice potential to find the reference volume for our Sr88 3Body measurements
 Function getEffVol(T)
 	
@@ -648,4 +703,67 @@ Function zFunc(z)
 	
 	//set units to microns
 	return exp(-4*pi^2*mass*((freqZLat/(k*(1e-6)))^2*cos(k*z*(1e-6))^2+freqZ^2*z^2)/(2*kB*T*(1e12)));
+End
+
+//This function numerically integrates a 2D lattice potential to find the reference volume for our Sr88 3Body measurements
+Function getEffVol_insitu(Tx,Tz,xw_0)
+	
+	//Tx,Tz are temperature in nK
+	Variable Tx,Tz
+	//Measured in-situ axial size in microns
+	Variable xw_0
+	
+	//define and get globals to do the integration
+	NVAR freqX = :Experimental_Info:freqX;
+	NVAR freqY = :Experimental_Info:freqY;
+	NVAR freqZ = :Experimental_Info:freqZ;
+	NVAR freqXLat = :Experimental_Info:freqXLat;
+	NVAR freqYLat = :Experimental_Info:freqYLat;
+	NVAR freqZLat = :Experimental_Info:freqZLat;
+	NVAR mass = :Experimental_Info:mass;
+	NVAR k = :Experimental_Info:k;
+	
+	//this is dangerous because it could overwrite another global
+	Variable/G tEffVol_temp = Tx*(1e-9);
+	Variable/G xwEffVol_temp = xw_0;
+	
+	//set limits of integration, we could do this based on T
+	//but this works for now
+	Variable intLim = 2000;     //distance in microns
+	//decrease intLim for small temperature
+	if(T<=200)
+		intLim = 250;
+	endif
+	
+	if(intLim<=(2*xw_0))
+		intLim+=(2*xw_0);
+	endif
+	
+	//romberg integration since trapezoidal seems to fail for low temperatures
+	//gaussian quadrature gives similar results but takes much longer.
+	Variable resultX = integrate1D(xFunc_insitu,0,intLim,1,-1)
+	tEffVol_temp = 2700*(1e-9);
+	Variable resultY = integrate1D(yFunc,0,intLim,1,-1)
+	tEffVol_temp = Tz*(1e-9);
+	Variable resultZ = integrate1D(zFunc,0,intLim,1,-1)
+
+	KillVariables tEffVol_temp, xwEffVol_temp ;
+
+	//print/D resultX*resultY*resultZ
+	return 8*resultX*resultY*resultZ
+End
+
+//These are helper functions for the getEffVol_insitu function
+Function xFunc_insitu(x)
+	Variable x
+	
+	NVAR freqX = :Experimental_Info:freqX;
+	NVAR freqXLat = :Experimental_Info:freqXLat;
+	NVAR mass = :Experimental_Info:mass;
+	NVAR k = :Experimental_Info:k;
+	NVAR T = tEffVol_temp;
+	NVAR xw_0 = xwEffVol_temp;
+	
+	//set units to microns
+	return exp(-4*pi^2*mass*((freqXLat/(k*(1e-6)))^2*cos(k*x*(1e-6))^2)/(2*kB*T*(1e12))-x^2/(xw_0^2));
 End
