@@ -243,7 +243,7 @@ Function Load_Img(ImageName,FileName)
 			break;
 		endswitch
 		
-		variable DipRat, DipStart, tEnd, tau, DipPowXi, DipPowZi, DipPowXf, DipPowZf, DipPowXRamp,DipPowZRamp
+		variable DipRat, DipStart, tEnd, tau, DipPowXi, DipPowZi, DipPowXf, DipPowZf, DipPowXRamp,DipPowZRamp,WMfreq
 		strswitch(Experiment)    
 			case "Sr":
 				//Will need to modify as Sr progresses
@@ -266,6 +266,8 @@ Function Load_Img(ImageName,FileName)
 				//DipolePower = 3.5;
 				CrDipolePower = DipPowZf;
 				//CrDipolePower = DipPowZRamp;
+				WMfreq = NumberByKey_Safe(0, "WMfreq",wavenote,"=","\n");
+				//printf "frequency: %15.12g\r", WMfreq
 				detuning = (1/31.83)*NumberByKey_Safe(NaN,"ProbeDet ", wavenote, "=","\n"); //Sr linewidth from S. Nagel's thesis
 			break;
 		
@@ -327,7 +329,19 @@ Function Load_Img(ImageName,FileName)
 			New_IndexedWave(IndexedWaveName, IndexedWaveName);
 			
 			NVAR IndexedVariable = $(IndexedWaveName);
-			IndexedVariable = str2num( StringFromList(i, IndexedValuesList) );
+			
+			
+			strswitch(IndexedWaveName)
+				//this is a hack which allows us to turn off acquisition of the WM frequency
+				case "WMfreq":
+					//printf "frequency: %15.12g\r", WMfreq
+					IndexedVariable = WMfreq
+					//printf "saved frequency: %15.12g\r", IndexedVariable
+				break;
+				default:
+					IndexedVariable = str2num( StringFromList(i, IndexedValuesList) );
+				break;
+			endswitch
 			
 		endfor
 	endif

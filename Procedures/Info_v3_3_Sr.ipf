@@ -1045,7 +1045,7 @@ function New_IndexedWave(IndexedWave, IndexedVariable)
 
 	// Create the wave and variable if needed
 
-	Make/O/N=0 $(":IndexedWaves:" + IndexedWave);
+	Make/O/D/N=0 $(":IndexedWaves:" + IndexedWave);
 
 	if (exists(IndexedVariable) == 0)
 		Variable/G $IndexedVariable = 1;
