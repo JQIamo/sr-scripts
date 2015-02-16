@@ -468,9 +468,10 @@ function IndexedWavesDeletePoints(ProjectFolder,firstPt,numPts)
 end
 
 //This function sorts all indexed waves in the data series by the indexed wave with name: IndexedSorterWaveName
-function Sort_IndexedWaves(ProjectFolder,IndexedSorterWaveName)
+function Sort_IndexedWaves(ProjectFolder,IndexedSorterWaveNames, NumSorterWaves)
 	string ProjectFolder
-	string IndexedSorterWaveName
+	string IndexedSorterWaveNames
+	variable NumSorterWaves
 	
 	String fldrSav= GetDataFolder(1);
 	SetDataFolder $(ProjectFolder);
@@ -480,7 +481,51 @@ function Sort_IndexedWaves(ProjectFolder,IndexedSorterWaveName)
 	SVAR IndexedWaves=:IndexedWaves:IndexedWaves
 	SVAR IndexedVariables = :IndexedWaves:IndexedVariables;
 	Wave/T FileNames = :IndexedWaves:FileNames;
-	Wave IndexedSorterWave = :IndexedWaves:$IndexedSorterWaveName;
+	
+	variable i;
+	string IndexedSorterWaveName;
+	
+	For(i=0;i<NumSorterWaves;i+=1)
+		IndexedSorterWaveName = StringFromList(i, IndexedSorterWaveNames)
+		Wave/D temp = :IndexedWaves:$IndexedSorterWaveName;
+		string nametemp = "SorterWave" + num2str(i+1);
+		Duplicate/D/O temp, $nametemp
+	endfor
+	
+	Make/O/D/N=(numpnts(temp)) sortIndex1
+	//This is a hack due to Igor's lack of support for awesome things:
+	If(NumSorterWaves==1)
+		MakeIndex {SorterWave1, FileNames}, sortIndex1
+		KillWaves SorterWave1
+	elseif(NumSorterWaves==2)
+		MakeIndex {SorterWave1, SorterWave2, FileNames}, sortIndex1
+		KillWaves SorterWave1, SorterWave2
+	elseif(NumSorterWaves==3)
+		MakeIndex {SorterWave1, SorterWave2, SorterWave3, FileNames}, sortIndex1
+		KillWaves SorterWave1, SorterWave2, SorterWave3
+	elseif(NumSorterWaves==4)
+		MakeIndex {SorterWave1, SorterWave2, SorterWave3, SorterWave4, FileNames}, sortIndex1
+		KillWaves SorterWave1, SorterWave2, SorterWave3, SorterWave4
+	elseif(NumSorterWaves==5)
+		MakeIndex {SorterWave1, SorterWave2, SorterWave3, SorterWave4, SorterWave5, FileNames}, sortIndex1
+		KillWaves SorterWave1, SorterWave2, SorterWave3, SorterWave4, SorterWave5
+	elseif(NumSorterWaves==6)
+		MakeIndex {SorterWave1, SorterWave2, SorterWave3, SorterWave4, SorterWave5, SorterWave6, FileNames}, sortIndex1
+		KillWaves SorterWave1, SorterWave2, SorterWave3, SorterWave4, SorterWave5, SorterWave6
+	elseif(NumSorterWaves==7)
+		MakeIndex {SorterWave1, SorterWave2, SorterWave3, SorterWave4, SorterWave5, SorterWave6, SorterWave7, FileNames}, sortIndex1
+		KillWaves SorterWave1, SorterWave2, SorterWave3, SorterWave4, SorterWave5, SorterWave6, SorterWave7
+	elseif(NumSorterWaves==8)
+		MakeIndex {SorterWave1, SorterWave2, SorterWave3, SorterWave4, SorterWave5, SorterWave6, SorterWave7, SorterWave8, FileNames}, sortIndex1
+		KillWaves SorterWave1, SorterWave2, SorterWave3, SorterWave4, SorterWave5, SorterWave6, SorterWave7, SorterWave8
+	elseif(NumSorterWaves==9)
+		MakeIndex {SorterWave1, SorterWave2, SorterWave3, SorterWave4, SorterWave5, SorterWave6, SorterWave7, SorterWave8, SorterWave9, FileNames}, sortIndex1
+		KillWaves SorterWave1, SorterWave2, SorterWave3, SorterWave4, SorterWave5, SorterWave6, SorterWave7, SorterWave8, SorterWave9
+	else
+		print "Sort_IndexedWaves: Invalid number of sort keys"
+		SetDataFolder fldrSav
+		return -1
+	endif
 	
 	// 2D lists
 	SVAR Indexed2DWaveNames = :IndexedWaves:FitWaves:Indexed2DWaveNames;
@@ -492,7 +537,7 @@ function Sort_IndexedWaves(ProjectFolder,IndexedSorterWaveName)
 	
 	
 	//handle 1D waves
-	variable i, npnts;
+	variable npnts;
 	string IndexedWave, IndexedVariable;
 	
 	npnts = ItemsInList(IndexedWaves);
@@ -509,7 +554,7 @@ function Sort_IndexedWaves(ProjectFolder,IndexedSorterWaveName)
 		// Verify that the wave and variable exist, if not create them
 		if (exists(":IndexedWaves:"+IndexedWave)==0)
 			print "Sort_IndexedWaves:  Expected wave", IndexedWave, "not found, recreating."; 
-			Make/O/N=0 :IndexedWaves:$(IndexedWave);
+			Make/O/D/N=0 :IndexedWaves:$(IndexedWave);
 		endif
 		
 		if (exists(":IndexedWaves:"+IndexedVariable)==0)
@@ -521,11 +566,7 @@ function Sort_IndexedWaves(ProjectFolder,IndexedSorterWaveName)
 		Wave LocalIndexedWave = :IndexedWaves:$IndexedWave;
 		
 		//sort the indexed wave preserving file name association
-		If(stringmatch(IndexedWave,IndexedSorterWaveName))
-			//don't sort the sorter wave yet
-		else
-			sort {IndexedSorterWave, FileNames}, LocalIndexedWave
-		endif
+		IndexSort sortIndex1, LocalIndexedWave
 	endfor
 	
 	// handle 2D waves
@@ -540,9 +581,9 @@ function Sort_IndexedWaves(ProjectFolder,IndexedSorterWaveName)
 	endif
 	
 	//Make an index to sort the rows of the 2D waves
-	duplicate/FREE IndexedSorterWave, sortIndex
-	sortIndex = p;
-	sort {IndexedSorterWave, FileNames}, sortIndex
+	//duplicate/FREE temp, sortIndex2
+	//sortIndex2 = p;
+	//IndexSort sortIndex1, sortIndex2
 	
 	for (i = 0; i < npnts; i+= 1)
 		Indexed2DWave = ":IndexedWaves:FitWaves:" + StringFromList(i, Indexed2DWaveNames);
@@ -551,12 +592,12 @@ function Sort_IndexedWaves(ProjectFolder,IndexedSorterWaveName)
 		// Verify that the wave and variable exist, if not create them
 		if (exists(Indexed2DWave)==0)
 			print "Sort_IndexedWaves:  Expected 2D wave", Indexed2DWave, "not found, recreating."; 
-			Make/O/N=(1,1) $(Indexed2DWave);
+			Make/O/D/N=(1,1) $(Indexed2DWave);
 		endif
 		
 		if (exists(IndexedFitWave)==0)
 			print "Sort_IndexedWaves:  Expected fit wave", IndexedFitWave, "not found, recreating."; 
-			Make/O/N=0 $(IndexedFitWave);
+			Make/O/D/N=0 $(IndexedFitWave);
 		endif
 		
 		// Now assign the variables and update the running wave		
@@ -565,12 +606,12 @@ function Sort_IndexedWaves(ProjectFolder,IndexedSorterWaveName)
 		
 		//sort the indexed2Dwave
 		Duplicate/FREE LocalIndexed2DWave, tempWave;
-		tempWave = LocalIndexed2DWave[sortIndex[p]][q]
+		tempWave = LocalIndexed2DWave[sortIndex1[p]][q]
 		LocalIndexed2DWave = tempWave
 	endfor
 	
-	//sort FileNames and the SorterWave
-	sort {IndexedSorterWave,FileNames}, FileNames, IndexedSorterWave
+	//sort FileNames
+	IndexSort sortIndex1, FileNames
 	
 	SetDataFolder fldrSav	// Return path
 end
@@ -578,6 +619,7 @@ end
 function Dialog_SortIndexedWaves()
 	
 	variable TargProjectNum;
+	variable NumSortKeys;
 
 	Init_ColdAtomInfo();	// Creates the needed variables if they do not already exist
 
@@ -586,8 +628,12 @@ function Dialog_SortIndexedWaves()
 	SVAR CurrentPath = root:Packages:ColdAtom:CurrentPath
 	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel
 	
+	// PossNums is the number of key waves that can be used.
+	// It is limited at 9 due to restrictions on the number of sort keys in Igor
+	string PossNums = "1;2;3;4;5;6;7;8;9;"
 	Prompt TargProjectNum, "Data Series to Sort:", popup, ActivePaths
-	DoPrompt "Sort Data Series", TargProjectNum
+	Prompt NumSortKeys, "Number of Waves to Sort by:", popup, PossNums
+	DoPrompt "Sort Data Series", TargProjectNum, NumSortKeys
 	
 	if(V_Flag)
 		return -1		// User canceled
@@ -603,19 +649,40 @@ function Dialog_SortIndexedWaves()
 	String ProjectFolder = Activate_Top_ColdAtomInfo();
 	SetDataFolder ProjectFolder;
 	
-	Variable SorterWaveNum
 	SVAR IndexedWaves = :IndexedWaves:IndexedWaves;
-	Prompt SorterWaveNum, "Sort by:", popup, IndexedWaves
-	DoPrompt "Sort Data Series", SorterWaveNum
+	String SorterWaveNames = "";
 	
-	if(V_Flag)
-		return -1		// User canceled
-	endif
-	
-	String IndexedSorterWaveName = StringFromList(SorterWaveNum-1, IndexedWaves)	
-
-	Sort_IndexedWaves(ProjectFolder, IndexedSorterWaveName)	
+	variable i;
+	for(i=1;i<=NumSortKeys;i+=1)
 		
+		Variable SorterWaveNum
+		If(i==1)
+			Prompt SorterWaveNum, "Sort by:", popup, IndexedWaves
+		else
+			Prompt SorterWaveNum, "then Sort by:", popup, IndexedWaves
+		endif
+		
+		DoPrompt "Sort Data Series", SorterWaveNum
+	
+		if(V_Flag)
+			Set_ColdAtomInfo(SavePath)
+			SetDataFolder fldrSav
+			return -1		// User canceled
+		endif
+		
+		If(WhichListItem(StringFromList(SorterWaveNum-1, IndexedWaves),SorterWaveNames,";",0,1)==-1)
+			SorterWaveNames = AddListItem(StringFromList(SorterWaveNum-1, IndexedWaves), SorterWaveNames,";",Inf);
+		else
+			i-=1;
+			print "Dialog_SortIndexedWaves: Cannot sort by an indexed wave twice, try again"
+		endif
+		
+	endfor
+	
+	print SorterWaveNames
+	
+	Sort_IndexedWaves(ProjectFolder, SorterWaveNames, NumSortKeys)
+	
 	Set_ColdAtomInfo(SavePath)
 	SetDataFolder fldrSav
 end

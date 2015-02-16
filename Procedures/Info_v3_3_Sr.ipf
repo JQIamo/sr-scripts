@@ -588,6 +588,67 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	return 0
 End
 
+function Copy_ColdAtomInfo(ProjectID, CopyProjPath, CopyExperimentID)
+	string ProjectID;
+	string CopyProjPath;	// which series to copy data from
+	String CopyExperimentID;	// Which apparatus.
+	
+	// Verify that the new window does not exist
+	// If it does make it the active project
+	if (Exists_ColdAtomInfo("root:" + ProjectID) == 1)
+		Set_ColdAtomInfo("root:" + ProjectID);
+		return 0;
+	endif
+
+	// Write a global varible :root:Procedures:ColdAtom:ActiveFolder
+	// To identify the currently active window for subsiquent calls
+	SVAR ProjectFolder = root:Packages:ColdAtom:CurrentPath;
+	ProjectFolder = "root:" + ProjectID;
+
+	// Now duplicate all of the required global variables, waves, and sub-folders.
+	DuplicateDataFolder $CopyProjPath, $ProjectFolder
+
+	// Bring up the window
+	strswitch (CopyExperimentID)
+		case "Rubidium_I": 
+			BuildRubidiumIWindow(ProjectFolder);
+		Break;
+		case "Rubidium_II": // Rubidium II
+			BuildRubidiumIIWindow(ProjectFolder);
+		Break;
+		case "RbYb": 
+			BuildRbYbWindow(ProjectFolder);
+		Break;
+		case "Sr": 
+			BuildSrWindow(ProjectFolder);
+		Break;
+	endswitch
+	
+	// Add the new panel and project to the globaly mantained list.
+	
+	SVAR ActivePaths = root:Packages:ColdAtom:ActivePaths
+	SVAR ActivePanels = root:Packages:ColdAtom:ActivePanels
+	svar CurrentPanel = root:Packages:ColdAtom:CurrentPanel;
+	
+	ActivePaths = AddListItem(ProjectFolder, ActivePaths);
+	ActivePanels = AddListItem(CurrentPanel, ActivePanels);
+
+	Update_Magnification();		//CDH: not sure why this is called here, none of the properties have been read yet...
+	
+	// Add the cursors
+	// Transfer the cursors
+	AddMissingCursor("A", "optdepth");
+	AddMissingCursor("B", "optdepth");
+	AddMissingCursor("C", "optdepth");
+	AddMissingCursor("D", "optdepth");
+	AddMissingCursor("E", "optdepth");
+	AddMissingCursor("F", "optdepth");
+
+	ComputeTrapProperties();		// similarly, not sure why this is called here.
+
+	return 0
+End
+
 // ******************** UpdatePanelImage ***********************************
 // This function updates the image that is found on the RubudiumInfo Panel
 // this display is assumed to only hold a single image, so all the other images that might be displayed are

@@ -13,11 +13,13 @@ Menu "ColdAtom"
 	"New data series...", Dialog_New_ColdAtomInfo();
 	"Rename data series...", Dialog_Rename_ColdAtomInfo();
 	"Delete data series...", Dialog_Delete_ColdAtomInfo();
+	"Copy data series...", Dialog_Copy_ColdAtomInfo();
 	"Bring to front...", Dialog_Set_ColdAtomInfo();
 	"Graph indexed Waves...", Dialog_Graph_IndexedWaves();
 	"View image header...", Dialog_ViewHeader();
 	"Copy ROI cursors...", Dialog_CopyROI();
 	"Sort data series...", Dialog_SortIndexedWaves();
+	"Separate Data by Key...", Dialog_DecimateIndexedWaves();
 	"-",""	//make divider line
 	"Set BatchRun base name...", Dialog_SetBasePath();
 	"Copy BatchRun base name...", Dialog_CopyBasePath();
@@ -85,6 +87,36 @@ function Dialog_Delete_ColdAtomInfo()
 	endif
 
 	Delete_ColdAtomInfo( StringFromList(ProjectNum-1, ActivePaths));
+end
+
+function Dialog_Copy_ColdAtomInfo()
+	// DSB 2/16/15
+	// This function copies an entire data series
+	string ProjectID;
+	variable ProjToCopy
+
+	Init_ColdAtomInfo();	// Creates the needed variables if they do not already exist
+	
+	// Build the User Diolog Box
+	SVAR ActivePaths = root:Packages:ColdAtom:ActivePaths
+	SVAR ActivePanels = root:Packages:ColdAtom:ActivePanels
+	Prompt ProjectID, "New Project Folder"
+	Prompt ProjToCopy, "Series to Copy", popup, ActivePaths
+	DoPrompt "ColdAtom BEC Analysis", ProjectID, ProjToCopy;
+	
+	if (V_Flag)
+		return -1		// User canceled
+	endif
+	
+	//prevent errors in series creation
+	string temp = CleanupName(ProjectID,0)
+	ProjectID = temp
+	
+	String CopyProjPath= StringFromList(ProjToCopy-1, ActivePaths)
+	SVAR IDtemp = $(CopyProjPath + ":Experimental_Info:Experiment")
+	String CopyExperimentID = IDtemp
+
+	Copy_ColdAtomInfo(ProjectID, CopyProjPath, CopyExperimentID)
 end
 
 function Dialog_ViewHeader()
