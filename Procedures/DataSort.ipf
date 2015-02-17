@@ -140,8 +140,9 @@ Function BinnedDataSorter(Ydata, Xdata,yBaseName,xBaseName, BinSize)
 	Make/O/D/N=1 $(yBaseName + "_SD")/WAVE=ySD
 	Variable numXvals = 1
 	Variable i
-	Variable prev = 0//-1
+	Variable prev = 0
 	Variable numBins = 1
+	Variable DeltaBins
 	
 	//populate results waves
 	For(i=0; i < numpnts(xdTemp); i+=1)
@@ -166,7 +167,9 @@ Function BinnedDataSorter(Ydata, Xdata,yBaseName,xBaseName, BinSize)
 			InsertPoints numXvals, 1, ySD
 			
 			numXvals += 1
-			numBins += 1
+			//use deltabins to correctly skip over empty bins
+			DeltaBins = Ceil((xdTemp[i] - xdTemp[0] - BinSize*numBins)/BinSize)
+			numBins += DeltaBins
 			//prev is the first point in the (numBins)th bin
 			prev = i
 			
@@ -186,9 +189,11 @@ Function BinnedDataSorter(Ydata, Xdata,yBaseName,xBaseName, BinSize)
 	yAvg[numXvals-1] = V_avg
 	ySD[numXvals-1] = V_sdev
 	
-	//Duplicate the raw sorted data for future use
-	Duplicate/O xdTemp, $(xBaseName + "_sorted")
-	Duplicate/O ydTemp, $(yBaseName + "_sorted")
+	print "Number of empty bins: " + num2str(numBins - numXvals)
+	
+	//uncomment the lines below to duplicate the raw sorted data for future use
+	//Duplicate/O xdTemp, $(xBaseName + "_sorted")
+	//Duplicate/O ydTemp, $(yBaseName + "_sorted")
 	
 	//check that the procedure is correctly extracting X values
 	//print numXvals
