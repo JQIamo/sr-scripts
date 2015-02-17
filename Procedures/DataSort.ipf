@@ -58,6 +58,61 @@ Function DataSorter(Ydata, Xdata,yBaseName,xBaseName)
 	
 End
 
+function Dialog_DataSortXYWaves()
+	
+	variable TargProjectNum;
+
+	Init_ColdAtomInfo();	// Creates the needed variables if they do not already exist
+
+	// Create a dialog box with a list of active InfoProjects
+	SVAR ActivePaths = root:Packages:ColdAtom:ActivePaths
+	SVAR CurrentPath = root:Packages:ColdAtom:CurrentPath
+	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel
+	
+	Prompt TargProjectNum, "Source Data Series:", popup, ActivePaths
+	DoPrompt "Process Data", TargProjectNum
+	
+	if(V_Flag)
+		return -1		// User canceled
+	endif
+	
+	String TargPath = StringFromList(TargProjectNum-1, ActivePaths)
+		
+	String SavePanel = CurrentPanel
+	String SavePath = CurrentPath
+	String fldrSav= GetDataFolder(1)
+		
+	Set_ColdAtomInfo(TargPath)
+	String ProjectFolder = Activate_Top_ColdAtomInfo();
+	SetDataFolder ProjectFolder;
+	
+	SetDataFolder :IndexedWaves;
+	string ListofWaves = WaveList("*",";","");
+	
+	variable Xtarg, Ytarg
+	string Xbase, Ybase
+	Prompt Xtarg, "Target X wave:", popup, ListofWaves
+	Prompt Xbase, "Processed X wave name:"
+	Prompt Ytarg, "Target Y wave:", popup, ListofWaves
+	Prompt Ybase, "Processed Y wave name:"
+	DoPrompt "Process Data", Xtarg, Xbase, Ytarg, Ybase
+	
+	string Xwave = StringFromList(Xtarg-1, ListofWaves);
+	string Ywave = StringFromList(Ytarg-1, ListofWaves);
+	wave Xdata = :$Xwave;
+	wave Ydata = :$Ywave;
+	
+	string temp = CleanupName(Xbase, 0);
+	Xbase = temp;
+	temp = CleanupName(Ybase, 0);
+	Ybase = temp;
+	
+	DataSorter(Ydata, Xdata, Ybase, Xbase);
+	
+	Set_ColdAtomInfo(SavePath)
+	SetDataFolder fldrSav
+end
+
 //This function separates Xdata and Ydata into several waves in correspondance with several binary keys (specified by DecKeys)
 // DecKeys is a semicolon separated list of strings
 // Each string is the name of an indexed wave which contains only the values 0 and 1.

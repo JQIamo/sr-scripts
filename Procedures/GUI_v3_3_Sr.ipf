@@ -20,6 +20,7 @@ Menu "ColdAtom"
 	"Copy ROI cursors...", Dialog_CopyROI();
 	"Sort data series...", Dialog_SortIndexedWaves();
 	"Separate Data by Key...", Dialog_DecimateIndexedWaves();
+	"Process XY wave pair...", Dialog_DataSortXYWaves();
 	"-",""	//make divider line
 	"Set BatchRun base name...", Dialog_SetBasePath();
 	"Copy BatchRun base name...", Dialog_CopyBasePath();
