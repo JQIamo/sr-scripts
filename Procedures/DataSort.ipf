@@ -54,7 +54,7 @@ Function DataSorter(Ydata, Xdata,yBaseName,xBaseName)
 	Duplicate/O ydTemp, $(yBaseName + "_sorted")
 	
 	//check that the procedure is correctly extracting X values
-	print numXvals
+	//print numXvals
 	
 End
 
@@ -97,6 +97,12 @@ function Dialog_DataSortXYWaves()
 	Prompt Ybase, "Processed Y wave name:"
 	DoPrompt "Process Data", Xtarg, Xbase, Ytarg, Ybase
 	
+	if(V_Flag)
+		Set_ColdAtomInfo(SavePath)
+		SetDataFolder fldrSav
+		return -1		// User canceled
+	endif
+	
 	string Xwave = StringFromList(Xtarg-1, ListofWaves);
 	string Ywave = StringFromList(Ytarg-1, ListofWaves);
 	wave Xdata = :$Xwave;
@@ -108,6 +114,145 @@ function Dialog_DataSortXYWaves()
 	Ybase = temp;
 	
 	DataSorter(Ydata, Xdata, Ybase, Xbase);
+	
+	Set_ColdAtomInfo(SavePath)
+	SetDataFolder fldrSav
+end
+
+//This function is similar to DataSorter, but it averages both X and Y by a specified X bin size
+Function BinnedDataSorter(Ydata, Xdata,yBaseName,xBaseName, BinSize)
+
+	wave Ydata, Xdata //data to be sorted
+	string yBaseName, xBaseName //base names for resulting waves
+	variable BinSize //size of averaging bin in units of Xdata
+	
+	//mask the data
+	duplicate/FREE/D Ydata, ydTemp
+	duplicate/FREE/D Xdata, xdTemp
+	
+	//sort Ydata and Xdata by Xdata
+	sort xdTemp, xdTemp, ydTemp
+	
+	//Make waves to store results using basename
+	Make/O/D/N=1 $(xBaseName + "_Vals")/WAVE=xVals
+	Make/O/D/N=1 $(xBaseName + "_SD")/WAVE=xSD
+	Make/O/D/N=1 $(yBaseName + "_Avg")/WAVE=yAvg
+	Make/O/D/N=1 $(yBaseName + "_SD")/WAVE=ySD
+	Variable numXvals = 1
+	Variable i
+	Variable prev = 0//-1
+	Variable numBins = 1
+	
+	//populate results waves
+	For(i=0; i < numpnts(xdTemp); i+=1)
+		
+		If(xdTemp[i]>(xdTemp[0]+BinSize*NumBins))
+			//make the bin that we've just stepped out of
+			//handle x data
+			Make/N=(i-prev)/O/D $("XdataPnt" + num2str(numXvals))/WAVE=xref
+			xref[0,i-prev-1] = xdTemp[prev+p]
+			WaveStats/Q/Z/M=2 xref
+			xVals[numXvals-1] = V_avg
+			InsertPoints numXvals, 1, xVals
+			xSD[numXvals-1] = V_sdev
+			InsertPoints numXvals, 1, xSD
+			//handle y data
+			Make/N=(i-prev)/O/D $("YdataPnt" + num2str(numXvals))/WAVE=yref
+			yref[0,i-prev-1] = ydTemp[prev+p]
+			WaveStats/Q/Z/M=2 yref
+			yAvg[numXvals-1] = V_avg
+			InsertPoints numXvals, 1, yAvg
+			ySD[numXvals-1] = V_sdev
+			InsertPoints numXvals, 1, ySD
+			
+			numXvals += 1
+			numBins += 1
+			//prev is the first point in the (numBins)th bin
+			prev = i
+			
+		endif
+		
+	endfor
+	
+	//don't forget the last point
+	Make/N=(i-prev)/O/D $("XdataPnt" + num2str(numXvals))/WAVE=xref
+	xref[0,i-prev-1] = xdTemp[prev+p]
+	WaveStats/Q/Z/M=2 xref
+	xVals[numXvals-1] = V_avg
+	xSD[numXvals-1] = V_sdev
+	Make/N=(i-prev)/O/D $("YdataPnt" + num2str(numXvals))/WAVE=yref
+	yref[0,i-prev-1] = ydTemp[prev+p]
+	WaveStats/Q/Z/M=2 yref
+	yAvg[numXvals-1] = V_avg
+	ySD[numXvals-1] = V_sdev
+	
+	//Duplicate the raw sorted data for future use
+	Duplicate/O xdTemp, $(xBaseName + "_sorted")
+	Duplicate/O ydTemp, $(yBaseName + "_sorted")
+	
+	//check that the procedure is correctly extracting X values
+	//print numXvals
+	
+End
+
+function Dialog_BinSortXYWaves()
+	
+	variable TargProjectNum;
+
+	Init_ColdAtomInfo();	// Creates the needed variables if they do not already exist
+
+	// Create a dialog box with a list of active InfoProjects
+	SVAR ActivePaths = root:Packages:ColdAtom:ActivePaths
+	SVAR CurrentPath = root:Packages:ColdAtom:CurrentPath
+	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel
+	
+	Prompt TargProjectNum, "Source Data Series:", popup, ActivePaths
+	DoPrompt "Process Data", TargProjectNum
+	
+	if(V_Flag)
+		return -1		// User canceled
+	endif
+	
+	String TargPath = StringFromList(TargProjectNum-1, ActivePaths)
+		
+	String SavePanel = CurrentPanel
+	String SavePath = CurrentPath
+	String fldrSav= GetDataFolder(1)
+		
+	Set_ColdAtomInfo(TargPath)
+	String ProjectFolder = Activate_Top_ColdAtomInfo();
+	SetDataFolder ProjectFolder;
+	
+	SetDataFolder :IndexedWaves;
+	string ListofWaves = WaveList("*",";","");
+	
+	variable Xtarg, Ytarg
+	variable BinSize = 1
+	string Xbase, Ybase
+	Prompt Xtarg, "Target X wave:", popup, ListofWaves
+	Prompt Xbase, "Processed X wave name:"
+	Prompt BinSize, "Size of Bin (in units of target X wave):"
+	Prompt Ytarg, "Target Y wave:", popup, ListofWaves
+	Prompt Ybase, "Processed Y wave name:"
+	DoPrompt "Process Data", Xtarg, Xbase, BinSize, Ytarg, Ybase
+	
+	if(V_Flag)
+		Set_ColdAtomInfo(SavePath)
+		SetDataFolder fldrSav
+		return -1		// User canceled
+	endif
+	
+	string Xwave = StringFromList(Xtarg-1, ListofWaves);
+	string Ywave = StringFromList(Ytarg-1, ListofWaves);
+	wave Xdata = :$Xwave;
+	wave Ydata = :$Ywave;
+	
+	string temp = CleanupName(Xbase, 0);
+	Xbase = temp;
+	temp = CleanupName(Ybase, 0);
+	Ybase = temp;
+	
+	BinnedDataSorter(Ydata, Xdata, Ybase, Xbase, BinSize);
 	
 	Set_ColdAtomInfo(SavePath)
 	SetDataFolder fldrSav
