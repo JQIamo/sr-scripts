@@ -25,6 +25,7 @@ Menu "ColdAtom"
 	"-",""	//make divider line
 	"Set BatchRun base name...", Dialog_SetBasePath();
 	"Copy BatchRun base name...", Dialog_CopyBasePath();
+	"Do BatchRun...", Dialog_DoBatchRun();
 End
 
 

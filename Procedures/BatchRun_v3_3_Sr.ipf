@@ -150,6 +150,51 @@ Function BatchRunSkip(ctrlName) : ButtonControl
 	DoWindow/K temp_refitwindow
 End
 
+function Dialog_DoBatchRun()
+	
+	variable TargProjectNum;
+	variable startNum = -1;
+	variable endNum = 1;
+	variable pauseMode;
+
+	Init_ColdAtomInfo();	// Creates the needed variables if they do not already exist
+
+	// Create a dialog box with a list of active InfoProjects
+	SVAR ActivePaths = root:Packages:ColdAtom:ActivePaths
+	SVAR CurrentPath = root:Packages:ColdAtom:CurrentPath
+	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel
+	
+	// PossNums is the number of key waves that can be used.
+	// It is limited at 9 due to restrictions on the number of sort keys in Igor
+	string PossModes = "0;1;"
+	Prompt TargProjectNum, "Target Series for Batch Run:", popup, ActivePaths
+	Prompt pauseMode, "Mode (0 = automatic, 1 = pause for user):", popup, PossModes
+	Prompt startNum, "File number of first point (-1 to run only last point, without leading zeroes):"
+	Prompt endNum, "File number of last point (without leading zeroes):"
+	DoPrompt "Sort Data Series", TargProjectNum, pauseMode, startNum, endNum
+	
+	if(V_Flag)
+		return -1		// User canceled
+	endif
+	
+	pauseMode -= 1;
+	
+	String TargPath = StringFromList(TargProjectNum-1, ActivePaths)
+		
+	String SavePanel = CurrentPanel
+	String SavePath = CurrentPath
+	String fldrSav= GetDataFolder(1)
+		
+	Set_ColdAtomInfo(TargPath)
+	String ProjectFolder = Activate_Top_ColdAtomInfo();
+	SetDataFolder ProjectFolder;
+	
+	BatchRun(startNum, endNum, pauseMode);
+	
+	Set_ColdAtomInfo(SavePath)
+	SetDataFolder fldrSav
+end
+
 // Make BatchProcessing more efficient by setting BatchFileBasePath variable instead of modifying code
 // To set a base path:
 //	Run with path as string argument from command line (CTRL-J)

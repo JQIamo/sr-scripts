@@ -36,6 +36,7 @@ Function DataSorter(Ydata, Xdata,yBaseName,xBaseName)
 			InsertPoints numXvals, 1, ySD
 			prev = i
 			numXvals += 1
+			KillWaves ref
 			
 		endif
 		
@@ -48,10 +49,11 @@ Function DataSorter(Ydata, Xdata,yBaseName,xBaseName)
 	WaveStats/Q/Z/M=2 ref
 	yAvg[numXvals-1] = V_avg
 	ySD[numXvals-1] = V_sdev
+	KillWaves ref
 	
 	//Duplicate the raw sorted data for future use
-	Duplicate/O xdTemp, $(xBaseName + "_sorted")
-	Duplicate/O ydTemp, $(yBaseName + "_sorted")
+	//Duplicate/O xdTemp, $(xBaseName + "_sorted")
+	//Duplicate/O ydTemp, $(yBaseName + "_sorted")
 	
 	//check that the procedure is correctly extracting X values
 	//print numXvals
@@ -120,11 +122,11 @@ function Dialog_DataSortXYWaves()
 end
 
 //This function is similar to DataSorter, but it averages both X and Y by a specified X bin size
-Function BinnedDataSorter(Ydata, Xdata,yBaseName,xBaseName, BinSize)
+Function BinnedDataSorter(Ydata, Xdata,yBaseName,xBaseName, BinSize, BinMeth)
 
 	wave Ydata, Xdata //data to be sorted
 	string yBaseName, xBaseName //base names for resulting waves
-	variable BinSize //size of averaging bin in units of Xdata
+	variable BinSize, BinMeth //size of averaging bin in units of Xdata
 	
 	//mask the data
 	duplicate/FREE/D Ydata, ydTemp
@@ -135,6 +137,7 @@ Function BinnedDataSorter(Ydata, Xdata,yBaseName,xBaseName, BinSize)
 	
 	//Make waves to store results using basename
 	Make/O/D/N=1 $(xBaseName + "_Vals")/WAVE=xVals
+	Make/O/D/N=1 $(xBaseName + "_bCntrs")/WAVE=xCntrs
 	Make/O/D/N=1 $(xBaseName + "_SD")/WAVE=xSD
 	Make/O/D/N=1 $(yBaseName + "_Avg")/WAVE=yAvg
 	Make/O/D/N=1 $(yBaseName + "_SD")/WAVE=ySD
@@ -145,37 +148,167 @@ Function BinnedDataSorter(Ydata, Xdata,yBaseName,xBaseName, BinSize)
 	Variable DeltaBins
 	
 	//populate results waves
-	For(i=0; i < numpnts(xdTemp); i+=1)
+	if(BinMeth==3)
+	
+		For(i=0; i < numpnts(xdTemp); i+=1)
 		
-		If(xdTemp[i]>(xdTemp[0]+BinSize*NumBins))
-			//make the bin that we've just stepped out of
-			//handle x data
-			Make/N=(i-prev)/O/D $("XdataPnt" + num2str(numXvals))/WAVE=xref
-			xref[0,i-prev-1] = xdTemp[prev+p]
-			WaveStats/Q/Z/M=2 xref
-			xVals[numXvals-1] = V_avg
-			InsertPoints numXvals, 1, xVals
-			xSD[numXvals-1] = V_sdev
-			InsertPoints numXvals, 1, xSD
-			//handle y data
-			Make/N=(i-prev)/O/D $("YdataPnt" + num2str(numXvals))/WAVE=yref
-			yref[0,i-prev-1] = ydTemp[prev+p]
-			WaveStats/Q/Z/M=2 yref
-			yAvg[numXvals-1] = V_avg
-			InsertPoints numXvals, 1, yAvg
-			ySD[numXvals-1] = V_sdev
-			InsertPoints numXvals, 1, ySD
+			If(xdTemp[i]>(xdTemp[0]+BinSize*NumBins))
+				//make the bin that we've just stepped out of
+				//handle x data
+				Make/N=(i-prev)/O/D $("XdataPnt" + num2str(numXvals))/WAVE=xref
+				xref[0,i-prev-1] = xdTemp[prev+p]
+				WaveStats/Q/Z/M=2 xref
+				xVals[numXvals-1] = V_avg
+				InsertPoints numXvals, 1, xVals
+				xSD[numXvals-1] = V_sdev
+				InsertPoints numXvals, 1, xSD
+				xCntrs[numXvals-1]=xdTemp[0]+BinSize*(2*numBins-1)/2
+				InsertPoints numXvals, 1, xCntrs
+				//handle y data
+				Make/N=(i-prev)/O/D $("YdataPnt" + num2str(numXvals))/WAVE=yref
+				yref[0,i-prev-1] = ydTemp[prev+p]
+				WaveStats/Q/Z/M=2 yref
+				yAvg[numXvals-1] = V_avg
+				InsertPoints numXvals, 1, yAvg
+				ySD[numXvals-1] = V_sdev
+				InsertPoints numXvals, 1, ySD
 			
-			numXvals += 1
-			//use deltabins to correctly skip over empty bins
-			DeltaBins = Ceil((xdTemp[i] - xdTemp[0] - BinSize*numBins)/BinSize)
-			numBins += DeltaBins
-			//prev is the first point in the (numBins)th bin
-			prev = i
+				numXvals += 1
+				//use deltabins to correctly populate empty bins
+				DeltaBins = Ceil((xdTemp[i] - xdTemp[0] - BinSize*numBins)/BinSize)
+				if(DeltaBins>1)
+					variable j
+					for(j=1;j<(DeltaBins);j+=1)
+					
+						xCntrs[numXvals-1]=xdTemp[0]+BinSize*(2*(numBins+j)-1)/2
+						xVals[numXvals-1] = xCntrs[numXvals-1]
+						InsertPoints numXvals, 1, xCntrs
+						InsertPoints numXvals, 1, xVals
+						xSD[numXvals-1] = NaN
+						InsertPoints numXvals, 1, xSD
+						
+						yAvg[numXvals-1] = NaN
+						InsertPoints numXvals, 1, yAvg
+						ySD[numXvals-1] = NaN
+						InsertPoints numXvals, 1, ySD
+					
+					endfor
+				endif
+				numBins += DeltaBins
+				//prev is the first point in the (numBins)th bin
+				prev = i
+				KillWaves xref, yref
 			
-		endif
+			endif
 		
-	endfor
+		endfor
+	
+	elseif(BinMeth==2)
+	
+		For(i=0; i < numpnts(xdTemp); i+=1)
+		
+			If(abs(xdTemp[i]-xdTemp[i-1])>(BinSize))
+				//make the bin that we've just stepped out of
+				//handle x data
+				Make/N=(i-prev)/O/D $("XdataPnt" + num2str(numXvals))/WAVE=xref
+				xref[0,i-prev-1] = xdTemp[prev+p]
+				WaveStats/Q/Z/M=2 xref
+				xVals[numXvals-1] = V_avg
+				InsertPoints numXvals, 1, xVals
+				xSD[numXvals-1] = V_sdev
+				InsertPoints numXvals, 1, xSD
+				//handle y data
+				Make/N=(i-prev)/O/D $("YdataPnt" + num2str(numXvals))/WAVE=yref
+				yref[0,i-prev-1] = ydTemp[prev+p]
+				WaveStats/Q/Z/M=2 yref
+				yAvg[numXvals-1] = V_avg
+				InsertPoints numXvals, 1, yAvg
+				ySD[numXvals-1] = V_sdev
+				InsertPoints numXvals, 1, ySD
+			
+				numXvals += 1
+				//use deltabins to correctly skip over empty bins
+				DeltaBins = Ceil((xdTemp[i] - xdTemp[0] - BinSize*numBins)/BinSize)
+				numBins += DeltaBins
+				//prev is the first point in the (numBins)th bin
+				prev = i
+				KillWaves xref, yref
+			
+			endif
+		
+		endfor
+		
+	elseif(BinMeth==1)
+	
+		For(i=0; i < numpnts(xdTemp); i+=1)
+		
+			If(xdTemp[i]>(xdTemp[prev]+BinSize))
+				//make the bin that we've just stepped out of
+				//handle x data
+				Make/N=(i-prev)/O/D $("XdataPnt" + num2str(numXvals))/WAVE=xref
+				xref[0,i-prev-1] = xdTemp[prev+p]
+				WaveStats/Q/Z/M=2 xref
+				xVals[numXvals-1] = V_avg
+				InsertPoints numXvals, 1, xVals
+				xSD[numXvals-1] = V_sdev
+				InsertPoints numXvals, 1, xSD
+				//handle y data
+				Make/N=(i-prev)/O/D $("YdataPnt" + num2str(numXvals))/WAVE=yref
+				yref[0,i-prev-1] = ydTemp[prev+p]
+				WaveStats/Q/Z/M=2 yref
+				yAvg[numXvals-1] = V_avg
+				InsertPoints numXvals, 1, yAvg
+				ySD[numXvals-1] = V_sdev
+				InsertPoints numXvals, 1, ySD
+			
+				numXvals += 1
+				//use deltabins to correctly skip over empty bins
+				DeltaBins = Ceil((xdTemp[i] - xdTemp[0] - BinSize*numBins)/BinSize)
+				numBins += DeltaBins
+				//prev is the first point in the (numBins)th bin
+				prev = i
+				KillWaves xref, yref
+			
+			endif
+		
+		endfor
+		
+	elseif(BinMeth==0)
+	
+		For(i=0; i < numpnts(xdTemp); i+=1)
+		
+			If(xdTemp[i]>(xdTemp[0]+BinSize*NumBins))
+				//make the bin that we've just stepped out of
+				//handle x data
+				Make/N=(i-prev)/O/D $("XdataPnt" + num2str(numXvals))/WAVE=xref
+				xref[0,i-prev-1] = xdTemp[prev+p]
+				WaveStats/Q/Z/M=2 xref
+				xVals[numXvals-1] = V_avg
+				InsertPoints numXvals, 1, xVals
+				xSD[numXvals-1] = V_sdev
+				InsertPoints numXvals, 1, xSD
+				//handle y data
+				Make/N=(i-prev)/O/D $("YdataPnt" + num2str(numXvals))/WAVE=yref
+				yref[0,i-prev-1] = ydTemp[prev+p]
+				WaveStats/Q/Z/M=2 yref
+				yAvg[numXvals-1] = V_avg
+				InsertPoints numXvals, 1, yAvg
+				ySD[numXvals-1] = V_sdev
+				InsertPoints numXvals, 1, ySD
+			
+				numXvals += 1
+				//use deltabins to correctly skip over empty bins
+				DeltaBins = Ceil((xdTemp[i] - xdTemp[0] - BinSize*numBins)/BinSize)
+				numBins += DeltaBins
+				//prev is the first point in the (numBins)th bin
+				prev = i
+				KillWaves xref, yref
+			
+			endif
+		
+		endfor
+		
+	endif
 	
 	//don't forget the last point
 	Make/N=(i-prev)/O/D $("XdataPnt" + num2str(numXvals))/WAVE=xref
@@ -188,6 +321,7 @@ Function BinnedDataSorter(Ydata, Xdata,yBaseName,xBaseName, BinSize)
 	WaveStats/Q/Z/M=2 yref
 	yAvg[numXvals-1] = V_avg
 	ySD[numXvals-1] = V_sdev
+	KillWaves xref, yref
 	
 	print "Number of empty bins: " + num2str(numBins - numXvals)
 	
@@ -233,13 +367,16 @@ function Dialog_BinSortXYWaves()
 	
 	variable Xtarg, Ytarg
 	variable BinSize = 1
+	variable BinMeth = 0
 	string Xbase, Ybase
+	string Method = "Static Edge;Dynamic Edge;Minimum Separation;X Vals from Center;"
 	Prompt Xtarg, "Target X wave:", popup, ListofWaves
 	Prompt Xbase, "Processed X wave name:"
 	Prompt BinSize, "Size of Bin (in units of target X wave):"
+	Prompt BinMeth, "Dynamically shift bin edge?", popup, Method
 	Prompt Ytarg, "Target Y wave:", popup, ListofWaves
 	Prompt Ybase, "Processed Y wave name:"
-	DoPrompt "Process Data", Xtarg, Xbase, BinSize, Ytarg, Ybase
+	DoPrompt "Process Data", Xtarg, Xbase, BinSize, BinMeth, Ytarg, Ybase
 	
 	if(V_Flag)
 		Set_ColdAtomInfo(SavePath)
@@ -247,6 +384,7 @@ function Dialog_BinSortXYWaves()
 		return -1		// User canceled
 	endif
 	
+	BinMeth -= 1;
 	string Xwave = StringFromList(Xtarg-1, ListofWaves);
 	string Ywave = StringFromList(Ytarg-1, ListofWaves);
 	wave Xdata = :$Xwave;
@@ -257,7 +395,7 @@ function Dialog_BinSortXYWaves()
 	temp = CleanupName(Ybase, 0);
 	Ybase = temp;
 	
-	BinnedDataSorter(Ydata, Xdata, Ybase, Xbase, BinSize);
+	BinnedDataSorter(Ydata, Xdata, Ybase, Xbase, BinSize, BinMeth);
 	
 	Set_ColdAtomInfo(SavePath)
 	SetDataFolder fldrSav
