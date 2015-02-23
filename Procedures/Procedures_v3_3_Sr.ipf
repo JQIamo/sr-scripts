@@ -642,7 +642,7 @@ Function SimpleThermalFit2D(inputimage)
 	//Uncomment to the two lines below to set guess manually.
 	Gauss3d_coef[6] = 0;			// No corrilation term
 	//Gauss3d_coef[0] = background;		//fix background to average OD in atom free region
-	CurveFit /G/N/Q/H="0000000" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /R=res_optdepth /M=inputimage_mask
+	CurveFit /G/N/Q/H="0000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /R=res_optdepth /M=inputimage_mask
 	
 	//store the fitted function as a wave
 	variable pmax = (xmax - DimOffset(inputimage, 0))/DimDelta(inputimage,0);

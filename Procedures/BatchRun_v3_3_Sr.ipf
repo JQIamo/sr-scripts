@@ -236,7 +236,7 @@ function Dialog_SetBasePath()
 	endif
 	
 	//Form Base Name
-	String baseName="C:Experiment:Data:"+Year+":"+Month+":"+Day+":"+Cam+"_"+Day+Month[0,2]+Year;
+	String baseName="I:Data:"+Year+":"+Month+":"+Day+":"+Cam+"_"+Day+Month[0,2]+Year;
 	
 	//set base name
 	SetBasePath(baseName)
@@ -537,7 +537,7 @@ function Sort_IndexedWaves(ProjectFolder,IndexedSorterWaveNames, NumSorterWaves)
 		Duplicate/D/O temp, $nametemp
 	endfor
 	
-	Make/O/D/N=(numpnts(temp)) sortIndex1
+	Make/O/D/N=(numpnts(temp)) sortIndex1, unsortIndex1
 	//This is a hack due to Igor's lack of support for awesome things:
 	If(NumSorterWaves==1)
 		MakeIndex {SorterWave1, FileNames}, sortIndex1
@@ -571,6 +571,8 @@ function Sort_IndexedWaves(ProjectFolder,IndexedSorterWaveNames, NumSorterWaves)
 		SetDataFolder fldrSav
 		return -1
 	endif
+	
+	MakeIndex sortIndex1, unsortIndex1
 	
 	// 2D lists
 	SVAR Indexed2DWaveNames = :IndexedWaves:FitWaves:Indexed2DWaveNames;
@@ -651,7 +653,7 @@ function Sort_IndexedWaves(ProjectFolder,IndexedSorterWaveNames, NumSorterWaves)
 		
 		//sort the indexed2Dwave
 		Duplicate/FREE LocalIndexed2DWave, tempWave;
-		tempWave = LocalIndexed2DWave[sortIndex1[p]][q]
+		//tempWave = LocalIndexed2DWave[sortIndex1[p]][q]   //this line causing compile error
 		LocalIndexed2DWave = tempWave
 	endfor
 	

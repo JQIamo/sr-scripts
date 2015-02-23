@@ -191,6 +191,8 @@ Function BinnedDataSorter(Ydata, Xdata,yBaseName,xBaseName, BinSize, BinMeth)
 						InsertPoints numXvals, 1, yAvg
 						ySD[numXvals-1] = NaN
 						InsertPoints numXvals, 1, ySD
+						
+						numXvals+=1;
 					
 					endfor
 				endif
