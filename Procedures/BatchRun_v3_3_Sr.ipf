@@ -8,8 +8,9 @@
 //
 //	Note: if startnum is -1, only run "endnum"
 //   mode = 0 => no pause for user, mode = 1 => pause for user.
-Function BatchRun(startnum,endnum,mode)
+Function BatchRun(startnum,endnum,mode,skipList)
 	variable startnum, endnum, mode
+	string skipList //; separated list of file numbers to skip
 
 	// Get the current path
 	String ProjectFolder = Activate_Top_ColdAtomInfo();
@@ -53,71 +54,72 @@ Function BatchRun(startnum,endnum,mode)
 	String waveNameStr
 	variable i
 	for(i=startnum; i<=endnum; i+=1)
-		if(i<10000)
-			sprintf temp "%.4f" i/10000
-			temp = StringByKey("0",temp,".")
-		else
-			sprintf temp "%d" i
-		endif
-		filepath=BasePath+"_"+temp+".ibw"
-		print filepath
+		if(WhichListItem(num2str(i),skipList,";",0,1)==-1)
+			if(i<10000)
+				sprintf temp "%.4f" i/10000
+				temp = StringByKey("0",temp,".")
+			else
+				sprintf temp "%d" i
+			endif
+			filepath=BasePath+"_"+temp+".ibw"
+			print filepath
 
-		AutoRunV3(ExperimentName, filepath)		// run command!
+			AutoRunV3(ExperimentName, filepath)		// run command!
 		
-		//handle user cursor input
-		If(mode==1)
+			//handle user cursor input
+			If(mode==1)
 		
-			//temp folder to store result of user interaction
-			NewDataFolder/O root:temp_refitwindow;
-			Variable/G root:temp_refitwindow:result = 0;
-			NVAR resulttemp = root:temp_refitwindow:result;
+				//temp folder to store result of user interaction
+				NewDataFolder/O root:temp_refitwindow;
+				Variable/G root:temp_refitwindow:result = 0;
+				NVAR resulttemp = root:temp_refitwindow:result;
+				
+				//Bring current panel to front
+				DoWindow/F $CurrentPanel
 			
-			//Bring current panel to front
-			DoWindow/F $CurrentPanel
+				//make the panel for user interaction
+				NewPanel/K=2/W=(200,200,500,500) as "Check Fit and Adjust Cursors"
+				DoWindow/C temp_refitwindow
+				AutoPositionWindow/E/M=1/R=$CurrentPanel temp_refitwindow
+				
+				DrawText 25,20,"Click Continue to proceed to the next file."
+				DrawText 25,40,"Reposition cursors and click Refit to rerun this file."
+				DrawText 25,60,"Click Skip to proceed to the next file without"
+				DrawText 25,80,"saving data to indexed waves."
+				PopupMenu refit_SetROI,pos={80,100},size={141,21},bodyWidth=141,proc=SetROI
+				PopupMenu refit_SetROI,mode=1,popvalue="Set ROI",value= #"\"Set ROI;Set ROI and zoom;Zoom to ROI;Unzoom\""
+				Button refit_1,pos={80,130},size={100,20},title="Continue"
+				Button refit_1,proc=BatchRunContinue
+				Button refit_2,pos={80,160},size={100,20},title="Refit"
+				Button refit_2,proc=BatchRunRefit
+				Button refit_3,pos={80,190},size={100,20},title="Skip"
+				Button refit_3,proc=BatchRunSkip
 			
-			//make the panel for user interaction
-			NewPanel/K=2/W=(200,200,500,500) as "Check Fit and Adjust Cursors"
-			DoWindow/C temp_refitwindow
-			AutoPositionWindow/E/M=1/R=$CurrentPanel temp_refitwindow
+				//wait for user decision
+				PauseForUser temp_refitwindow,$CurrentPanel			
+				Variable result = resulttemp;
+				KillDataFolder root:temp_refitwindow
+				
+				//parse user action
+				if(result==2) //case skip
 			
-			DrawText 25,20,"Click Continue to proceed to the next file."
-			DrawText 25,40,"Reposition cursors and click Refit to rerun this file."
-			DrawText 25,60,"Click Skip to proceed to the next file without"
-			DrawText 25,80,"saving data to indexed waves."
-			PopupMenu refit_SetROI,pos={80,100},size={141,21},bodyWidth=141,proc=SetROI
-			PopupMenu refit_SetROI,mode=1,popvalue="Set ROI",value= #"\"Set ROI;Set ROI and zoom;Zoom to ROI;Unzoom\""
-			Button refit_1,pos={80,130},size={100,20},title="Continue"
-			Button refit_1,proc=BatchRunContinue
-			Button refit_2,pos={80,160},size={100,20},title="Refit"
-			Button refit_2,proc=BatchRunRefit
-			Button refit_3,pos={80,190},size={100,20},title="Skip"
-			Button refit_3,proc=BatchRunSkip
+					//remove bad point
+					IndexedWavesDeletePoints(ProjectFolder,index-1,1);
+				
+				elseif(result==1) //case refit
 			
-			//wait for user decision
-			PauseForUser temp_refitwindow,$CurrentPanel			
-			Variable result = resulttemp;
-			KillDataFolder root:temp_refitwindow
-			
-			//parse user action
-			if(result==2) //case skip
-			
-				//remove bad point
-				IndexedWavesDeletePoints(ProjectFolder,index-1,1);
-			
-			elseif(result==1) //case refit
-			
-				//remove bad point
-				IndexedWavesDeletePoints(ProjectFolder,index-1,1);
-				i-=1; //decrement loop index to refit on next iteration
+					//remove bad point
+					IndexedWavesDeletePoints(ProjectFolder,index-1,1);
+					i-=1; //decrement loop index to refit on next iteration
 				
 			
-			elseif(result!=0) //error
-				print "BatchRun:  Unexpected action during PauseForUser";
-				return -1
-			endif
+				elseif(result!=0) //error
+					print "BatchRun:  Unexpected action during PauseForUser";
+					return -1
+				endif
 			
+			endif
 		endif
-		
 	endfor
 
 	SetDataFolder fldrSav;		//return to user path
@@ -156,6 +158,7 @@ function Dialog_DoBatchRun()
 	variable startNum = -1;
 	variable endNum = 1;
 	variable pauseMode;
+	string skipList;
 
 	Init_ColdAtomInfo();	// Creates the needed variables if they do not already exist
 
@@ -171,7 +174,8 @@ function Dialog_DoBatchRun()
 	Prompt pauseMode, "Mode (0 = automatic, 1 = pause for user):", popup, PossModes
 	Prompt startNum, "File number of first point (-1 to run only last point, without leading zeroes):"
 	Prompt endNum, "File number of last point (without leading zeroes):"
-	DoPrompt "Sort Data Series", TargProjectNum, pauseMode, startNum, endNum
+	Prompt skipList, "semicolon separated list of file numbers to skip (without leading zeroes):"
+	DoPrompt "Batch Run", TargProjectNum, pauseMode, startNum, endNum, skipList
 	
 	if(V_Flag)
 		return -1		// User canceled
@@ -189,7 +193,7 @@ function Dialog_DoBatchRun()
 	String ProjectFolder = Activate_Top_ColdAtomInfo();
 	SetDataFolder ProjectFolder;
 	
-	BatchRun(startNum, endNum, pauseMode);
+	BatchRun(startNum, endNum, pauseMode, skipList);
 	
 	Set_ColdAtomInfo(SavePath)
 	SetDataFolder fldrSav

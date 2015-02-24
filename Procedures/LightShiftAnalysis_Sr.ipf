@@ -79,7 +79,7 @@ function BatchLatticePeak(startnum, endnum, pkLabel)
 	autoupdate=1 // set auto increment
 
 	// Do the fits; copy waves to :Analysis:RawPeaks
-	BatchRun(startnum, endnum,0)
+	BatchRun(startnum, endnum,0,"")
 	CopyPeak(pkLabel)
 	
 	SetDataFolder fldrSav	// Return path

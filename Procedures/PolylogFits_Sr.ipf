@@ -213,7 +213,7 @@ Function WingFit(filenum, fMask)
 	
 	
 	// Assume basePath already set appropriately for BatchRun to load an image.
-	BatchRun(filenum, filenum,0)
+	BatchRun(filenum, filenum,0,"")
 	
 	// set path to top experiment folder, saving present folder
 	String ProjectFolder = Activate_Top_ColdAtomInfo();

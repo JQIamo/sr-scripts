@@ -149,7 +149,8 @@ Function BinnedDataSorter(Ydata, Xdata,yBaseName,xBaseName, BinSize, BinMeth)
 	
 	//populate results waves
 	if(BinMeth==3)
-	
+	//same as static edge, but also populates the xCntrs wave which is the center point of each static bin
+	//Use this method for histograms and other places where correctly populating empty bins is important.
 		For(i=0; i < numpnts(xdTemp); i+=1)
 		
 			If(xdTemp[i]>(xdTemp[0]+BinSize*NumBins))
@@ -206,7 +207,9 @@ Function BinnedDataSorter(Ydata, Xdata,yBaseName,xBaseName, BinSize, BinMeth)
 		endfor
 	
 	elseif(BinMeth==2)
-	
+	//minimum separation
+	//This method adds points to a bin until a point is found such that its X value
+	//is more than the BinSize from the X value of the previous point in the bin
 		For(i=0; i < numpnts(xdTemp); i+=1)
 		
 			If(abs(xdTemp[i]-xdTemp[i-1])>(BinSize))
@@ -241,7 +244,8 @@ Function BinnedDataSorter(Ydata, Xdata,yBaseName,xBaseName, BinSize, BinMeth)
 		endfor
 		
 	elseif(BinMeth==1)
-	
+	//dynamic edge
+	//This sets the bin edge at the X value of the first point in the new bin
 		For(i=0; i < numpnts(xdTemp); i+=1)
 		
 			If(xdTemp[i]>(xdTemp[prev]+BinSize))
@@ -276,7 +280,8 @@ Function BinnedDataSorter(Ydata, Xdata,yBaseName,xBaseName, BinSize, BinMeth)
 		endfor
 		
 	elseif(BinMeth==0)
-	
+	//static edge
+	//this makes all bins relative to the first data point, but does not populate empty bins
 		For(i=0; i < numpnts(xdTemp); i+=1)
 		
 			If(xdTemp[i]>(xdTemp[0]+BinSize*NumBins))
@@ -318,6 +323,7 @@ Function BinnedDataSorter(Ydata, Xdata,yBaseName,xBaseName, BinSize, BinMeth)
 	WaveStats/Q/Z/M=2 xref
 	xVals[numXvals-1] = V_avg
 	xSD[numXvals-1] = V_sdev
+	xCntrs[numXvals-1]=xdTemp[0]+BinSize*(2*numBins-1)/2
 	Make/N=(i-prev)/O/D $("YdataPnt" + num2str(numXvals))/WAVE=yref
 	yref[0,i-prev-1] = ydTemp[prev+p]
 	WaveStats/Q/Z/M=2 yref
