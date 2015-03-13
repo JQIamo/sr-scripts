@@ -386,7 +386,7 @@ Function GetCounts(inputimage)
 	NVAR detuning=:Experimental_Info:detuning
 	NVAR delta_pix=:Experimental_Info:delta_pix
 	Variable sigma
-	sigma=3*lambda^2/(2*pi*(1+4*detuning^2));
+	sigma=3*lambda^2/(2*pi); //detuning is now accounted for in FileIO
 	absnumber = ((sum(inputimage_mask))*delta_pix^2)/sigma
 	
 	SetDataFolder fldrSav
@@ -1504,7 +1504,8 @@ Function TFUpdateCloudPars(Gauss3d_coef,fit_type)
 	
 	// Now process the TF Fit data
 	if(CamDir==1) 			// XY imaging
-		sigma=3*lambda^2/(2*pi*(1+4*detuning^2));		// This imaging direction uses a sigma+ probe.
+		sigma=3*lambda^2/(2*pi);		// This imaging direction uses a sigma+ probe.
+													//detuning is now accounted for in FileIO
 	
 		if(traptype==2) 							// Dipole Trap  
 			
@@ -1569,8 +1570,9 @@ Function TFUpdateCloudPars(Gauss3d_coef,fit_type)
 		// chempot /= 1.05e-34  * (2*pi);
 	
 	elseif (CamDir ==2) // XZ imaging
-		sigma=3*lambda^2/(2*pi*(1+4*detuning^2));	// This direction uses a linearly polarized probe without a quantization axis.
-												// Sr does not care about polarization because the ground state has no hyperfine structure.
+		sigma=3*lambda^2/(2*pi);	// This direction uses a linearly polarized probe without a quantization axis.
+								// Sr does not care about polarization because the ground state has no hyperfine structure.
+								//detuning is now accounted for in FileIO
 		if (traptype==2) // Dipole
 			xposition = Gauss3d_coef[2];xrms=abs(Gauss3d_coef[3])*(!TFonly);  // thermal properties, don't do if TFonly
 			zposition = Gauss3d_coef[4];zrms=abs(Gauss3d_coef[5])*(!TFonly);  // thermal properties, don't do if TFonly
@@ -1713,7 +1715,8 @@ Function ThermalUpdateCloudPars(Gauss3D_coef)
 		xposition = Gauss3D_coef[2]; xrms=abs(Gauss3D_coef[3]);
 		yposition = Gauss3D_coef[4]; yrms = abs(Gauss3D_coef[5]);
 		zposition = NAN;
-		sigma=3*lambda^2/(2*pi*(1+4*detuning^2)) ;              							// This imaging direction uses a sigma+ probe beam.
+		sigma=3*lambda^2/(2*pi) ;        // This imaging direction uses a sigma+ probe beam.
+									//detuning is now accounted for in FileIO										
 		
 		if(traptype==1)    	  	// Quad only (Sr coils give 0.97 G/cm/A in z direction)
 			zrms = (xrms+yrms)/2; 												// Assume width in 3rd direction is average of x,y; valid of long TOF.
@@ -1752,8 +1755,9 @@ Function ThermalUpdateCloudPars(Gauss3D_coef)
 		xposition = Gauss3D_coef[2];xrms=abs(Gauss3D_coef[3]);
 		yposition = NAN; 
 		zposition = Gauss3D_coef[4];zrms=abs(Gauss3D_coef[5]);
-		sigma=3*lambda^2/(2*pi*(1+4*detuning^2));									// This imaging direction uses linearly polarized probe without a quantization axis.
-		                                                                                                                     // Sr does not care about polarization because the ground state has no hyperfine structure.
+		sigma=3*lambda^2/(2*pi);									// This imaging direction uses linearly polarized probe without a quantization axis.
+		                                                                                           // Sr does not care about polarization because the ground state has no hyperfine structure.
+																//detuning is now accounted for in FileIO
 				
 		if(traptype==1) 		// Quad only (Sr coils give 0.97 G/cm/A in z direction)
 			yrms = (zrms+xrms)/2;

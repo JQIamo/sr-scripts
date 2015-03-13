@@ -268,7 +268,7 @@ Function Load_Img(ImageName,FileName)
 				//CrDipolePower = DipPowZRamp;
 				WMfreq = NumberByKey_Safe(0, "WMfreq",wavenote,"=","\n");
 				//printf "frequency: %15.12g\r", WMfreq
-				detuning = (1/31.83)*NumberByKey_Safe(NaN,"ProbeDet ", wavenote, "=","\n"); //Sr linewidth from S. Nagel's thesis
+				detuning = (1/31.99)*NumberByKey_Safe(NaN,"ProbeDet ", wavenote, "=","\n"); //Sr linewidth from NIST spectral database
 			break;
 		
 			case "RbYb":
@@ -552,7 +552,8 @@ Function Load_Img(ImageName,FileName)
 				endif
 				
 				// ImageName = -ln(ImageName) - Isat * (ImageName-1);
-				ImageName = -(ln(ImageName))*(1+Isat);
+				// See AMO notes from Gretchen and Barker NB 3 p. 51 on why this is valid:
+				ImageName = -(ln(ImageName))*(1+4*detuning^2+Isat);
 	
 				// remove any non-numbers from the data
 				ImageName=(ImageName > -1 ? ImageName : -1);	//This will remove the Nan's
