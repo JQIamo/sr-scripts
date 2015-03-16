@@ -177,6 +177,7 @@ Function Load_Img(ImageName,FileName)
 	NVAR CamDir = :Experimental_Info:camdir;
 	NVAR DualAxis = :Experimental_Info:DualAxis;
 	NVAR Analysis_Type = :Fit_Info:Analysis_Type;
+	NVAR isotope = :Experimental_Info:SrIsotope;
 
 	Wave Isat = :Isat;
 	Wave Raw1 = :Raw1;
@@ -553,7 +554,18 @@ Function Load_Img(ImageName,FileName)
 				
 				// ImageName = -ln(ImageName) - Isat * (ImageName-1);
 				// See AMO notes from Gretchen and Barker NB 3 p. 51 on why this is valid:
-				ImageName = -(ln(ImageName))*(1+4*detuning^2+Isat);
+				If(isotope==3)	//case Sr87
+					//SetDataFolder root:Packages:Sr87CrossSect
+					Wave sigma87 = root:Packages:Sr87CrossSect:Sr87sigma
+					//Wave sigma87 = :Sr87sigma
+					//SetDataFolder ProjectFolder
+					Isat = Interp2d(sigma87, 31.99*detuning, Isat[p][q]);
+					ImageName = -(ln(ImageName))/Isat
+				elseif((isotope==1)||(isotope==2)||(isotope==4))	//case Sr88, Sr86, Sr84
+					ImageName = -(ln(ImageName))*(1+4*detuning^2+Isat);
+				else		//case unknown isotope
+					ImageName = -(ln(ImageName))*(1+4*detuning^2+Isat);
+				endif
 	
 				// remove any non-numbers from the data
 				ImageName=(ImageName > -1 ? ImageName : -1);	//This will remove the Nan's
