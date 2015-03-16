@@ -553,13 +553,19 @@ Function Load_Img(ImageName,FileName)
 				endif
 				
 				// ImageName = -ln(ImageName) - Isat * (ImageName-1);
-				// See AMO notes from Gretchen and Barker NB 3 p. 51 on why this is valid:
+				// See AMO notes from Gretchen (lectures 26 and 27) and Barker NB 3 p. 51 on why this is valid:
 				If(isotope==3)	//case Sr87
-					//SetDataFolder root:Packages:Sr87CrossSect
+					//If there is an error, the data for Sr87sigma can be found with Englebert in the AeroFS folder
+					//use the generic load waves dialog to import
 					Wave sigma87 = root:Packages:Sr87CrossSect:Sr87sigma
-					//Wave sigma87 = :Sr87sigma
-					//SetDataFolder ProjectFolder
+					
+					//If you had to reload the 87sigma wave, you MUST uncomment the following two lines
+					//the first time a new image is loaded so that the interpolation works properly.
+					//SetScale/P x, -64, 1, sigma87
+					//SetScale/P y, .001, .01, sigma87
+					
 					Isat = Interp2d(sigma87, 31.99*detuning, Isat[p][q]);
+					//Isat is now a local, relative (to peak bosonic Sr absorption), absorption cross-section and not the local saturation parameter
 					ImageName = -(ln(ImageName))/Isat
 				elseif((isotope==1)||(isotope==2)||(isotope==4))	//case Sr88, Sr86, Sr84
 					ImageName = -(ln(ImageName))*(1+4*detuning^2+Isat);
