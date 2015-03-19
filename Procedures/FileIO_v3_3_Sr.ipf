@@ -557,14 +557,19 @@ Function Load_Img(ImageName,FileName)
 				If(isotope==3)	//case Sr87
 					//If there is an error, the data for Sr87sigma can be found with Englebert in the AeroFS folder
 					//use the generic load waves dialog to import
-					Wave sigma87 = root:Packages:Sr87CrossSect:Sr87sigma
+					SetDataFolder "root:Packages:Sr87CrossSect";
+					Wave sigma87 = :Sr87sigma;
+					Wave highS =:Sr87sigma_highS;
+					Wave lowS = :Sr87sigma_lowS;
+					Wave Dets = :Detunings;
+					SetDataFolder ProjectFolder;
 					
 					//If you had to reload the 87sigma wave, you MUST uncomment the following two lines
 					//the first time a new image is loaded so that the interpolation works properly.
 					//SetScale/P x, -64, 1, sigma87
 					//SetScale/P y, .001, .01, sigma87
-					
-					Isat = Interp2d(sigma87, 31.99*detuning, Isat[p][q]);
+					variable temp = 31.99*detuning
+					Isat = (Isat[p][q] > .001 ? (Isat[p][q] < 1 ? interp2d(sigma87, temp, Isat[p][q]) : interp(temp,Dets,highS)) : interp(temp,Dets,lowS));
 					//Isat is now a local, relative (to peak bosonic Sr absorption), absorption cross-section and not the local saturation parameter
 					ImageName = -(ln(ImageName))/Isat
 				elseif((isotope==1)||(isotope==2)||(isotope==4))	//case Sr88, Sr86, Sr84
