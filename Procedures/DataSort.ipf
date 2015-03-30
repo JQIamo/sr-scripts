@@ -16,6 +16,7 @@ Function DataSorter(Ydata, Xdata,yBaseName,xBaseName)
 	Make/O/D/N=1 $(xBaseName + "_Vals")/WAVE=xVals
 	Make/O/D/N=1 $(yBaseName + "_Avg")/WAVE=yAvg
 	Make/O/D/N=1 $(yBaseName + "_SD")/WAVE=ySD
+	Make/O/D/N=1 $(yBaseName + "_SEM")/WAVE=ySEM
 	Variable numXvals = 1
 	Variable i
 	Variable prev = -1
@@ -34,6 +35,8 @@ Function DataSorter(Ydata, Xdata,yBaseName,xBaseName)
 			InsertPoints numXvals, 1, yAvg
 			ySD[numXvals-1] = V_sdev
 			InsertPoints numXvals, 1, ySD
+			ySEM[numXvals-1] = V_sdev/sqrt(V_npnts)
+			InsertPoints numXvals, 1, ySEM
 			prev = i
 			numXvals += 1
 			KillWaves ref
@@ -49,6 +52,7 @@ Function DataSorter(Ydata, Xdata,yBaseName,xBaseName)
 	WaveStats/Q/Z/M=2 ref
 	yAvg[numXvals-1] = V_avg
 	ySD[numXvals-1] = V_sdev
+	ySEM[numXvals-1] = V_sdev/sqrt(V_npnts)
 	KillWaves ref
 	
 	//Duplicate the raw sorted data for future use
