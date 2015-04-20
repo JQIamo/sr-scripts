@@ -1,10 +1,12 @@
 #pragma rtGlobals=2	// Use modern global access method and no compatability mode
+//! @file
+//! @brief Various tools and menus for making Figures
 
 // ===================================================================
 // Create Menu Items for these tools
 // ===================================================================
 
-
+//! @cond DOXY_HIDE_GRAPH_MENU
 Menu "Graph"
 	Submenu "ColdAtom Figures..."
 			"Clean and Process Graph", Call_FormatGraph()
@@ -13,14 +15,20 @@ Menu "Graph"
 			"Label dIdV vs V", Label_dIdV_vs_V()
 	End
 End
+//! @endcond
 
 // ===================================================================
 // Analysis Functions
 // ===================================================================
 
-// These functions extract either a row or a collum from a specified matrix and
-// set all the scaling and dimensions to match the initial wave.
-
+//!
+//! @brief Extract a column from a specified matrix
+//! @details Also sets all the scaling and dimensions to match the initial wave.
+//!
+//! @warning \p yvalue refers to the actual scaled value, not the index
+//! @param[in]  yvalue  The value (<b>NOT INDEX</b>) to extract data from \p zwave 
+//! @param[in]  zwave   Wave to extract values from
+//! @param[out] newwave Wave to put the extracted data in, <em>will be overwritten</em>
 function ColFromMatrix(yvalue, zwave, newwave)
 	// Ian Spielman 7-7-99
 	// Updated for NIST image processing 14Aug2004
@@ -49,6 +57,14 @@ function ColFromMatrix(yvalue, zwave, newwave)
 	SetScale/I x xmin, xmax, WaveUnits(zwave, 0), newwave
 End
 
+//!
+//! @brief Extract a row from a specified matrix
+//! @details Also sets all the scaling and dimensions to match the initial wave.
+//!
+//! @warning \p xvalue refers to the actual scaled value, not the index
+//! @param[in]  xvalue  The value (<b>NOT INDEX</b>) to extract data from \p zwave 
+//! @param[in]  zwave   Wave to extract values from
+//! @param[out] newwave Wave to put the extracted data in, <em>will be overwritten</em>
 function RowFromMatrix(xvalue, zwave, newwave)
 	// Ian Spielman 7-7-99
 	// Updated for NIST image processing 14Aug2004
@@ -79,20 +95,25 @@ End
 
 
 // ===================================================================
-// Begin Fuctions
+// Begin Functions
 // ===================================================================
 
+//!
+//! @brief Calls a dialog to get user input on graph formatting decisions.
+//! @return \b 0 on success
+//! @return \b -1 on user cancellation
 function Call_FormatGraph()
+	// [[No idea what the following two lines of comment were in reference to ZSS 2015-01-09]]
 	// Ian Spielman 06Sep01
 	// This function calls the Load_Four_Wire_Data Function, and asks the
-	// User for the proper paramaters
+	// User for the proper parameters
 	string xlabel="b", ylabel="r"
 	variable voltagescale=10E-6,current=1E-8
 	string pathname="",filename=""
 	variable Destination=1, AddLegend = 1, FormattingAdvice=1, ToCommandLine=2
 	
 	
-	// Build the User Diolog Box
+	// Build the User Dialog Box
 	Prompt Destination, "Destination", popup "Lab; Presentation; PRL; Nature; Science; Rev. Sci. Inst.; Thesis"
 	Prompt AddLegend, "Legend", popup "No; Yes"
 	Prompt FormattingAdvice, "Advice", popup "No; Yes"
@@ -100,7 +121,7 @@ function Call_FormatGraph()
 	DoPrompt "Graph Layout", Destination, AddLegend, FormattingAdvice, ToCommandLine
 	
 	if (V_Flag)
-		return -1		// User canceled
+		return -1		// User cancelled
 	endif
 	
 	FormatGraph(Destination, AddLegend, FormattingAdvice-1);
@@ -112,17 +133,22 @@ function Call_FormatGraph()
 	return 0
 End
 
+//!
+//! @brief This function makes an Igor graph obey specific formatting rules proper for 
+//! specific venues
+//! @note Expected to be called only from ::Call_FormatGraph
+//! @details Valid options for Journal are
+//!  + "Lab"  = 1
+//!  + "Presentations" = 2
+//!  + "PRL" = 3
+//!  + "Nature" = 4   [Reduction to 80% size]
+//!  + "Science" = 5
+//!  + "Review of Scientific Instrumentation" = 6
+//!  + "Thesis" = 7
+//! @param[in] Journal   Numeric option indicating which journal
+//! @param[in] AddLegend Value of 2 includes a legend
+//! @param[in] Advice    Value of 1 gives advice
 function FormatGraph(Journal, AddLegend, Advice)
-	// This function makes an igor graph obay specific formatting rules proper for 
-	// specific venues
-	// Valid options for Journal are
-	//  "Lab"  = 1
-	//  "Presentations" = 2
-	//  "PRL" = 3
-	//  "Nature" = 4   [Reduction to 80% size]
-	//  "Science" = 5
-	//  "Review of Scientific Instrumentation" = 6
-	//  "Thesis" = 7
 	
 	Variable Journal, AddLegend, Advice;
 	
@@ -300,6 +326,10 @@ function FormatGraph(Journal, AddLegend, Advice)
 	
 End
 
+//!
+//! @brief Extracts information from the "note" field of a wave
+//! and uses it to build a legend for the graph in question 
+//! @param[in] GraphName Name of graph to add a legend to. Empty String uses top graph.
 function AddGenericLegend(GraphName)
 	string GraphName
 	string ListOfTraces, LegendString,CurrentWave, NoteString;
@@ -332,19 +362,23 @@ function AddGenericLegend(GraphName)
 	Legend /X=0.00/Y=0.00/W=$GraphName/C/N=IBSLegend/J/M/A=LT LegendString
 End
 
-
-// Written by Kevin Boyce with tweaks by Howard Rodstein with more tweaks from IBS
-
-// Colorize the waves in the top graph, with given lightness and saturation starting hue.
-// Lightness, saturation and starting hue vary between 0 and 1.
-// NOTE: lightness and saturation are really cheap approximations.
-// For that matter, so is hue, which is a real simple rgb circle.
-// Colors are evenly distributed in "hue", except around
-// green-blue, where they move more quickly, since color perception
-// isn't as good there.  I generally call it with lightness=0.9 and 
-// saturation=1.
-//-----------------------------------------
-Function IBSColorizeTraces( lightness, saturation)
+//!
+//! @brief Colorize the waves in the top graph, with given lightness and saturation starting hue.
+//! @details Written by Kevin Boyce with tweaks by Howard Rodstein with more tweaks from IBS
+//! Lightness, saturation and starting hue vary between 0 and 1.
+//! NOTE: lightness and saturation are really cheap approximations.
+//! For that matter, so is hue, which is a real simple rgb circle.
+//! Colors are evenly distributed in "hue", except around
+//! green-blue, where they move more quickly, since color perception
+//! isn't as good there.  I generally call it with lightness=0.9 and 
+//! saturation=1.
+//!
+//! @param[in] lightness
+//! @param[in] saturation
+//!
+//! @return \b NaN on success
+//! @return \b -1 on error 
+Function IBSColorizeTraces(lightness, saturation)
 	Variable lightness, saturation
 	String Graph
 	Variable rmin, rmax, gmin, gmax, bmin,bmax, phi, r,g,b
@@ -379,7 +413,17 @@ Function IBSColorizeTraces( lightness, saturation)
 	while(k< km)
 End
 
-Function IBSGetColor( lightness, saturation, ratio, gun )
+//!
+//! @brief Picks colors for ::IBSColorizeTraces.
+//! @details Written by Kevin Boyce with tweaks by Howard Rodstein with more tweaks from IBS
+//!
+//! @param[in] lightness
+//! @param[in] saturation
+//! @param[in] ratio      how far around our "color circle" we are (on interval [0,1) )
+//! @param[in] gun        which color component (r,g,b)=(1,2,3)
+//!
+//! @return red, green, or blue color value adjusted for "even" visual differences
+Function IBSGetColor(lightness, saturation, ratio, gun)
 	Variable lightness, saturation
 	Variable ratio, gun
 	Variable rmin, rmax, gmin, gmax, bmin,bmax, phi, r,g,b
@@ -444,10 +488,11 @@ End
 
 // The Following functions assist in labeling axes
 
-// function Label_List fills two strings with all of the supported labels
-// if index == 1 then the english is returned
-// otherwise the commands are returned
-
+//!
+//! @brief Fills two strings with all of the supported labels
+//! @param[in] index whether to return English or command form of labels
+//! @return if index == 1 then the English is returned
+//! @return otherwise the commands are returned
 function/s Label_List(index)
 	variable index
 	string EnglishText, LabelText;
@@ -485,7 +530,8 @@ function/s Label_List(index)
 	endif
 End
 
-
+//!
+//! @brief Displays a dialog to help the user apply labels to top graph's axes
 function Label_Axes()
 	variable LAxes = 1, RAxes = 0, BAxes = 1, TAxes = 0;
 	string LLabel="", RLabel="", BLabel="", TLabel="";
@@ -537,9 +583,8 @@ function Label_Axes()
 	printf "\r";
 End
 
-
-// This function labels a dVdV vs V graph
-
+//!
+//! @brief This function labels a dVdV vs V graph
 function Label_dIdV_vs_V()
 	string LLabel="",  BLabel=""
 	string LabelText = "",  Axes

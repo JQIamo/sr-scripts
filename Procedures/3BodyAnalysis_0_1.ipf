@@ -1,15 +1,23 @@
 #pragma rtGlobals=1		// Use modern global access method.
 
+//! @file
+//! @brief Does 3-Body calculations for Sr's stuffs.
 
 
-//Make3BodyWaves creates two waves for extracting 3 body decay constants.
-
-//The first wave is y3body = Ln(N/N0)+t/tau.
-
-//The second wave is x3body = const*Integrate[rhopeak(t')^2,{t',0,t}]
-
-//mode = 0 for thermal gas, mode = 1 for BEC
-
+//!
+//! @brief creates two waves for extracting 3 body decay constants.
+//! @details The first wave is y3body = Ln(N/N0)+t/tau.
+//! @details The second wave is x3body = const*Integrate[rhopeak(t')^2,{t',0,t}]
+//! @warning MUST SET DATAFOLDER TO BE THE PROJECT FOLDER FOR THE DATA SERIES!
+//!
+//! @param[in] numWave  wave of average atom numbers
+//! @param[in] numSD    wave of standard deviations of atom number
+//! @param[in] rhoWave  wave of average ??
+//! @param[in] rhoSD    wave of standard deviations of ??
+//! @param[in] tWave    ??
+//! @param[in] gam1     Measured 1 body decay rate
+//! @param[in] gam1SD   standard deviation in fit of 1 body decay rate
+//! @param[in] mode     \b 0 for thermal gas, \b 1 for BEC
 Function Make3BodyWaves(numWave,numSD,rhoWave,rhoSD,tWave,gam1,gam1SD,mode)
 
 	
@@ -123,7 +131,8 @@ Function Make3BodyWaves(numWave,numSD,rhoWave,rhoSD,tWave,gam1,gam1SD,mode)
 End
 
 
-
+//!
+//! @brief Fit function N0*exp(-gam1*t-gam2*t)
 Function NBodyDecay(w, t) : FitFunc
 
 	Wave w
@@ -161,7 +170,9 @@ Function NBodyDecay(w, t) : FitFunc
 End
 
 
-//n0 = density, t0 = time coord of first point in fit
+//!
+//! @brief Fit function n0*Sqrt(K1/(exp(2*K1*(t-t0))*K1-K3*n0^2+exp(2*K1*(t-t0))*K3*n0^2))
+//! @details n0 = density, t0 = time coord of first point in fit
 Function ExactBodyDecay(w, t) : FitFunc
 
 	Wave w
@@ -202,16 +213,22 @@ End
 
 
 
-//Make2DLattice3BodyWaves creates two waves for extracting 3 body decay constants from a gas trapped in a 2D Lattice.
-// It will also work with a 1D or 3D Lattice provided that there is external harmonic confinement along each lattice direction
-// For a vertical lattice with no harmonic confinement, use MakeVLattice3BodyWaves instead.
-
-//The first wave is y3body = Ln(N/N0)+t/tau.
-//The second wave is x3body = const*Integrate[rhopeak(t')^2,{t',0,t}]
-//mode = 0 for thermal gas, mode = 1 for BEC
-
-//MUST SET DATAFOLDER TO BE THE PROJECT FOLDER FOR THE DATA SERIES!
-
+//!
+//! @brief creates two waves for extracting 3 body decay constants from a gas trapped in a 2D Lattice.
+//! @details It will also work with a 1D or 3D Lattice provided that there is external harmonic confinement along each lattice direction
+//! For a vertical lattice with no harmonic confinement, use ::MakeVLattice3BodyWaves instead.
+//! @details The first wave is y3body = Ln(N/N0)+t/tau.
+//! @details The second wave is x3body = const*Integrate[rhopeak(t')^2,{t',0,t}]
+//! @warning MUST SET DATAFOLDER TO BE THE PROJECT FOLDER FOR THE DATA SERIES!
+//!
+//! @param[in] numWave  wave of average atom numbers
+//! @param[in] numSD    wave of standard deviations of atom number
+//! @param[in] T_Wave   wave of axial temperatures
+//! @param[in] T_SD     wave of standard deviations of temperature
+//! @param[in] timeWave wave of lattice hold times
+//! @param[in] gam1     Measured 1 body decay rate
+//! @param[in] gam1SD   standard deviation in fit of 1 body decay rate
+//! @param[in] mode     \b 0 for thermal gas, \b 1 for BEC
 Function Make2DLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,mode)
 
 	
@@ -387,15 +404,25 @@ Function Make2DLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,
 
 End
 
-//MakeVLattice3BodyWaves creates two waves for extracting 3 body decay constants from a gas trapped in a vertical lattice
-// which does not have external harmonic confinement along the lattice direction
-
-//The first wave is y3body = Ln(N/N0)+t/tau.
-//The second wave is x3body = const*Integrate[rhopeak(t')^2,{t',0,t}]
-//mode = 0 for thermal gas, mode = 1 for BEC
-
-//MUST SET DATAFOLDER TO BE THE PROJECT FOLDER FOR THE DATA SERIES!
-
+//!
+//! @brief creates two waves for extracting 3 body decay constants from a gas trapped in a vertical lattice
+//! which does not have external harmonic confinement along the lattice direction
+//! @details It will also work with a 1D or 3D Lattice provided that there is external harmonic confinement along each lattice direction
+//! For a vertical lattice with no harmonic confinement, use ::MakeVLattice3BodyWaves instead.
+//! @details The first wave is y3body = Ln(N/N0)+t/tau.
+//! @details The second wave is x3body = const*Integrate[rhopeak(t')^2,{t',0,t}]
+//! @warning MUST SET DATAFOLDER TO BE THE PROJECT FOLDER FOR THE DATA SERIES!
+//!
+//! @param[in] numWave     wave of average atom numbers
+//! @param[in] numSD       wave of standard deviations of atom number
+//! @param[in] T_Wave      wave of axial temperatures
+//! @param[in] T_SD        wave of standard deviations of temperature
+//! @param[in] timeWave    wave of lattice hold times
+//! @param[in] gam1        Measured 1 body decay rate
+//! @param[in] gam1SD      standard deviation in fit of 1 body decay rate
+//! @param[in] z_1e_t0     is the in-situ 1/e size of the cloud along the lattice direction
+//! @param[in] z_1e_t0_SD  is standard deviation of the in-situ 1/e size
+//! @param[in] mode        \b 0 for thermal gas, \b 1 for BEC
 Function MakeVLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,z_1e_t0,z_1e_t0_SD,mode)
 
 	
@@ -571,15 +598,20 @@ Function MakeVLattice3BodyWaves(numWave,numSD,T_Wave,T_SD,timeWave,gam1,gam1SD,z
 
 End
 
-//Make2DLatticeDensityWave creates a wave for extracting 3 body decay constants from a gas trapped in a 2D Lattice.
-//
-
-//The first wave is y3body = Ln(N/N0)+t/tau.
-//The second wave is x3body = const*Integrate[rhopeak(t')^2,{t',0,t}]
-//mode = 0 for thermal gas, mode = 1 for BEC
-
-//MUST SET DATAFOLDER TO BE THE PROJECT FOLDER FOR THE DATA SERIES!
-
+//!
+//! @brief creates a wave for extracting 3 body decay constants from a gas trapped in a 2D Lattice.
+//! @details
+//! The first wave is y3body = Ln(N/N0)+t/tau.
+//! The second wave is x3body = const*Integrate[rhopeak(t')^2,{t',0,t}]
+//! @warning MUST SET DATAFOLDER TO BE THE PROJECT FOLDER FOR THE DATA SERIES!
+//!
+//! @param[in] numWave  wave of average atom numbers
+//! @param[in] Tx_Wave  wave of axial temperatures
+//! @param[in] Tz_Wave  wave of vertical temperatures
+//! @param[in] timeWave wave of lattice hold times
+//! @param[in] xw_t0    Measured ??In-situ size??
+//! @param[in] xw_t0_SD standard deviation in fit of ??In-situ size??
+//! @param[in] mode     \b 0 for thermal gas, \b 1 for BEC
 Function Make2DLatticeDensityWave(numWave,Tx_Wave,Tz_Wave,timeWave,xw_t0,xw_t0_SD,mode)
 
 	
@@ -626,7 +658,9 @@ Function Make2DLatticeDensityWave(numWave,Tx_Wave,Tz_Wave,timeWave,xw_t0,xw_t0_S
 
 End
 
-//This function numerically integrates a 2D lattice potential to find the reference volume for our Sr88 3Body measurements
+//!
+//! @brief This function numerically integrates a 2D lattice potential to find the reference volume for our Sr88 3Body measurements
+//! @param[in] T temperature in nK
 Function getEffVol(T)
 	
 	//T is temperature in nK
@@ -665,7 +699,8 @@ Function getEffVol(T)
 	return 8*resultX*resultY*resultZ
 End
 	
-//These are helper functions for the getEffVol function
+//!
+//! @brief These are helper functions for the getEffVol function
 Function xFunc(x)
 	Variable x
 	
@@ -679,6 +714,8 @@ Function xFunc(x)
 	return exp(-4*pi^2*mass*((freqXLat/(k*(1e-6)))^2*cos(k*x*(1e-6))^2+freqX^2*x^2)/(2*kB*T*(1e12)));
 End
 
+//!
+//! @brief These are helper functions for the getEffVol function
 Function yFunc(y)
 	Variable y
 	
@@ -692,6 +729,8 @@ Function yFunc(y)
 	return exp(-4*pi^2*mass*((freqYLat/(k*(1e-6)))^2*cos(k*y*(1e-6))^2+freqY^2*y^2)/(2*kB*T*(1e12)));
 End
 
+//!
+//! @brief These are helper functions for the getEffVol function
 Function zFunc(z)
 	Variable z
 	
@@ -705,7 +744,8 @@ Function zFunc(z)
 	return exp(-4*pi^2*mass*((freqZLat/(k*(1e-6)))^2*cos(k*z*(1e-6))^2+freqZ^2*z^2)/(2*kB*T*(1e12)));
 End
 
-//This function numerically integrates a 2D lattice potential to find the reference volume for our Sr88 3Body measurements
+//!
+//! @brief This function numerically integrates a 2D lattice potential to find the reference volume for our Sr88 3Body measurements
 Function getEffVol_insitu(Tx,Tz,xw_0)
 	
 	//Tx,Tz are temperature in nK
@@ -753,7 +793,8 @@ Function getEffVol_insitu(Tx,Tz,xw_0)
 	return 8*resultX*resultY*resultZ
 End
 
-//These are helper functions for the getEffVol_insitu function
+//!
+//! @brief These are helper functions for the getEffVol_insitu function
 Function xFunc_insitu(x)
 	Variable x
 	

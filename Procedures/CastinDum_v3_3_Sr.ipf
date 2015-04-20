@@ -1,17 +1,26 @@
 #pragma rtGlobals=1		// Use modern global access method.
 
-//Test comment
+//! @file
+//! @brief Compute the 3 Castin-Dum scaling parameters for a freely expanding BEC.
+//! @details They are computed using Igor's built in ODE solver.
+//! 
+//! See http://link.aps.org/doi/10.1103/PhysRevLett.77.5315 for reference.
 
-
-// The functions in this file compute the 3 Castin-Dum scaling paramaters
-// for a freely expanding BEC.
-//
-// They are computed using Igor's built in ODE solver
-
-// ***************  CastinDum ***************************************************************
-// This should be considered to be the only user accessable function in the procedure.  When called it will
-// return a wave containing the Castin Dum scaling paramaters.
-
+// *************** CastinDum ***************************************************************
+//!
+//! @brief Generates a wave containing the Castin-Dum scaling parameters
+//! @details Uses Igor's built-in ODE solver to compute.
+//!
+//! See "Bose-Einstein Condensates in Time Dependent Traps" Castin &Dum.
+//! PRL 77, 5315. 1996.
+//!
+//! @note This should be considered to be the only user accessible function in the procedure.
+//! @public
+//!
+//! @param[in]  t      expansion time over which to generate the parameters
+//! @param[in]  omega  angular trap frequencies in (x, y, z) order
+//! @param[out] lambda destination wave for scaling parameters in (x, y, z) order
+//! @sa http://link.aps.org/doi/10.1103/PhysRevLett.77.5315
 function CastinDum(t, omega,lambda)
 	// t			Expansion time
 	// omega 	Wave of trap angular frequencies in order x,y,z
@@ -52,21 +61,27 @@ function CastinDum(t, omega,lambda)
 end
 
 // ***************  CastinDumDerivitive ***************************************************************
-//
-// This function computes the derivities for the Castin Dum
-// Scaling paramaters, from which Igor can numerical integrate
-// for the case of interest.
-//
-// Because Igor requires only 1st order equations, there
-// are twice as many paramters as you might expect here:
-// y[0] = lambad0
-// y[1] = d lambda0 / dt
-// and etc.
-
+//!
+//! @brief Computes the derivatives for the Castin-Dum scale parameters for Igor's ODE solver
+//! @details Because Igor's solver uses only first-order equations, we manually transformed
+//! the second-order set into twice as many first-order equations.  As a result, the \p yw bits
+//! correspond:
+//!  + yw[0] = lambda_x
+//!  + yw[1] = d lambda_x/dt
+//!  + yw[2] = lambda_y
+//!  + \e etc.
+//!
+//! @note This should only be called by ::CastinDum
+//! @private
+//!
+//! @param[in]  pw   The trap frequencies in (x, y, z) order.
+//! @param[in]  tt   The time at which to generate the scale parameters
+//! @param[in]  yw   The current scaling functions and their derivatives
+//! @param[out] dydt The current derivatives of the \p yw values for computing the next step
 Function CastinDumDerivitive(pw, tt, yw, dydt)
 	Wave pw	// pw[0] = w1, pw[1] = w2, pw[2] = w3
 	Variable tt	// time value at which to calculate derivatives
-	Wave yw	// yw[0]-yw[3] containing the 3 scaling functions and their derivitives
+	Wave yw	// yw[0]-yw[3] containing the 3 scaling functions and their derivatives
 	Wave dydt	// wave to receive dlambda/dt (output)
 	dydt[0] = yw[1];
 	dydt[1] = pw[0]^2 / (yw[0]^2 * yw[2] * yw[4]) ;

@@ -1,11 +1,14 @@
 #pragma rtGlobals=2		// Use modern global access method without compatibility mode.
+//! @file
+//! @brief Does generation of OrthoNormalBasis construction via Gram-Schmidt
+//! @details OrthoNormal Basis is generated on a per-data folder/project basis
 
 // *************************************
-// Function to initialize the GS basis creation/probe reconstruction package.
-// Only call this function once, the first time the package is opened.
-//
-// *************************************
-
+//!
+//! @brief Function to initialize the GS basis creation/probe reconstruction package.
+//! @details Creates the packages data folder in <b>root:Packages:OrthoBasis</b> if necessary.
+//! Does not overwrite contents, so technically safe to call multiple times.
+//! @note Only need to this function once, the first time the package is opened.
 function Init_OrthoBasis()
 
 	//Create folder to store the probe and basis images
@@ -14,11 +17,18 @@ function Init_OrthoBasis()
 end
 
 // ***********************************************
-// Function to make a new stack of probe images for orthonormalization
-// ProjectID is the name of the data series which will source the probe images
-//
-// ***********************************************
-
+//!
+//! @brief Function to make a new stack of probe images for orthonormalization
+//! @details Checks if a data folder for the given \p ProjectID exists, and if so, makes
+//! sure <b>root:Packages:OrthoBasis:\<ProjectID\></b> exists (creating it if necessary), as
+//! well as making (if necessary) the following waves within that data folder:
+//! + ProbeStack
+//! + ProbeFiles
+//! + BasisROI
+//!
+//! @param[in] ProjectID is the name of the data series which will source the probe images
+//! @return 0 on error
+//! @return 1 on success
 function New_ProbeStack(ProjectID)
 
 	string ProjectID
@@ -58,12 +68,23 @@ function New_ProbeStack(ProjectID)
 end
 
 // ***********************************************
-// Function to add a probe image to the stack.
-// FileName is the name of the file from which the probe image is derived.
-// PrImage is the image to add to the stack
-//
-// ***********************************************
-
+//!
+//! @brief Function to add a probe image to the stack.
+//! @details Takes a new probe image in and adds it to the current stack of probe images.
+//! If this is the first probe image to be added, makes sure the dimensions and scaling
+//! of the probe stack match the input probe image.  If this is a new image to an extant
+//! probe stack, makes sure the dimensions of the image to add match up with the images
+//! already in the probe stack.
+//!
+//! \p ProjectID is automatically detected from the current data folder path, and the
+//! probe stack is generated at <b>root:Packages:OrthoBasis:\<ProjectID\>:ProbeStack</b>,
+//! while the matching file names are stored at
+//! <b>root:Packages:OrthoBasis:\<ProjectID\>:ProbeFiles</b>
+//!
+//! @param[in] FileName the name of the file from which the probe image is derived.
+//! @param[in] PrImage  the image to add to the stack
+//! @return 0 on error
+//! @return 1 on success
 function Add_ProbeImage(FileName, PrImage)
 
 	string FileName
@@ -115,12 +136,18 @@ function Add_ProbeImage(FileName, PrImage)
 end
 
 // ***********************************************
-// Function to make the orthonormal basis.
-// 
-// ProjectID is the name of the data series which sourced the probe images.
-//
-// ***********************************************
-
+//!
+//! @brief Function to make the orthonormal basis.
+//! @details Uses the "stabilized" Gram-Schimdt process to create an orthonormal basis set of
+//! probe images.  It expects an extant probe stack in
+//! <b>:root:Packages:OrthoBasis:\<ProjectID\>:ProbeStack</b>
+//! and will output the resulting orthonormal basic to
+//! <b>:root:Packages:OrthoBasis:\<ProjectID\>:BasisStack</b>
+//!
+//! @param[in] ProjectID the name of the data series which sourced the probe images
+//! @return 0 on error
+//! @return 1 on success
+//! @sa http://en.wikipedia.org/wiki/Gram%E2%80%93Schmidt_process
 function GS_CreateBasis(ProjectID)
 
 	string ProjectID

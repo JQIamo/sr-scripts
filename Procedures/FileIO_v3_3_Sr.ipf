@@ -1,25 +1,24 @@
 #pragma rtGlobals=1		// Use modern global access method.
 
+//! @file
+//! @brief This file contains various functions required for loading image data
+//! for the Rubidium experiments.
 
-constant OldStyleImage = 1;
+constant OldStyleImage = 1 //!< 0 or 1, sets scope transpose or not. (see ::LoadScope)
 
-
-// This file contains various functions required for loading image data
-// for the rubudium experiment.
-
-/// ********************************************************
+// ********************************************************
 // FileNameArray(FileArray, FileName, InitialIndex, FinalIndex)
-//
-// This function allows for batch processing of many files
-// and constructs a list of file names to process
-// FileName, InitialIndex, and FinalIndex are all lists of the form:
-//
-// The return value the list of files with a ; delimination.
-//
-// FileName: "Macintosh HD:data:PF_02Mar2005_;Macintosh HD:data:PF_03Mar2005_; "
-// InitialIndex "23;43"
-// FinalIndex "42;55"
-//
+//!
+//! @brief Constructs a list of file names to process
+//! @details This function allows for batch processing of many files
+//! and constructs a list of file names to process
+//! FileNameList, InitialIndex, and FinalIndex are all lists of the form:
+//!
+//! @param[in] FileNameList  ';'-delimited list of file name roots, \em e.g. "Macintosh HD:data:PF_02Mar2005_;Macintosh HD:data:PF_03Mar2005_; "
+//! @param[in] InitialIndex  ';'-delimited list of starting file indices \em e.g. "23;43"
+//! @param[in] FinalIndex    ';'-delimited list of ending file indices \em e.g. "42;55"
+//! @return The list of files with a ';'-delimination between paths.
+//! @return Empty string if error.
 Function/S FileNameArray(FileNameList, InitialIndex, FinalIndex)
 	string FileNameList, InitialIndex, FinalIndex
 
@@ -60,23 +59,27 @@ Function/S FileNameArray(FileNameList, InitialIndex, FinalIndex)
 	return FileList;
 end
 	
-/// ********************************************************
-// AutoRunV3(ProjectID, FileName)
-//
-// this function is called by one of the camera softwares when an image is ready
-// Version three extracts more information from the file header and 
-// and relies less on user provided data (unless needed). 
-//
-// AutoRun is also included as a stub so older procedures will compile
-//
-
+//!
+//! @brief A stub so older procedures will compile
 Function AutoRun(Mode, ProjectID, FinalName)
-	variable Mode;
-	String ProjectID, FinalName;
-end
+	variable Mode
+	String ProjectID, FinalName
+End
 
+// AutoRunV3(ProjectID, FileName)
 
-
+//!
+//! @brief this function is called by one of the camera software when an image is ready
+//! @details Version three extracts more information from the file header and 
+//! and relies less on user provided data (unless needed).
+//!
+//! Loads both the image file and any associated scope traces, as well as calling
+//! analysis functions.
+//!
+//! @note Manually comment/uncomment New_ColdAtomInfo for the appropriate experiment
+//!
+//! @param[in] ProjectID  Name for the data folder to save this under
+//! @param[in] FileName   Path to the file to analyze
 Function AutoRunV3(ProjectID, FileName)
 	string ProjectID, FileName
 
@@ -129,20 +132,32 @@ Function AutoRunV3(ProjectID, FileName)
 end
 
 //AutoRunV4 handles camera imaging
+
+//!
+//! @brief Handles two simultaneous imaging directions
+//! @details Calls ::AutoRunV3 for each of two image files
+//!
+//! @param[in] ProjectID1, ProjectID2  Name for the data folder to save for this camera
+//! @param[in] FileName1, FileName2    Path for image file for this camera
 Function AutoRunV4(ProjectID1, FileName1, ProjectID2, FileName2)
 	
-	String ProjectID1, FileName1, ProjectID2, FileName2;
+	String ProjectID1, FileName1, ProjectID2, FileName2
 	
 	AutoRunV3(ProjectID1, FileName1)
 	AutoRunV3(ProjectID2, FileName2)
 	
 end
 
-//**************************************************************************************************
-// This loads an IGOR binary file saved by labview containing one image and header information.
-// In the past there were several functions which loaded files for each different camera,
-// this has been condenced into this single routine which suffices
-
+// **************************************************************************************************
+//!
+//! @brief Loads an IGOR binary file saved by LabView containing one image and header information.
+//! @details In the past there were several functions which loaded files for each different camera,
+//! this has been condensed into this single routine which suffices
+//!
+//! Pulls information from the wave header of the on-disk image, 
+//!
+//! @param[out] ImageName  Destination wave for the loaded image
+//! @param[in]  FileName   Path to the file to load
 Function Load_Img(ImageName,FileName)
 	Wave ImageName
 	String FileName
@@ -617,12 +632,13 @@ Function Load_Img(ImageName,FileName)
 end 
 // ************************************** Load_Img**************************************************
 
-//************************************ LoadScope **************************************************
-// This function loads in the scope traces that have been saved to a file 
-// by labview.
-// Old data apprently had atranspose in it.
-
-
+// ************************************ LoadScope **************************************************
+//!
+//! @brief This function loads in the scope traces that have been saved to a file by LabView.
+//! @details Old data apparently had a transpose in it.
+//!
+//! @param[in] FileName  The full path to the file containing scope data 
+//! @param[in] Old       \b 0 if transpose required (old data)
 Function Load_Scope(FileName,Old)
 	String FileName
 	variable Old
@@ -694,15 +710,23 @@ end
 
 
 // ******************************** StringByKey_Safe ***********************************
-// This is a save version of the StringByKey command which leaves the old data (DefaultString) unchanged
-// if the key is not found
-
-function/T StringByKey_Safe(DefaultString, keyStr, kwListStr, keySepStr, listSepStr)
-	String DefaultString;
-	String keyStr;
-	String kwListStr;
-	String keySepStr;
-	String listSepStr;
+//!
+//! @brief This is a save version of the StringByKey command which leaves the old data
+//! (DefaultString) unchanged if the key is not found
+//! @details
+//! 
+//! @param[in]  DefaultString  The default return value, used if the key isn't found
+//! @param[in]  keyStr         The key to search for in kwListStr
+//! @param[in]  kwListStr      String of key-value pairs to be searched
+//! @param[in]  keySepStr      Separator between keys and values in \p kwListStr
+//! @param[in]  listSepStr     Separator between key-value pairs in \p kwListStr
+//! @return Value associated with requested key, or DefaultString if not found.
+function/S StringByKey_Safe(DefaultString, keyStr, kwListStr, keySepStr, listSepStr)
+	String DefaultString
+	String keyStr
+	String kwListStr
+	String keySepStr
+	String listSepStr
 
 	String Result = StringByKey(keyStr, kwListStr, keySepStr,listSepStr);
 		
@@ -714,15 +738,23 @@ function/T StringByKey_Safe(DefaultString, keyStr, kwListStr, keySepStr, listSep
 end
 
 // ******************************** NumberByKey_Safe ***********************************
-// This is a save version of the StringByKey command which leaves the old data (DefaultString) unchanged
-// if the key is not found
-
+//!
+//! @brief This is a save version of the NumberByKey command which leaves the old data 
+//! (DefaultNumber) unchanged if the key is not found
+//! @details
+//! 
+//! @param[in]  DefaultNumber  The default return value, used if the key isn't found
+//! @param[in]  keyStr         The key to search for in kwListStr
+//! @param[in]  kwListStr      String of key-value pairs to be searched
+//! @param[in]  keySepStr      Separator between keys and values in \p kwListStr
+//! @param[in]  listSepStr     Separator between key-value pairs in \p kwListStr
+//! @return Value associated with requested key, or DefaultString if not found.
 function NumberByKey_Safe(DefaultNumber, keyStr, kwListStr, keySepStr, listSepStr)
-	variable DefaultNumber;
-	String keyStr;
-	String kwListStr;
-	String keySepStr;
-	String listSepStr;
+	variable DefaultNumber
+	String keyStr
+	String kwListStr
+	String keySepStr
+	String listSepStr
 
 	variable Result = NumberByKey(keyStr, kwListStr, keySepStr,listSepStr);
 	
@@ -735,10 +767,15 @@ function NumberByKey_Safe(DefaultNumber, keyStr, kwListStr, keySepStr, listSepSt
 end
 
 // ******************************** MakeDataPanel ***********************************
-// Loads a set of data from file and makes a nice panel of the data for printing
-//
-
-
+//!
+//! @brief Loads a set of data from file and makes a nice panel of the data for printing
+//! @details Specifically, it appears to build a layout of absorption images.
+//! 
+//! @param[in] ProjectID     Data folder to load into when calling ::AutoRunV3
+//! @param[in] FileName      Root file path to load for images
+//! @param[in] InitialIndex  First index to load
+//! @param[in] FinalIndex    Last index to load
+//! @return \b 0, always
 Function MakeDataPanel(ProjectID, FileName, InitialIndex, FinalIndex)
 	string ProjectID, FileName
 	variable InitialIndex, FinalIndex

@@ -1,23 +1,25 @@
 #pragma rtGlobals=1		// Use modern global access method.
+//! @file
+//! @brief Implements poly-logarithm which is not built into Igor
 
 //Constant kB = 1.38e-23
 //Constant mass = 1.4467e-25		//These constants are already in RbProcedures.
 //Constant labmda = 0.7802
-Constant zeta3_2 = 2.61238
-Constant zeta2 = 1.64493
-Constant zeta5_2 = 1.34149
-Constant zeta3 = 1.20206
+Constant zeta3_2 = 2.61238 //!< \f$\zeta(3/2)\f$ (Riemann Zeta of 3/2)
+Constant zeta2 = 1.64493   //!< \f$\zeta(2)\f$ (Riemann Zeta of 2)
+Constant zeta5_2 = 1.34149 //!< \f$\zeta(5/2)\f$ (Riemann Zeta of 5/2)
+Constant zeta3 = 1.20206   //!< \f$\zeta(3)\f$ (Riemann Zeta of 3)
 
 // -----------------------------
 //    Proper Thermal Fit Functions (mu=0)
 //-----------------------------
-// Igor does not support the polylogarithm function.
-//     We have made a 1024 point wave (PolyLog2Gaussian.ibw) 
-//        in dimensionless variable (x/width) on [-5,5] (xwave is xPolyLog.ibw)
-//        from which to interpolate PolyLog[2,x] (in Mathematica syntax).
-//     -- 18 Jan 2012 -CDH
-
-//     This is the appropriate function for a slice of an absorption image.
+//!
+//! @brief This is the appropriate function for a slice of an absorption image.
+//! @details Igor does not support the polylogarithm function.
+//!    We have made a 1024 point wave (PolyLog2Gaussian.ibw) 
+//!        in dimensionless variable (x/width) on [-5,5] (xwave is xPolyLog.ibw)
+//!        from which to interpolate PolyLog[2,x] (in Mathematica syntax).
+//!     -- 18 Jan 2012 -CDH
 Function ThermalSliceFit(w,x) : FitFunc
 	Wave w
 	Variable x
@@ -44,9 +46,11 @@ Function ThermalSliceFit(w,x) : FitFunc
 End
 
 
-//     Use this function to fit the line profile obtained after integrating over one direction
-//            of an absorption image (PolyLog[5/2, gaussian] in Mathematica syntax).
-//     -- 18 Jan 2012 -CDH
+//!
+//! @brief Use this function to fit the line profile obtained after integrating over one direction
+//!           of an absorption image
+//! @details (PolyLog[5/2, gaussian] in Mathematica syntax).
+//!    -- 18 Jan 2012 -CDH
 Function ThermalIntFit(w,x) : FitFunc
 	Wave w
 	Variable x
@@ -73,6 +77,8 @@ Function ThermalIntFit(w,x) : FitFunc
 End
 
 
+//!
+//! @brief thermal (dilogarithm) + TF fit
 Function g2TF_1D(w,x) : FitFunc
 	Wave w
 	Variable x
@@ -100,7 +106,8 @@ Function g2TF_1D(w,x) : FitFunc
 	return w[0]+w[1]*Interp((x-w[2])/w[3],xWave,yWave)+w[4]*( ((x-w[2])^2)<w[5]^2?  (1-((x-w[2])/w[5])^2)^(3/2) : 0 )
 End
 
-// thermal (dilogarithm) + TF fit with independent positions
+//!
+//! @brief thermal (dilogarithm) + TF fit with independent positions
 Function g2TF_1D_free(w,x) : FitFunc
 	Wave w
 	Variable x
@@ -140,7 +147,8 @@ Function g2TF_1D_free(w,x) : FitFunc
 	return w[0]+w[1]*Interp((x-w[2])/w[3],xWave,yWave)+w[4]*( ((x-w[6])^2)<w[5]^2?  (1-((x-w[6])/w[5])^2)^(3/2) : 0 )
 End
 
-//     This is the appropriate function for a thermal-subtracted slice of an absorption image.
+//!
+//! @brief This is the appropriate function for a thermal-subtracted slice of an absorption image.
 Function TFonlySliceFit(w,x) : FitFunc
 	Wave w
 	Variable x
@@ -161,9 +169,11 @@ Function TFonlySliceFit(w,x) : FitFunc
 	return w[0]+w[1]*( (x-w[2])^2 < w[3]^2 ? (1 - ((x-w[2])/w[3])^2)^(3/2) : 0 )
 End
 
-// We'll make a folder (root:Packages:polylogs) to contain the lookup waves.
-//		This function checks that the waves are there, and prompts the user 
-//		to locate them if they are not.
+//!
+//! @brief Checks for polylog waves in the correct location
+//! @details We'll make a folder (root:Packages:polylogs) to contain the lookup waves.
+//!		This function checks that the waves are there, and prompts the user 
+//!		to locate them if they are not.
 Function CheckPolylog()
 	
 	// set path to top experiment folder, saving present folder
@@ -194,18 +204,19 @@ End
 
 
 
-
-// Suspecting that bimodal fits are skewing the extracted temperatures,
-//   we will implement a fit to the wings of the thermal distribution.
-//      --CDH 24.Jan.2012
-//
-//   The fitting procedure is as follows:
-//      (1) bimodal fit to obtain reasonable guesses (retuires good TF+Thermal 1D fit from panel)
-//      (2) Create mask whose width = f*RTF, fraction TBD
-//      (3) fit wings to polylog g2
-//      (4) Subtract thermal from slice, fit remainder with TF.
-//
-//   Fit info is stored in ":<ExpFolder>:polyfits" to distinguish it from the standard results.
+//!
+//! @brief fit to the wings of the thermal distribution
+//! @details Suspecting that bimodal fits are skewing the extracted temperatures,
+//!   we will implement a fit to the wings of the thermal distribution.
+//!      --CDH 24.Jan.2012
+//!
+//!   The fitting procedure is as follows:
+//!      (1) bimodal fit to obtain reasonable guesses (retuires good TF+Thermal 1D fit from panel)
+//!      (2) Create mask whose width = f*RTF, fraction TBD
+//!      (3) fit wings to polylog g2
+//!      (4) Subtract thermal from slice, fit remainder with TF.
+//!
+//!   Fit info is stored in ":<ExpFolder>:polyfits" to distinguish it from the standard results.
 Function WingFit(filenum, fMask)
 	Variable filenum, fMask
 	
@@ -317,7 +328,8 @@ End
 // End function WingFit ------------------------------------------------------------------------------------------------------------------------
 
 
-// Makes an auxilary slices graph, assuming path is top experiment.
+//!
+//! @brief Makes an auxiliary slices graph, assuming path is top experiment.
 Function AuxSlicesPlot()
 	PauseUpdate; Silent 1
 	Display /N=AuxSlices/W=(331.5,43.25,699,317)/T :Fit_Info:xsec_row
@@ -341,6 +353,8 @@ Function AuxSlicesPlot()
 	Legend/C/N=text0/J/A=LT "\\s(xsec_row) xsec_row\r\\s(xsec_col) xsec_col\r\\s(g2h_fit) g2h_fit, hSum_fit\r\\s(g2v_fit) g2v_fit, vSum_fit"
 End
 
+//!
+//! @brief Makes an auxiliary slices subplot, assuming path is top experiment.
 Function SubSlicesPlot()
 	PauseUpdate; Silent 1
 	Display /N=SubSlices/W=(331.5,343.25,699,602.75)/T :polyfits:hsub

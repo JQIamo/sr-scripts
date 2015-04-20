@@ -1,38 +1,37 @@
-#pragma rtGlobals=2	// Use modern global access method and no compatability mode
+#pragma rtGlobals=2	// Use modern global access method and no compatibility mode
 
-// This series of functions loads and processes Absorption imagas
-// It was modified from previous code on 13Sep04 to load igor binary
-// data instead of the earlier loading of raw text.
-
-// ********************************************************
-// OUTSTANDING ISSUES:
-//
-// Checkboxes can have variables associated with them.  It might be a good idea to use that instead of
-// calling functions if all the function does is update the variable.
-//
+//! @file
+//! @brief This series of functions loads and processes Absorption images
+//! @details It was modified from previous code on 13Sep04 to load Igor binary
+//! data instead of the earlier loading of raw text.
+//! @note Checkboxes can have variables associated with them.  It might be a good idea to use that instead of
+//! calling functions if all the function does is update the variable.
 
 // physical parameters for Sr-88, Sr-87, Sr-86.
-Constant lambda=0.460862  		//wavelength (um)
-//Constant a_scatt = -74.06e-6; 		// 88-88 scattering length from arXiv:0808.3434 (um)
-//Constant a_scatt = 5.089e-3; 		// 87-87 scattering length from arXiv:0808.3434 (um)
-//Constant a_scatt = 43.619e-3; 		// 86-86 scattering length from arXiv:0808.3434 (um)
-//Constant a_scatt = 6.5031e-3;		// 84-84 scattering length from arXiv:0808.3434 (um)
-//Constant mass=1.459708142e-25;	//Sr-88 mass (kg)
-//Constant mass=1.443156956e-25;  //Sr-87 mass (kg)
-//Constant mass=1.42655671e-25;  //Sr-86 mass (kg)
-//Constant mass=1.39341508e-25;	//Sr-84 mass (kg)
-Constant hbar = 1.05457148e-34	// Hbar! (Js)
-Constant kB = 1.38065e-23 		// Boltzman's constant (J/K)
-Constant muB = 9.274009e-24 		// Bohr magneton (J/T)
-//Constant Er =  3498.98; 			// Recoil energy at the specified wavelength in Hz at 810 nm
-//Constant satpar=.25; 				// saturation parameter from light intensity
+Constant lambda=0.460862  		//!<wavelength (um)
+//Constant a_scatt = -74.06e-6; 		//!< 88-88 scattering length from arXiv:0808.3434 (um)
+//Constant a_scatt = 5.089e-3; 		//!< 87-87 scattering length from arXiv:0808.3434 (um)
+//Constant a_scatt = 43.619e-3; 		//!< 86-86 scattering length from arXiv:0808.3434 (um)
+//Constant a_scatt = 6.5031e-3;		//!< 84-84 scattering length from arXiv:0808.3434 (um)
+//Constant mass=1.459708142e-25;	//!< Sr-88 mass (kg)
+//Constant mass=1.443156956e-25;  //!< Sr-87 mass (kg)
+//Constant mass=1.42655671e-25;  //!< Sr-86 mass (kg)
+//Constant mass=1.39341508e-25;	//!< Sr-84 mass (kg)
+Constant hbar = 1.05457148e-34	//!< Hbar! (Js)
+Constant kB = 1.38065e-23 		//!< Boltzman's constant (J/K)
+Constant muB = 9.274009e-24 		//!< Bohr magneton (J/T)
+//Constant Er =  3498.98; 			//!< Recoil energy at the specified wavelength in Hz at 810 nm
+//Constant satpar=.25; 				//!< saturation parameter from light intensity
 
 
 // ******* AbsImg_AnalyzeImage ****************************************************************************************
-// This program analyzes an image either in the XY or XZ direction depending on the panel selection
-//  It takes as input
-// 	- inputimage  -> the image. It has been pre-processed to divide out the reference signal.
-//	
+//!
+//! @brief This analyzes the image based on the selections of trap type, imaging direction, fit types, etc.
+//! @details When complete, updates the front panel to reflect results of analysis, including cursor and slice plots.
+//! It also attempts to update indexed waves.
+//! @param[in] inputimage  The image. It has been pre-processed to divide out the reference signal.
+//! @return \b 0 on errors
+//! @return \b NaN otherwise	
 Function AbsImg_AnalyzeImage(inputimage)
 	Wave inputimage
 
@@ -241,8 +240,12 @@ End
 // ******************** AbsImg_AnalyzeImage **************************************************************************
 
 // ******************** UpdateCursor *************************************************************************
-// Places the specified cursor at the requested location on the panel image
-
+//!
+//! @brief Places the specified cursor at the fit center
+//! 
+//! @param[in]  Gauss3D_coef  Wave containing fit results, components 2 & 4 are used as coordinates for the cursor.
+//! @param[in]  cursorname    Name of the cursor to place
+//! @return \b 1, always
 Function UpdateCursor(Gauss3D_coef,cursorname)
 	Wave Gauss3D_coef
 	String cursorname
@@ -266,16 +269,19 @@ End
 // ******************** UpdateCursor ****************************************************************************
 
 // ******************** AddMissingCursor *************************************************************************
-// If a desired cursor doesn't exist, then add it at the center of the image.
-//
-// The cursors have default meanings that I enforce here
-// A and B define the ROI: Red
-// C and D define the  dark region for subtraction for direct number counting: Blue 
-// E is the specified peak location (if required for fits): black
-// F is the "followed peak location": grey
-
+//!
+//! @brief If a desired cursor doesn't exist, then add it at the center of the image.
+//!
+//! The cursors have default meanings that I enforce here
+//!  - A and B define the ROI: Red
+//!  - C and D define the  dark region for subtraction for direct number counting: Blue 
+//!  - E is the specified peak location (if required for fits): black
+//!  - F is the "followed peak location": grey
+//! @param[in]  cursorname  Name of the missing cursor
+//! @param[in]  ImageName	Name of the image the cursor needs to be in
+//! @return \b 1, always
 Function AddMissingCursor(cursorname, ImageName)
-	String cursorname, ImageName;
+	String cursorname, ImageName
 	variable Active;
 
 	// Get the current path and active windows
@@ -331,10 +337,11 @@ End
 // ******************** UpdateCursor ****************************************************************************
 
 // GetCounts
-// 
-// Most simple analysis function that counts the number of pixels in two area (atoms and reference) and subtracts 
-// the mean of the reference from the atoms area, and then sums the atoms, less the mean.
-
+//! 
+//! @brief Most simple analysis function that counts the number of pixels in two area (atoms and reference) and subtracts 
+//! the mean of the reference from the atoms area, and then sums the atoms, less the mean.
+//! @param[in]  inputimage  The image to run the fit on
+//! @return \b 1, always
 Function GetCounts(inputimage)
 	Wave inputimage
 
@@ -394,10 +401,15 @@ Function GetCounts(inputimage)
 End
 
 // ******************** SimpleThermalFit1D *************************************************************************
-// This function takes a given image, cuts two cross sections (vert, horiz, defined by cursor A in "Image") 
-//  and fits the two cross sections to a simple gaussian.  It assumes that xsec_col,xsec_row, ver_coef,
-//  hor_coef all exist.  The fit is done using the x and y scaling of the image (i.e. in real length units if you have 
-//  scaled them correctly.)  It does not assume that the cursor is on the center of the cloud.
+//! @brief This function takes a given image, cuts two cross sections (vert, horiz, defined by cursor A in "Image") 
+//! and fits the two cross sections to a simple Gaussian.
+//! @details It assumes that xsec_col,xsec_row, ver_coef,
+//! hor_coef all exist.  The fit is done using the x and y scaling of the image (i.e. in real length units if you have 
+//! scaled them correctly.)  It does not assume that the cursor is on the center of the cloud.
+//!
+//! @param[in]  inputimage  The image to run the fit on
+//! @param[in]  cursorname  The name of the cursor to use for center of the slices
+//! @return \b 1, always
 Function SimpleThermalFit1D(inputimage,cursorname)
 	Wave inputimage
 	String cursorname
@@ -556,8 +568,10 @@ End
 // ******************** SimpleThermalFit ****************************************************************************
 
 // ******************** SimpleThermalFit2D *************************************************************************
-// This function fits the input image to a 2D gaussian an fills in the suitable variables with the result.
-
+//!
+//! @brief This function fits the input image to a 2D Gaussian an fills in the suitable variables with the result.
+//! @param[in]  inputimage  The image to run the fit on
+//! @return \b 1, always
 Function SimpleThermalFit2D(inputimage)
 	Wave inputimage
 
@@ -678,8 +692,10 @@ End
 // ******************** SimpleThermalFit2D ****************************************************************************
 
 // ******************** TriGaussFit2D *************************************************************************
-// This function fits the input image to 3 vertically separated 2D gaussian and fills in the suitable variables with the result.
-
+//!
+//! @brief This function fits the input image to 3 vertically separated 2D Gaussian and fills in the suitable variables with the result.
+//! @param[in]  inputimage  The image to run the fit on
+//! @return \b 1, always
 Function TriGaussFit2D(inputimage)
 	Wave inputimage
 
@@ -801,8 +817,10 @@ End
 // ******************** TriGaussFit2D ****************************************************************************
 
 // ******************** BandMapFit1D *************************************************************************
-// This function fits the input image to 3 vertically separated 2D gaussian and fills in the suitable variables with the result.
-
+//!
+//! @brief This function fits the input image to 3 vertically separated 2D Gaussian and fills in the suitable variables with the result.
+//! @param[in]  inputimage  The image to run the fit on
+//! @return \b 1, always
 Function BandMapFit1D(inputimage)
 	Wave inputimage
 
@@ -935,11 +953,17 @@ End
 // ******************** BandMapFit1D ****************************************************************************
 
 // ******************** ThomasFermiFit1D *************************************************************************
-// This function takes a given image, cuts two cross sections (vert, horiz, defined by a cursor in "image") 
-//  and fits the two cross sections to a ThomasFermi distribution.  It assumes that xsec_col,xsec_row, TF_ver_coef,
-//  TF_hor_coef all exist.  The fit is done using the x and y scaling of the image (i.e. in real length units if you have 
-//  scaled them correctly.)  It assumes that the cursor is on the center of the cloud.
-
+//!
+//! @brief This function takes a given image, cuts two cross sections (vert, horiz, defined by a cursor in "image") 
+//! and fits the two cross sections to a ThomasFermi distribution.
+//! @details It assumes that xsec_col,xsec_row, TF_ver_coef,
+//! TF_hor_coef all exist.  The fit is done using the x and y scaling of the image (i.e. in real length units if you have 
+//! scaled them correctly.)  It assumes that the cursor is on the center of the cloud.
+//!
+//! @param[in]  inputimage  The image the fitting routine will be applied to
+//! @param[in]  cursorname  The name of the cursor pointing to the center of the cloud
+//! @param[in]  graphname   (Appears unused in this instance)
+//! @param[in]  fit_type    The index of the fit to be performed
 Function ThomasFermiFit1D(inputimage,cursorname,graphname,fit_type)
 	Wave inputimage
 	String cursorname,graphname
@@ -1114,13 +1138,18 @@ End
 // ******************** ThomasFermiFit1D ****************************************************************************
 
 // ******************** ThomasFermiFit1D _free *************************************************************************
-// This function takes a given image, cuts two cross sections (vert, horiz, defined by a cursor in "image") 
-//  and fits the two cross sections to a ThomasFermi distribution.  It assumes that xsec_col,xsec_row, TF_ver_coef,
-//  TF_hor_coef all exist.  The fit is done using the x and y scaling of the image (i.e. in real length units if you have 
-//  scaled them correctly.)  It assumes that the cursor is on the center of the cloud.
-//
-// *"_free" version of TF fit provides for independent centers of TF + thermal clouds. -CDH 30.Jan.2012
-
+//!
+//! @brief This function takes a given image, cuts two cross sections (vert, horiz, defined by a cursor in "image") 
+//! and fits the two cross sections to a ThomasFermi distribution.
+//! @details It assumes that xsec_col,xsec_row, TF_ver_coef,
+//! TF_hor_coef all exist.  The fit is done using the x and y scaling of the image (i.e. in real length units if you have 
+//! scaled them correctly.)  It assumes that the cursor is on the center of the cloud.
+//!
+//! @note *"_free" version of TF fit provides for independent centers of TF + thermal clouds. -CDH 30.Jan.2012
+//! @param[in]  inputimage  The image the fitting routine will be applied to
+//! @param[in]  cursorname  The name of the cursor pointing to the center of the cloud
+//! @param[in]  graphname   (Appears unused in this instance)
+//! @param[in]  fit_type    The index of the fit to be performed
 Function ThomasFermiFit1D_free(inputimage,cursorname,graphname,fit_type)
 	Wave inputimage
 	String cursorname,graphname
@@ -1277,8 +1306,11 @@ End
 
 
 // ******************** SimpleThomasFermiFit2D *************************************************************************
-// This function fits the input image to a 2D gaussian an fills in the suitable variables with the result.
-
+//!
+//! @brief This function fits the input image to a 2D Gaussian an fills in the suitable variables with the result.
+//! @param[in]  inputimage  The image the fitting routine will be applied to
+//! @param[in]  fit_type    The index of the fit to be performed
+//! @return \b 1, always
 Function ThomasFermiFit2D(inputimage, fit_type)
 	Wave inputimage
 	variable fit_type
@@ -1425,20 +1457,24 @@ End
 // ******************** ThomasFermiFit2D ****************************************************************************
 	
 // *************** TFUpdateCloudPars ***************************************************************
-// This function takes the fit parameters from a Thomas Fermi fitting routine and converts them into 
-//  atom cloud parameters
-//
-// This function assumes that ThermalUpdateCloudPars has already run and updated the thermal paramaters.
-// Gauss3D_coef[0] = Offset
-// Gauss3D_coef[1] = Amplitude
-// Gauss3D_coef[2] = Horizontal Position
-// Gauss3D_coef[3] = Thermal Horizontal Width
-// Gauss3D_coef[4] = Vertical Position
-// Gauss3D_coef[5] = Thermal Vertical Width
-// Gauss3D_coef[6] = TF amplitude
-// Gauss3D_coef[7] = TF Horizontal width
-// Gauss3D_coef[8] = TF Vertical Width
-
+//!
+//! @brief This function takes the fit parameters from a Thomas Fermi fitting routine and converts them into 
+//! atom cloud parameters
+//! @details depending on the trap type and imaging direction selected, it will calculate appropriate cloud
+//! and/or trap parameters.
+//! @note This function assumes that ::ThermalUpdateCloudPars has already run and updated the thermal parameters.
+//! @param[in]  Gauss3d_coef  Coefficients from the fit that represent:
+//!   -  Gauss3D_coef[0] = Offset
+//!   -  Gauss3D_coef[1] = Amplitude
+//!   -  Gauss3D_coef[2] = Horizontal Position
+//!   -  Gauss3D_coef[3] = Thermal Horizontal Width
+//!   -  Gauss3D_coef[4] = Vertical Position
+//!   -  Gauss3D_coef[5] = Thermal Vertical Width
+//!   -  Gauss3D_coef[6] = TF amplitude
+//!   -  Gauss3D_coef[7] = TF Horizontal width
+//!   -  Gauss3D_coef[8] = TF Vertical Width
+//! @param[in]  fit_type      The index of the type of fit that has been chosen, used to determine
+//!                           if we're supposed to be doing the TF part.
 Function TFUpdateCloudPars(Gauss3d_coef,fit_type)	
 	Wave Gauss3d_coef
 	Variable fit_type
@@ -1642,19 +1678,42 @@ End
 // ******************** TFUpdateCloudPars **************************************************************
 
 // *************** ThermalUpdateCloudPars ***************************************************************
-// This function takes the fit parameters from the thermal fitting routine and converts them into 
-//  thermal atom cloud parameters.  Note that it does NOT assume that the cursor sits on the center		--CDH: does it? not anymore...
-// of the cloud: it corrects for the fact that the cursor may not be on the center of the cloud.
-// The supplied cursor/graphname must agree with the cross-sections that were used for the fit.
-// This file takes in the fit coefficients and uses them to get number,temp,phase space density... etc.
-// Gauss3D_coef[0] = Offset
-// Gauss3D_coef[1] = Amplitude
-// Gauss3D_coef[2] = Horizontal Position
-// Gauss3D_coef[3] = Horizontal Width
-// Gauss3D_coef[4] = Vertical Position
-// Gauss3D_coef[5] = Vertical Width
+//!
+//! @brief This function takes the fit parameters from the thermal fitting routine and converts them into 
+//! thermal atom cloud parameters.
+//! @details depending on the trap type and imaging direction selected, it will calculate appropriate cloud
+//! and/or trap parameters.
+//! @warning Note that it does NOT assume that the cursor sits on the center CDH: does it? not anymore...
+//! of the cloud: it corrects for the fact that the cursor may not be on the center of the cloud.
+//! @details The supplied cursor/graphname must agree with the cross-sections that were used for the fit.
+//! This file takes in the fit coefficients and uses them to get number,temp,phase space density... etc.
+//!
+//! @details also sets the following (TF-fit related parameters) to \b NaN:
+//!   - :xwidth_BEC
+//!   - :ywidth_BEC
+//!   - :zwidth_BEC
+//!   - :xwidth_BEC_t0
+//!   - :ywidth_BEC_t0
+//!   - :zwidth_BEC_t0
+//!   - :amplitude_TF
+//!   - :number_BEC
+//!   - :number_TF
+//!   - :chempot
+//!   - :radius_TF
+//!   - :radius_TF_t0
+//!   - :density_BEC
+//!   - :density_BEC_t0
+//!   - :absdensity_BEC_t0
+//!
+//! @param[in] Gauss3D_coef Contains fit coefficients related to thermal fits:
+//!   - Gauss3D_coef[0] = Offset
+//!   - Gauss3D_coef[1] = Amplitude
+//!   - Gauss3D_coef[2] = Horizontal Position
+//!   - Gauss3D_coef[3] = Horizontal Width
+//!   - Gauss3D_coef[4] = Vertical Position
+//!   - Gauss3D_coef[5] = Vertical Width
 Function ThermalUpdateCloudPars(Gauss3D_coef)	
-	Wave Gauss3D_coef;
+	Wave Gauss3D_coef
 
 	// Get the current path
 	String ProjectFolder = Activate_Top_ColdAtomInfo();
@@ -1828,7 +1887,7 @@ End
 // ******************** ThermalUpdateCloudPars *****************************************************************************
 
 // ***********************UpdateWaves **********************************************************************
-// * this function updates the running waves of temperature/ density/ number etc.
+//! @brief If autoupdate is set, updates indexed waves and the list of FileNames
 Function UpdateWaves()
 
 	// Get the current path
@@ -1861,6 +1920,7 @@ end
 //********************************************************************************************************************
 // Definition of fitting funtions for thermal and thomas fermi fits in 1 and 2D
 
+//! @brief Fit function
 Function Thermal_2D(w,x,z) : FitFunc
 	Wave w
 	Variable x
@@ -1885,6 +1945,7 @@ Function Thermal_2D(w,x,z) : FitFunc
 	return w[0] + w[1]*exp(-((x-w[2])/w[3])^2-((z-w[4])/(w[5]))^2);
 End
 
+//! @brief Fit function
 Function TF_1D(w,x) : FitFunc
 	Wave w
 	Variable x
@@ -1908,6 +1969,7 @@ Function TF_1D(w,x) : FitFunc
 End
 
 
+//! @brief Fit function
 Function TF_2D(w,x,z) : FitFunc
 	Wave w
 	Variable x
@@ -1937,6 +1999,7 @@ Function TF_2D(w,x,z) : FitFunc
 	return Thermal_2d(w_therm,x,z) + w[6]*( ( (z-w[4])/(w[8]) )^2+((x-w[2])/(w[7]))^2<1?(1-( (z-w[4])/(w[8]) )^2-( (x-w[2])/(w[7]) )^2)^(3/2):0)
 End
 
+//! @brief Fit function
 Function TriGauss_2D(w,x,z) : FitFunc
 	Wave w
 	Variable x
@@ -1965,6 +2028,7 @@ End
 
 
 // parameter w[4] is the hbar*k momentum converted into position units and must be computed and held for fitting
+//! @brief Fit function
 Function BandMap_1D(w,x,z) : FitFunc
 	Wave w
 	Variable x
@@ -1993,8 +2057,46 @@ Function BandMap_1D(w,x,z) : FitFunc
 End
 
 // ******* IntegrateROI ****************************************************************************************
-// 
-//	- 
+//! 
+//! @brief Sum all counts in the ROI and convert to an atom number
+//! @details Uses the scaling of the image wave to determine spatial size per pixel,
+//! does a background subtract to attempt to handle offset issues, then scales by the
+//! cross section given by the wavelength.  The result is saved in \b :number.
+//! 
+//! @details Also sets a large number of cloud parameters to \b NaN
+//!  - :chempot
+//!  - :radius_TF
+//!  - :radius_TF_t0
+//!  - :density
+//!  - :temperature
+//!  - :xrms
+//!  - :yrms 
+//!  - :zrms
+//!  - :xposition
+//!  - :yposition
+//!  - :zposition
+//!  - :AspectRatio_meas
+//!  - :amplitude
+//!  - :density_t0
+//!  - :xrms_t0
+//!  - :yrms_t0
+//!  - :zrms_t0
+//!  - :AspectRatio_meas_t0
+//!  - :density_BEC
+//!  - :density_BEC_t0
+//!  - :xwidth_BEC
+//!  - :ywidth_BEC
+//!  - :zwidth_BEC
+//!  - :xwidth_BEC_t0
+//!  - :ywidth_BEC_t0
+//!  - :zwidth_BEC_t0
+//!  - :AspectRatio_BEC_meas
+//!  - :AspectRatio_BEC_meas_t0
+//!  - :amplitude_TF
+//!  - :number_BEC
+//!  - :number_TF
+//!
+//! @param[in]  inputimage  The image we're integrating the ROI in 
 Function PI_IntegrateROI(inputimage)
 	Wave inputimage
 	
@@ -2091,6 +2193,8 @@ End
 //	yslice :from passed csr
 //	slice  :from between the cursors
 
+//!
+//! @brief ButtonControl Calling function for ::MakeSlice
 Function Call_MakeSlice(ctrlName) : ButtonControl
 	String ctrlName
 
@@ -2106,6 +2210,16 @@ Function Call_MakeSlice(ctrlName) : ButtonControl
 	SetDataFolder fldrSav	
 End
 
+//!
+//! @brief Generates slice of an image, optionally taking averages of adjacent rows/columns
+//! @details Uses global variable \p :Fit_Info:slicewidth to determine how many adjacent rows/columns
+//! to include in an average, then cuts around the center of the cursor named in \p cursorname. The
+//! resulting averaged slice are stored in :Fit_Info:xsec_row and :Fit_Info:xsec_col
+//!
+//! Also creates a "diagonal slice" in :LineProfiles:slice, which has no averaging done.
+//!
+//! @param[in]  inputimage  The image we're cutting these slices from
+//! @param[in]  cursorname  The name of the cursor to take the center point of the slices from.
 Function MakeSlice(inputimage,cursorname)
 	Wave inputimage
 	String cursorname
@@ -2176,11 +2290,18 @@ End
 
 
 // ******************** CropImage **************************************************************************
-// Crops  or expands an image to the specified bounds (pixel locations).  --CDH: Not called by anything.
-// Perhaps I will add another flag after the y1 to declare what type of  crop is done (pixel based or scaled point based).
+//!
+//! @brief Crops or expands an image to the specified bounds (pixel locations).
+//! @note CDH: Not called by anything.
+//! @details Perhaps I will add another flag after the y1 to declare what type of  crop is done (pixel based or scaled point based).
+//!
+//! @param[in] Image  The image to be cropped
+//! @param[in] x0,x1  x-bounds (point, not scaled) to crop to, inclusive
+//! @param[in] y0,y1  y-bounds (point, not scaled) to crop to, inclusive
+//! @return \b 0, always
 Function CropImage(Image, x0, y0, x1, y1)
-	Wave image;
-	variable x0, y0, x1, y1;
+	variable x0, y0, x1, y1
+	Wave image
 
 
 	// Points properly ordered if needed

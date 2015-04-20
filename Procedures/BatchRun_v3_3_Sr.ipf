@@ -1,13 +1,20 @@
 #pragma rtGlobals=1		// Use modern global access method.
 
+//! @file
+//! @brief Function related to re-running a set of data instead of live acquisition.
 
-// Rerun a set of data (CDH for RbYb)
-//
-// To use this version of BatchRun, set the file "basePath" with SetBasePath(). (see next function)
-//        The data will be added to the Top RbInfo panel.
-//
-//	Note: if startnum is -1, only run "endnum"
-//   mode = 0 => no pause for user, mode = 1 => pause for user.
+//!
+//! @brief Rerun a set of data
+//! @details To use this version of BatchRun, set the file "basePath" with SetBasePath(). (see next function)
+//!        The data will be added to the Top RbInfo panel.
+//!
+//!	@note If startnum is -1, only run "endnum"
+//! @param[in] startnum index of first file in batch
+//! @param[in] endnum   index of last file in batch
+//! @param[in] mode     = 0 => no pause for user, 1 => pause for user.
+//! @param[in] skipList unknown, added by DSB
+//! @return \b -1 on error
+//! @return \b NaN or \b 1 on success
 Function BatchRun(startnum,endnum,mode,skipList)
 	variable startnum, endnum, mode
 	string skipList //; separated list of file numbers to skip
@@ -125,6 +132,8 @@ Function BatchRun(startnum,endnum,mode,skipList)
 	SetDataFolder fldrSav;		//return to user path
 end
 
+//!
+//! @brief control for temp_refitwindow in ::BatchRun
 Function BatchRunContinue(ctrlName) : ButtonControl
 	String ctrlName
 	
@@ -134,6 +143,8 @@ Function BatchRunContinue(ctrlName) : ButtonControl
 	DoWindow/K temp_refitwindow
 End
 
+//!
+//! @brief control for temp_refitwindow in ::BatchRun
 Function BatchRunRefit(ctrlName) : ButtonControl
 	String ctrlName
 	
@@ -143,6 +154,8 @@ Function BatchRunRefit(ctrlName) : ButtonControl
 	DoWindow/K temp_refitwindow
 End
 
+//!
+//! @brief control for temp_refitwindow in ::BatchRun
 Function BatchRunSkip(ctrlName) : ButtonControl
 	String ctrlName
 	
@@ -200,11 +213,14 @@ function Dialog_DoBatchRun()
 end
 
 // Make BatchProcessing more efficient by setting BatchFileBasePath variable instead of modifying code
-// To set a base path:
-//	Run with path as string argument from command line (CTRL-J)
-//	BasePath takes the form
-//		"C:Experiment:Data:<YYYY>:<Month>:<DD>:<Camera>_DDMonYYYY"
-//		BatchRun will insert the underscore, file number and ".ibw" for you.
+//!
+//! @brief Set BasePath variable for batch processing
+//! @details To set a base path:
+//!	Run with path as string argument from command line (CTRL-J)
+//!	BasePath takes the form
+//!		"C:Experiment:Data:<YYYY>:<Month>:<DD>:<Camera>_DDMonYYYY"
+//!		BatchRun will insert the underscore, file number and ".ibw" for you.
+//! @param[in] basePath value to save as the base path
 Function SetBasePath(basePath)
 	string basePath
 	
@@ -219,7 +235,11 @@ Function SetBasePath(basePath)
 	SetDataFolder fldrSav;		//return to user path
 end
 
-// Pop-up dialog box requesting set base path.
+//!
+//! @brief Pop-up dialog box requesting set base path.
+//!
+//! @return \b -1 on error
+//! @return \b NaN on success
 function Dialog_SetBasePath()
 	
 	String Months="January;February;March;April;May;June;July;August;September;October;November;December"
@@ -246,7 +266,11 @@ function Dialog_SetBasePath()
 	SetBasePath(baseName)
 end
 
-// Pop-up which copies BasePath from one data series to another
+//!
+//! @brief Pop-up which copies BasePath from one data series to another
+//!
+//! @return \b -1 on error
+//! @return \b NaN on success
 Function Dialog_CopyBasePath()
 
 	variable TargProjectNum;
@@ -295,7 +319,10 @@ Function Dialog_CopyBasePath()
 
 end
 
-// Runs from the temp file location (C:Experiment:Data:<filename>), assuming a Flea2 or Flea3 camera
+//!
+//! @brief Runs from the temp file location (C:Experiment:Data:\<filename\>)
+//! @details assuming a Flea2 or Flea3 camera
+//! @param[in] fleaNum Which flea version we're running
 Function RunTemp(fleaNum)
 	variable fleaNum
 	
@@ -311,7 +338,13 @@ Function RunTemp(fleaNum)
 	AutoRunV3(projectName, "C:Experiment:Data:Flea"+num2str(fleaNum)+"temp.ibw")
 end
 
-// Reset all indexed waves.
+//!
+//! @brief Reset (remove all points from) all indexed waves.
+//!
+//! @param[in] ProjectFolder Project whose IndexedWaves we're deleting points from
+//!
+//! @return \b -1 on error
+//! @return \b NaN on success
 function ReinitializeIndexedWaves(ProjectFolder)
 	string ProjectFolder
 	
@@ -405,7 +438,16 @@ function ReinitializeIndexedWaves(ProjectFolder)
 	SetDataFolder fldrSav	// Return path
 end
 
-// Delete points from all indexed waves.
+//!
+//! @brief Delete points from all indexed waves.
+//! @details Also sets variable \p index to an appropriate value on completion
+//!
+//! @param[in] ProjectFolder Project whose IndexedWaves we're deleting points from
+//! @param[in] firstPt       Index of the first point to be deleted
+//! @param[in] numPts        Number of points to delete, including \p firstPt
+//!
+//! @return \b -1 on error
+//! @return \b NaN on success
 function IndexedWavesDeletePoints(ProjectFolder,firstPt,numPts)
 	string ProjectFolder
 	Variable firstPt, numPts
@@ -516,7 +558,15 @@ function IndexedWavesDeletePoints(ProjectFolder,firstPt,numPts)
 	SetDataFolder fldrSav	// Return path
 end
 
-//This function sorts all indexed waves in the data series by the indexed wave with name: IndexedSorterWaveName
+//!
+//! @brief This function sorts all indexed waves in a data series by specified indexed wave
+//!
+//! @param[in] ProjectFolder         Project whose indexed waves we will sort
+//! @param[in] IndexedSorterWaveName Name of indexed wave we will sort by
+//1 @param[in] NumSorterWaves        Unknown, added by DSB
+//!
+//! @return \b -1 on error
+//! @return \b NaN on success
 function Sort_IndexedWaves(ProjectFolder,IndexedSorterWaveNames, NumSorterWaves)
 	string ProjectFolder
 	string IndexedSorterWaveNames
@@ -667,6 +717,11 @@ function Sort_IndexedWaves(ProjectFolder,IndexedSorterWaveNames, NumSorterWaves)
 	SetDataFolder fldrSav	// Return path
 end
 
+//!
+//! @brief Dialog to pick & sort all indexed wave using a user-selected wave as sort keys
+//!
+//! @return \b -1 on error
+//! @return \b NaN on success
 function Dialog_SortIndexedWaves()
 	
 	variable TargProjectNum;

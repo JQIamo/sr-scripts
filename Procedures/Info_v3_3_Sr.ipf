@@ -1,13 +1,15 @@
 #pragma rtGlobals=2	// Use modern global access method.
 
-// ********************************************************
-//
-// Initilizes all of the global variables in the root:Packages:ColdAtom:
-// path that are used to manage the different experimental runs.
-// This function should only be called once, the first time this package is opened
-//
-// ********************************************************
+//! @file
+//! @brief Handles indexed waves and ProjectID related functions.
 
+
+// ********************************************************
+//!
+//! @brief Initializes all of the global variables in the root:Packages:ColdAtom:
+//! path that are used to manage the different experimental runs.
+//! @details This function only needs to be called once, the first time this package is opened
+// ********************************************************
 function Init_ColdAtomInfo()
 
 	// Create the required path
@@ -34,11 +36,15 @@ end
 
 // ********************************************************
 //
-// Exists_ColdAtomInfo(ProjectID)
-// checks to see if a project in the path CheckFolder exists, retuns 1 if so
+// Exists_ColdAtomInfo(CheckFolder)
+//!
+//! @brief checks to see if a project in the path CheckFolder exists
+//!
+//! @param[in] CheckFolder  The project to check for.
+//! @return \b 1 if exists
+//! @return \b 0 otherwise
 //
 // ********************************************************
-
 function Exists_ColdAtomInfo(CheckFolder)
 	string CheckFolder
 	Init_ColdAtomInfo();	// Creates the needed variables if they do not already exist
@@ -56,17 +62,19 @@ end
 // ********************************************************
 //
 // Activate_Top_ColdAtomInfo()
-// Locates the top ColdAtomInfo window,  makes that project the active project
-// and returns a string to the data path for this project.  If no projects this will be 
-// an empty string.
+//! @brief Locates the top ColdAtomInfo window,  makes that project the active project
+//! and returns a string to the data path for this project.
+//! @details If no projects this will be an empty string.
+//!
+//! @bug This is buggy because it is possible that this user has closed a panel and made a
+//! new one with the name of the expected window.  It always works, however, if
+//! the top window is a RB_info panel.
+//!
+//! @return Path to project corresponding to the top ColdAtomInfo window
+//! @return Empty string in no project is found
 //
 // ********************************************************
-
-// This is buggy becuase it is possible that this user has closed a panel and made a
-// new one with the name of the expected window.  It always works, however, if
-// the top window is a RB_info panel.
-
-function/T Activate_Top_ColdAtomInfo()
+function/S Activate_Top_ColdAtomInfo()
 	string TopFolder;
 	string PanelList;
 	variable i, ListIndex;
@@ -98,12 +106,18 @@ end
 // ********************************************************
 //
 // Rename_ColdAtomInfo
-// Sets the active rubiddium project
+//!
+//! @brief Renames a project and sets it as the active project
+//!
+//! @param[in] RenameFolder  The old (to be changed) name of the project
+//! @param[in] ProjectID     The new name for the project
+//! @return \b 0 on errors
+//! @return \b NaN otherwise
 //
 // ********************************************************
 
 function Rename_ColdAtomInfo(RenameFolder, ProjectID)
-	string RenameFolder, ProjectID;
+	string RenameFolder, ProjectID
 	SVAR ActivePaths = root:Packages:ColdAtom:ActivePaths
 	SVAR ActivePanels = root:Packages:ColdAtom:ActivePanels
 	SVAR CurrentPath = root:Packages:ColdAtom:CurrentPath
@@ -123,7 +137,7 @@ function Rename_ColdAtomInfo(RenameFolder, ProjectID)
 
 	variable ProjectIDNum = WhichListItem(RenameFolder, ActivePaths);
 
-	// The panels and graphics automaticaly track this type of thing so I need
+	// The panels and graphics automatically track this type of thing so I need
 	// to do nothing there.
 	
 	// See if I am renaming the ActivePath
@@ -148,12 +162,15 @@ end
 // ********************************************************
 //
 // Set_ColdAtomInfo
-// Sets the active ColdAtom project
-//
+//!
+//! @brief Sets the active ColdAtom project
+//! @param[in] SwitchFolder  The name of the project to switch to
+//! @return \b 0 on errors
+//! @return \b NaN otherwise
 // ********************************************************
 
 function Set_ColdAtomInfo(SwitchFolder)
-	string SwitchFolder;
+	string SwitchFolder
 	SVAR ActivePaths = root:Packages:ColdAtom:ActivePaths
 	SVAR ActivePanels = root:Packages:ColdAtom:ActivePanels
 	SVAR CurrentPath = root:Packages:ColdAtom:CurrentPath
@@ -180,10 +197,16 @@ end
 // ********************************************************
 //
 // Delete_ColdAtomInfo
-// removes an active Rubidum data series, including:
-//	The display window (if exists)
-//	The accociated data and folder
-//
+//!
+//! @brief removes an active Rubidium data series
+//! @details including:
+//!	 - The display window (if exists)
+//!	 - The associated data and folder
+//!
+//! Sets the active project to whichever if first in the list of active paths.
+//!
+//! @return \b 0 on errors
+//! @return \b NaN otherwise
 // ********************************************************
 
 function Delete_ColdAtomInfo(FolderToDelete)
@@ -228,9 +251,9 @@ function Delete_ColdAtomInfo(FolderToDelete)
 end
 
 // ********************************************************
-// New_ColdAtomInfo, and calling function.  This is a safe function, in the sence that 
-// It will not delete an already existing project.
 
+//!
+//! @brief a dialog box for calling New_ColdAtomInfo 
 function Dialog_New_ColdAtomInfo()
 	// Ian Spielman 15Sep04
 	// This function sets up a new folder
@@ -258,10 +281,18 @@ function Dialog_New_ColdAtomInfo()
 	New_ColdAtomInfo(ProjectID, ExperimentID)
 end
 
-
+//!
+//! @brief Generate a new Cold Atom project folder
+//! @details This is a safe function, in the sense that it will not delete an already 
+//! existing project.
+//! Initializes Indexed Waves, experiment globals, and other setup tasks
+//!
+//! @param[in] ProjectID     Name for this specific dataset
+//! @param[in] ExperimentID  Which apparatus
+//! @return \b 0, always
 function New_ColdAtomInfo(ProjectID, ExperimentID)
-	string ProjectID;
-	String ExperimentID;	// Which apparatus.
+	string ProjectID
+	String ExperimentID	// Which apparatus.
 	
 	// Verify that the new window does not exist
 	// If it does make it the active project
@@ -650,9 +681,12 @@ function Copy_ColdAtomInfo(ProjectID, CopyProjPath, CopyExperimentID)
 End
 
 // ******************** UpdatePanelImage ***********************************
-// This function updates the image that is found on the RubudiumInfo Panel
-// this display is assumed to only hold a single image, so all the other images that might be displayed are
-// removed.
+//!
+//! @brief This function updates the image that is found on the RubudiumInfo Panel
+//! @details this display is assumed to only hold a single image, so all the other
+//! images that might be displayed are removed.
+//!
+//! @param[in] imagename  Name of the image to be updated
 Function UpdatePanelImage(imagename)
 	String imagename
 	
@@ -719,6 +753,13 @@ Function UpdatePanelImage(imagename)
 End
 // ******************** UpdatePanelGraph ***********************************
 
+//!
+//! @brief Uses stored globals to compute trap frequencies and associated Castin Dum
+//! scale factors
+//!
+//! @details Contains a switch for changing technique based on the global string
+//! <em>\<Current Project\>:Experimental_Info:Experiment</em>, currently with options "Rubidium_I",
+//! "Rubidium_II", "RbYb",and "Sr", with no apparent default case.
 Function ComputeTrapProperties()
 	// Get the current path
 	String ProjectFolder = Activate_Top_ColdAtomInfo();
@@ -859,9 +900,12 @@ End
 
 
 // ****************************
-// This function sets the x and y scale for all of the image related variables
-// and slices
-
+//!
+//! @brief This function sets the x and y scale for all of the image related variables
+//! and slices
+//! @details Magnification choice is based on the contents of
+//! <em>\<Current Project\>:Experimental_Info:Camera</em>
+//! and <em>\<Current Project\>:Experimental_Info:Camera</em>
 Function Update_Magnification() 
 	// Get the current path
 	String ProjectFolder = Activate_Top_ColdAtomInfo();
@@ -1000,12 +1044,16 @@ End
 // ********************************************************
 //
 // Init_IndexedWaves
-//  creates the empty indexed waves folder with
-// "index"  the current index that is to be updated in the indexed wave
-// "IndexedWaves" a ";" delimiated list of wave names
-// "IndexedVariables" a ";" delimiated list of variables associated with each indexed wave
-// where (index = 0, IndexedWaves = "", IndexedVariables = "");
-//
+//!
+//! @brief Creates necessary folders for Indexed Waves and sets them all to be empty.
+//! @details  creates the empty indexed waves folder with
+//!  - "index"  the current index that is to be updated in the indexed wave
+//!  - "autoupdate" 1, whether or not to update indexed waves after every shot
+//!  - "IndexedWaves" a ";" delimited list of wave names
+//!  - "IndexedVariables" a ";" delimited list of variables associated with each indexed wave
+//!  - "FitWaves" a sub-data folder for 2d indexing of fits
+//!    + "Indexed2DWaveNames" a ;-delimited list of wave names
+//!    + "IndexedFitWaves" a ;-delimited list of source wave names for contents of "Indexed2DWave"s
 // ********************************************************
 
 function Init_IndexedWaves()
@@ -1035,8 +1083,15 @@ end
 // ********************************************************
 //
 // Exists_IndexedWave(Name)
-// checks to see if a project in the path CheckFolder exists, retuns 1 if so
-//
+//!
+//! @brief checks to see if an IndexedWave exists.
+//! @details Does so by looking for the name inside
+//! <ProjectFolder>:IndexedWaves:IndexedWaves
+//! 
+//! @param[in] Name  Indexed wave to check for
+//! @return \b 1 if it exists
+//! @return \b 0 otherwise
+//!
 // ********************************************************
 function Exists_IndexedWave(Name)
 	string Name
@@ -1059,6 +1114,15 @@ function Exists_IndexedWave(Name)
 end
 
 //2D version	--CDH 09.Feb.2012
+//!
+//! @brief checks to see if an IndexedWave exists.
+//! @details Does so by looking for the name inside
+//! <ProjectFolder>:IndexedWaves:FitWaves:Indexed2DWaveNames
+//! 
+//! @param[in] Name  Indexed wave to check for
+//! @return \b 1 if it exists
+//! @return \b 0 otherwise
+//!
 function Exists_Indexed2DWave(Name)
 	string Name
 	// Get the current path
@@ -1083,12 +1147,22 @@ end
 // ********************************************************
 //
 // New_IndexedWave(IndexedWave, IndexedVariable)
-// Created a new IndexedWave bound to the variable IndexedVariable
-//
+//!
+//! @brief Created a new IndexedWave bound to the variable IndexedVariable
+//! @details Creates a wave named \p IndexedWave that takes on the values
+//! of \p IndexedVariable when updated.  The name of the IndexedWave is stored
+//! in <ProjectFolder>:IndexedWaves and the name of the variable in
+//! <ProjectFolder>:IndexedVariables as an entry at the end of their respective
+//! ;-delimited lists.
+//!
+//! @param[in] IndexedWave      The name of the IndexedWave to be created
+//! @param[in] IndexedVariable  The name of the variable to pull values from for IndexedWave
+//! @return \b 0 if error
+//! @return \b NaN otherwise
 // ********************************************************
 function New_IndexedWave(IndexedWave, IndexedVariable)
-	string IndexedWave;
-	string IndexedVariable;
+	string IndexedWave
+	string IndexedVariable
 	
 	// Verify that the IndexedWave does not already exist!
 	if (Exists_IndexedWave(IndexedWave) == 1)
@@ -1119,9 +1193,16 @@ function New_IndexedWave(IndexedWave, IndexedVariable)
 end
 
 //2D version	--CDH 09.Feb.2012
+//!
+//! @brief The 2D version of ::New_IndexedWave
+//!
+//! @param[in] Indexed2DWaveName  The name of the Indexed2DWave to be created
+//! @param[in] IndexedFitWave     The name of the wave to pull values from for Indexed2DWaveName
+//! @return \b 0 if error
+//! @return \b NaN otherwise
 function New_Indexed2DWave(Indexed2DWaveName, IndexedFitWave)
-	string Indexed2DWaveName;
-	string IndexedFitWave;
+	string Indexed2DWaveName
+	string IndexedFitWave
 	
 	// Verify that the IndexedWave does not already exist!
 	if (Exists_Indexed2DWave(Indexed2DWaveName) == 1)
@@ -1155,9 +1236,15 @@ end
 // ********************************************************
 //
 // Update_IndexedWaves()
-// Updates the indexed waves at the current index to the variable
-// to which they are bound.
-//
+//!
+//! @brief Updates the indexed waves at the current index to the variable
+//! to which they are bound.
+//! @details Reads the values from variables in \p IndexedVariables and
+//! \p IndexedFitWaves and puts them into wave's named in \p IndexedWaves
+//! and \p Indexed2DWaveNames respectively at index \p Index
+//!
+//! @return \b -1 if error
+//! @return \b 0 otherwise
 // ********************************************************
 function Update_IndexedWaves()
 	// Get the current path
@@ -1260,20 +1347,25 @@ end
 // ********************************************************
 //
 // Graph_IndexedWaves(XIndexedWave, YIndexedWave)
-// Makes an XY graph of two indexed waves (later make a list?)
-//
+//!
+//! @brief Makes an XY graph of two indexed waves (later make a list?)
+//! 
+//! @param[in] XIndexedWave  The name of the IndexedWave to use as x-point values for the graph
+//! @param[in] YIndexedWave  The name of the IndexedWave to use as y-point values for the graph
+//! @return \b 0 if error
+//! @return \b NaN otherwise
 // ********************************************************
 function Graph_IndexedWaves(XIndexedWave, YIndexedWave)
-	string XIndexedWave, YIndexedWave;
+	string XIndexedWave, YIndexedWave
 	
 	// Verify that the IndexedWaves exist!
 	if (Exists_IndexedWave(XIndexedWave) == 0)
-		print "Graph_IndexedWave: reqested wave does not exist: ", XIndexedWave;
+		print "Graph_IndexedWave: requested wave does not exist: ", XIndexedWave;
 		return 0;
 	endif
 
 	if (Exists_IndexedWave(YIndexedWave) == 0)
-		print "Graph_IndexedWave: reqested wave does not exist: ", YIndexedWave;
+		print "Graph_IndexedWave: requested wave does not exist: ", YIndexedWave;
 		return 0;
 	endif
 
@@ -1292,7 +1384,9 @@ end
 
 // **********************Resize_IndexedWaves ********************************
 // This utility wave resizes all of the running waves
-
+//!
+//! @brief Stub function required by the reset button
+//! @details Required by the GUI Reset button, but currently does nothing.
 Function ResizeRunningWaves(wavesize)
 	variable wavesize
 

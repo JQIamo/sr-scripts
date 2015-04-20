@@ -1,10 +1,18 @@
 #pragma rtGlobals=1		// Use modern global access method.
 #include "BatchRun_v3_3_Sr"
 
-// This updated version of the procedure loads files based on 
-//	":Experimental_Info:BatchFileBasePath" (prompting user 
-//	to set it, if it does not exist). As such, the basePath is stored 
-//	in the ACTIVE Panel's file structure (in AI_Traces folder).
+//! @file
+//! @brief Handles <b>A</b>nalog <b>I</b>nput traces
+
+//!
+//! @brief Batch loads a range of AI traces into AI_Traces#.
+//! @details Gets (or asks for if necessary) a base path from
+//! <b>:Experimental_Info:AIBasePath</b>, then loads the files
+//! (from AIBasePath) <b>AI_Traces_####.ibw</b> and copies them to
+//! the project directory's <b>:AI_Traces:AI_Traces#</b>.
+//!
+//! @param[in] startnum index to start batch load from
+//! @param[in] endnum   index to stop batch load
 Function BatchLoadAI(startnum,endnum)
 	variable startnum, endnum
 
@@ -40,6 +48,12 @@ Function BatchLoadAI(startnum,endnum)
 	SetDataFolder fldrSav;		//return to user path
 end
 
+//!
+//! @brief Displays a graph of AI channel \p channel for a range of loaded AI files.
+//!
+//! @param[in] startnum index of first run to display
+//! @param[in] endnum   index of last run to display
+//! @param[in] channel  index of the channel to put on the graph
 Function BatchGraphTrace(startnum, endnum,channel)
 	variable startnum, endnum, channel
 	
@@ -68,6 +82,12 @@ Function BatchGraphTrace(startnum, endnum,channel)
 	SetDataFolder fldrSav;		//return to user path
 end
 
+//!
+//! @brief Adds traces of AI channel \p channel to the front graph.
+//!
+//! @param[in] startnum index of first run to display
+//! @param[in] endnum   index of last run to display
+//! @param[in] channel  index of the channel to put on the graph
 Function AppendTraces(startnum,endnum,channel)
 	variable startnum,endnum,channel
 
@@ -78,6 +98,11 @@ Function AppendTraces(startnum,endnum,channel)
 	endfor
 end
 
+//!
+//! @brief Sets the AI Base Path for the current project.
+//! @details Base path is stored in <b>:Experimental_Info:AIBasePath</b>
+//!
+//! @param[in] basePath base path to use
 Function SetAIBasePath(basePath)
 	string basePath
 	
@@ -92,7 +117,10 @@ Function SetAIBasePath(basePath)
 	SetDataFolder fldrSav;		//return to user path
 end
 
-// Pop-up dialog box requesting set base path for AI traces.
+//!
+//! @brief Pop-up dialog box requesting set base path for AI traces.
+//! @return \b NaN (default value) on success
+//! @return -1 if User cancelled
 function Dialog_SetAIBasePath()
 	
 	String Months="January;February;March;April;May;June;July;August;September;October;November;December"
@@ -117,7 +145,12 @@ function Dialog_SetAIBasePath()
 	SetAIBasePath(baseName)
 end
 
-// Store base path for automatically loading Tek scope traces.
+
+//!
+//! @brief Store base path for automatically loading Tek scope traces.
+//! @details Base path is stored in <b>:Experimental_Info:TekBasePath</b>
+//!
+//! @param[in] basePath base path to use
 Function SetTekBasePath(basePath)
 	string basePath
 	
@@ -132,7 +165,11 @@ Function SetTekBasePath(basePath)
 	SetDataFolder fldrSav;		//return to user path
 end
 
-// Pop-up dialog box requesting set base path for Tek traces.
+
+//!
+//! @brief Pop-up dialog box requesting set base path for Tek traces.
+//! @return \b NaN (default value) on success
+//! @return -1 if User cancelled
 function Dialog_SetTekBasePath()
 	
 	String Months="January;February;March;April;May;June;July;August;September;October;November;December"
@@ -162,7 +199,15 @@ end
 // --------------------------------------------------
 //		Old stuff...
 
-// Make wave of first point in each run to look at offset
+// 
+//!
+//! @brief Stores the first point of each AI Trace in the wave "Offset"
+//! @details Also calculates the mean offset of all those traces.
+//!
+//! @param[in] startnum index of first run to display
+//! @param[in] endnum   index of last run to display
+//! @param[in] channel  index of the channel to put on the graph
+//! @return	the mean offset
 Function CollectOffset(startnum, endnum, channel)
 	variable startnum, endnum, channel
 	
@@ -178,7 +223,31 @@ Function CollectOffset(startnum, endnum, channel)
 	return temp/(endnum-startnum+1)
 end
 
-// Fit MOT load traces to extract rate and time constant and plot
+// 
+//!
+//! @brief Fit MOT load traces to extract rate and time constant and plot
+//! @details Fits an exp_XOffset to every instance, and stores both raw results
+//! and derived parameters in the wave \p parWave.  The components of \p parWave are:
+//! + parWav[][0]: background level
+//! + parWav[][1]: R, loading rate
+//! + parWav[][2]: Tau, the loss time
+//! + parWav[][3]: y0
+//! + parWav[][4]: sigma_y0
+//! + parWav[][5]: A
+//! + parWav[][6]: sigma_A
+//! + parWav[][7]: tau
+//! + parWav[][8]: sigma_tau
+//! + parWav[][9]: x0
+//! + parWav[][10]: Chi Squared for the fit
+//!
+//! Also calls and displays a graph of both R and tau.
+//!
+//! @param[in] startnum index of first run to display
+//! @param[in] endnum   index of last run to display
+//! @param[in] channel  index of the channel to put on the graph
+//! @param[in] scanVar  name of scanned experimental parameter
+//! @param[in] varStart starting value for scanned parameter
+//! @param[in] varEnd   ending value for scanned parameter
 Function AnalyzeMOTLoad(startnum, endnum, channel, scanVar, varStart, varEnd)
 	variable startnum, endnum, channel
 	string scanVar			// name of scanned experimental parameter
@@ -228,6 +297,24 @@ Function AnalyzeMOTLoad(startnum, endnum, channel, scanVar, varStart, varEnd)
 	Label right "\\K(65280,0,0)Tau (s)"
 end
 
+//!
+//! @brief Saves fit parameters into wave \p w[index][]
+//! @details Expects that you've already run a exp_XOffset fit to the data and want
+//! to save the results in wave w:
+//! + parWav[][0]: background level
+//! + parWav[][1]: R, loading rate
+//! + parWav[][2]: Tau, the loss time
+//! + parWav[][3]: y0
+//! + parWav[][4]: sigma_y0
+//! + parWav[][5]: A
+//! + parWav[][6]: sigma_A
+//! + parWav[][7]: tau
+//! + parWav[][8]: sigma_tau
+//! + parWav[][9]: x0
+//! + parWav[][10]: Chi Squared for the fit
+//!
+//! @param[in] w       wave to store fit results in
+//! @param[in] index   which part of \p w to put the results in
 Function SaveFitData(w,index)
 	Wave w
 	variable index
@@ -250,7 +337,11 @@ Function SaveFitData(w,index)
 	
 end
 
-// Plot AI trace data for 1D scans
+//!
+//! @brief Plot Plots wFits[][col] vs xWave.
+//! @param[in] wFits  source of y points for the graph
+//! @param[in] xWave  source of x points for the graph
+//! @param[in] col    column of wFits to use for yData
 Function PlotScan(wFits, xWave, col)
 	Wave wFits, xWave
 	variable col		// fit parameter, as given in the comments above
@@ -263,7 +354,9 @@ Function PlotScan(wFits, xWave, col)
 end
 
 
-// Plot AI trace data for 2D scans
+//!
+//! @brief Plot AI trace data for 2D scans
+//! @details (Just copied old comment, behaviour not verified)
 Function PlotContour(baseName, col)
 	string baseName
 	variable col		// fit parameter, as given in the comments above
@@ -287,7 +380,9 @@ Function PlotContour(baseName, col)
 	Display; AppendMatrixContour dw
 end
 
-//Calibrate number at fixed MOT detuning
+//!
+//! @brief Calibrate number at fixed MOT detuning
+//! @details (Just copied old comment, behaviour not verified)
 Function Fluor2Num(MOTf_index)
 	variable MOTf_index 	// sequence number (starting with 0) for desired MOT detuning
 	
@@ -311,7 +406,9 @@ end
 
 
 
-// Calculate Voltage from fit to calibrate number:
+//!
+//! @brief Calculate Voltage from fit to calibrate number:
+//! @details (Just copied old comment, behaviour not verified)
 // 	parWave is the fit results from AnalyzeMOTLoad()
 //	t is time in seconds along the fit
 Function CalNumber(parWave, destWaveName,t)
@@ -330,8 +427,10 @@ Function CalNumber(parWave, destWaveName,t)
 	endfor
 end
 
-// This function rescales a wave by a scaling function
-//	We used it to convert Rb cell transmission to frequency.
+//!
+//! @brief This function rescales a wave by a scaling function
+//!	@details We used it to convert Rb cell transmission to frequency.
+//! @details (Just copied old comment, behaviour not verified)
 Function BatchRescale(startnum, endnum,deltaT)
 	variable startnum, endnum,deltaT
 	WAVE sFunc=Trans2Freq //Scaling wave
@@ -351,7 +450,9 @@ Function BatchRescale(startnum, endnum,deltaT)
 	endfor
 end
 
-// Offset a set of 'num' traces by 'sp' ("waterfall" plot)
+//!
+//! @brief Offset a set of 'num' traces by 'sp' ("waterfall" plot)
+//! @details (Just copied old comment, behaviour not verified)
 Function Waterfall(num,sp)
 	variable num, sp
 	
@@ -363,7 +464,9 @@ Function Waterfall(num,sp)
 	DoUpdate
 end
 
-// Offset a set of 'num' traces by 'sp' ("waterfall" plot)
+//!
+//! @brief Offset a set of 'num' traces by 'sp' ("waterfall" plot)
+//! @details (Just copied old comment, behaviour not verified)
 Function WaterfallSide(num,sp)
 	variable num, sp
 	
@@ -375,7 +478,9 @@ Function WaterfallSide(num,sp)
 	DoUpdate
 end
 
-// Offset a set of 'num' traces by 'sp' ("waterfall" plot)
+//!
+//! @brief Offset a set of 'num' traces by 'sp' ("waterfall" plot)
+//! @details (Just copied old comment, behaviour not verified)
 Function WaterfallBoth(num,spx, spy)
 	variable num, spx, spy
 	
@@ -387,7 +492,9 @@ Function WaterfallBoth(num,spx, spy)
 	DoUpdate
 end
 
-// waves are numbered [0,1,2,...]
+//!
+//! @brief waves are numbered [0,1,2,...]
+//! @details (Just copied old comment, behaviour not verified)
 Function WaterfallPartial(first, num,sp)
 	variable first, num, sp
 	

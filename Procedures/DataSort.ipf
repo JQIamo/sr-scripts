@@ -1,5 +1,27 @@
 #pragma rtGlobals=1		// Use modern global access method.
+//! @file DataSort.ipf
+//! @brief Sorting a pair of X,Y waves by x-values.
 
+//!
+//! @brief Generate sorted versions of Xdata & Ydata (sorted by Xdata)
+//! and versions with identical Xdata values having Ydata averaged.
+//! @details \p Xdata is used as the keys to sort both \p Xdata and \p Ydata.  Both the
+//! raw results of the sort and a version where points with identical \p Xdata values are
+//! replaced with a single point whose y-value is the average of all \p Ydata values with
+//! that same \p Xdata value.
+//!
+//! The original input waves \p Xdata and \p Ydata are left intact, and the results of the
+//! sort are left in a set of freshly created waves (overwriting existing ones if necessary):
+//!  + wave "<xBaseName>_sorted" contains sorted points from \p Xdata
+//!  + wave "<yBaseName>_sorted" contains sorted points from \p Ydata
+//!  + wave "<xBaseName>_Vals" contains sorted unique points from \p Xdata
+//!  + wave "<yBaseName>_Avg" contains the average \p Ydata value for the corresponding \p Xdata point
+//!  + wave "<yBaseName>_SD" contains the standard deviation of \p Ydata values for the corresponding \p Xdata point
+//!
+//! @param[in] Ydata Input y-data wave
+//! @param[in] Xdata Input x-data wave, also the sorting keys
+//! @param[in] yBaseName base string for naming y-data related output waves
+//! @param[in] xBaseName base string for naming x-data related output waves
 Function DataSorter(Ydata, Xdata,yBaseName,xBaseName)
 
 	wave Ydata, Xdata //data to be sorted

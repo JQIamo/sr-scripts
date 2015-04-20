@@ -1,13 +1,24 @@
 #pragma rtGlobals=1		// Use modern global access method.
 
+//! @file
+//! @brief Wrote these procedures for more convenient processing of LightShift data.
+//! @author CDH
+//! @date 22Apr2012
+//! @todo Actually finish docs for this file. ZSS 2015-01-12 I'm going to skip this one for a bit
+
 #include "AILoadProcedures_v3_3_Sr"
 #include "BatchRun_v3_3_Sr"
 
-// 22Apr2012 -- CDH
-// Wrote these procedures for more convenient processing of LightShift data.
-
-
 // Copy Lattice Peak result wave
+//!
+//! @brief Copy Lattice Peak result wave
+//! @details Makes sure "root:Analysis:RawPeaks" exists, and copies the num_BEC
+//! indexed wave into this data folder with the name "num_BEC_<pkLabel>".
+//! 
+//! Also save "xpos_<pkLabel>" and "ypos_<pkLabel>" if the central peak is found,
+//! which is indicated by having the "z" character present in pkLabel.
+//!
+//! @param[in] pkLabel format "#(m,z,p)"
 function CopyPeak(pkLabel)
 	string pkLabel		// format "#(m,z,p)"
 	
@@ -33,7 +44,16 @@ function CopyPeak(pkLabel)
 end
 
 
-// BatchRun + copy waves.
+// 
+//!
+//! @brief BatchRun + copy waves.
+//! @details Sets up analysis properly by fixing trap type, fit type, and
+//! ROI to preset constant values.  Then runs the batch and uses ::CopyPeak
+//! to set the data in a known location.
+//!
+//! @param[in] startnum  start index for the batch run part
+//! @param[in] endnum    end index for the batch run part
+//! @param[in] pkLabel   format "#(m,z,p)"
 function BatchLatticePeak(startnum, endnum, pkLabel)
 	variable startnum, endnum
 	string pkLabel

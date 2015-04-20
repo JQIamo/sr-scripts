@@ -1,7 +1,10 @@
 #pragma rtGlobals=2		// Use modern global access method.
+//! @file
+//! @brief Use this procedure to include all additional procedure files
+//! @details This is for easier use with GitHub.
+//!
+//! Also includes some generic fitting & utility functions which may be moved
 
-//Use this procedure to include all additional procedure files
-//This is for easier use with GitHub.
 //#include <AllStatsProcedures>
 #include "CastinDum_v3_3_Sr"
 #include "FigureProcessing_v3_3_Sr"
@@ -18,6 +21,13 @@
 #include "3BodyAnalysis_0_1"
 #include "OrthoBasis_v1_0"
 
+//!
+//! @brief
+//! @details created by the Curve Fitting dialog
+//!
+//! @param[in] w ??
+//! @param[in] t ??
+//! @return
 Function tempEstimation88(w,t) : FitFunc
 	Wave w
 	Variable t
@@ -36,6 +46,13 @@ Function tempEstimation88(w,t) : FitFunc
 	return sqrt(w[0]^2 + (2e12/1.06e-2)*w[1]*t^2)
 End
 
+//!
+//! @brief
+//! @details created by the Curve Fitting dialog
+//!
+//! @param[in] w   ??
+//! @param[in] pow ??
+//! @return
 Function DipFreqScale(w, pow) : FitFunc
 	Wave w
 	Variable pow
@@ -54,6 +71,12 @@ Function DipFreqScale(w, pow) : FitFunc
 	return sqrt(w[0]+w[1]*pow)
 End
 
+//!
+//! @brief Returns an approximation of the LambertW for z in (-1/e, 0)
+//! @details The error is less than 1% over the range of validity.
+//!
+//! @param[in] z in (-1/e, 0)
+//! @return LambertW(z)
 Function LambertWaprx(z)
 	Variable z
 	
@@ -63,6 +86,13 @@ Function LambertWaprx(z)
 	return e*z/(1+((2*e*z+2)^(-1/2)+1/(e-1)-1/sqrt(2))^(-1))
 End
 
+//!
+//! @brief
+//! @details created by the Curve Fitting dialog
+//!
+//! @param[in] w   ??
+//! @param[in] pow ??
+//! @return
 Function VertFreqFit(w, pow) : FitFunc
 	Wave w
 	Variable pow
@@ -81,6 +111,13 @@ Function VertFreqFit(w, pow) : FitFunc
 	return (abs(pow) >= (sqrt(e)*w[1]) ? 2*w[0]*Sqrt(exp(LambertWaprx(-w[1]^2/pow^2)/2)*pow*(LambertWaprx(-w[1]^2/pow^2)+1)) : 0)
 End
 
+//!
+//! @brief
+//! @details created by the Curve Fitting dialog
+//!
+//! @param[in] w   ??
+//! @param[in] pow ??
+//! @return
 Function TransFreqFit(w, pow) : FitFunc
 	Wave w
 	Variable pow
@@ -99,8 +136,17 @@ Function TransFreqFit(w, pow) : FitFunc
 	return (abs(pow) >= (sqrt(e)*w[1]) ? 2*w[0]*Sqrt(exp(LambertWaprx(-w[1]^2/pow^2)/2)*pow) : 0)
 End
 
+//!
+//! @brief Calculates the axial trap frequency given the transverse trap frequencies
+//! @warning This function is only valid for Sr88 but the numerical prefactor (A) can be changed to switch species.
+//!
+//! @param[in] P ??
+//! @param[in] f_y y-trap frequency
+//! @param[in] f_z z-trap frequency
+//! @param[in] f_lat ??
+//! @return axial trap frequency
 Function AxialFreq(P,f_y,f_z,f_lat)
-	Variable P, f_y, f_z, f_lat;
+	Variable P, f_y, f_z, f_lat
 	
 	//This function returns the axial trap frequency given the transverse trap frequencies.
 	//The function is only valid for Sr88 but the numerical prefactor (A) can be changed to switch species.

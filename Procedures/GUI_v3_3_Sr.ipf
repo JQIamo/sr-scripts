@@ -2,13 +2,15 @@
 #include <Image Line Profile>	// used for making an arbitrary slice
 #include <Multi-peak fitting 2.0>
 
-// This file contains various functions that either construct or
-// are direcly called by the GUI.  There should be an absolute minimum
-// of actual analysis performed here
+//! @file
+//! @brief This file contains various functions that either construct or
+//! are directly called by the GUI.
+//! @details There should be an absolute minimum of actual analysis performed here
 
 // ********************************************************
 // Create the menu structure that the user interacts with
 
+//! @cond DOXY_HIDE_GRAPH_MENU
 Menu "ColdAtom"
 	"New data series...", Dialog_New_ColdAtomInfo();
 	"Rename data series...", Dialog_Rename_ColdAtomInfo();
@@ -27,8 +29,12 @@ Menu "ColdAtom"
 	"Copy BatchRun base name...", Dialog_CopyBasePath();
 	"Do BatchRun...", Dialog_DoBatchRun();
 End
+//! @endcond
 
-
+//!
+//! @brief Create dialog interface to ::Rename_ColdAtomInfo
+//! @return \b -1 on cancelled or error
+//! @return \b NaN otherwise
 function Dialog_Rename_ColdAtomInfo()
 	variable ProjectNum;
 	string ProjectID;
@@ -50,6 +56,10 @@ function Dialog_Rename_ColdAtomInfo()
 	Rename_ColdAtomInfo( StringFromList(ProjectNum-1, ActivePaths), "root:" + ProjectID)
 end
 
+//!
+//! @brief Create dialog interface to ::Set_ColdAtomInfo
+//! @return \b -1 on cancelled or error
+//! @return \b NaN otherwise
 function Dialog_Set_ColdAtomInfo()
 	variable ProjectNum;
 
@@ -72,6 +82,10 @@ function Dialog_Set_ColdAtomInfo()
 end
 
 
+//!
+//! @brief Create dialog interface to ::Delete_ColdAtomInfo
+//! @return \b -1 on cancelled or error
+//! @return \b NaN otherwise
 function Dialog_Delete_ColdAtomInfo()
 	variable ProjectNum;
 	string ProjectID;
@@ -91,6 +105,7 @@ function Dialog_Delete_ColdAtomInfo()
 
 	Delete_ColdAtomInfo( StringFromList(ProjectNum-1, ActivePaths));
 end
+
 
 function Dialog_Copy_ColdAtomInfo()
 	// DSB 2/16/15
@@ -122,6 +137,13 @@ function Dialog_Copy_ColdAtomInfo()
 	Copy_ColdAtomInfo(ProjectID, CopyProjPath, CopyExperimentID)
 end
 
+//!
+//! @brief Create new notebook containing contents of wave note
+//! @details Assumes wave note has been copied into <em>:Experimental_Info:HeaderString<\em>
+//! when the image is loaded from disk.
+//!
+//! @return \b -1 on cancelled or error
+//! @return \b NaN otherwise
 function Dialog_ViewHeader()
 	// Get the current path
 	String ProjectFolder = Activate_Top_ColdAtomInfo();
@@ -144,6 +166,10 @@ function Dialog_ViewHeader()
 	SetDataFolder fldrSav;
 end
 
+//!
+//! @brief Create dialog interface to ::Graph_IndexedWaves
+//! @return \b -1 on cancelled or error
+//! @return \b NaN otherwise
 function Dialog_Graph_IndexedWaves()
 	variable XIndexNum, YIndexNum;
 
@@ -175,6 +201,10 @@ function Dialog_Graph_IndexedWaves()
 	SetDataFolder fldrSav;
 end
 
+//!
+//! @brief Create dialog interface to copy the Region Of Interest from one data series to another
+//! @return \b -1 on cancelled or error
+//! @return \b NaN otherwise
 function Dialog_CopyROI()
 	
 	variable TargProjectNum;
@@ -239,6 +269,9 @@ end
 
 
 // ******************** BuildRubidiumIWindow **********************************************************************
+//!
+//! @brief Build GUI window for RubidiumI
+//! @param[in] ProjectFolder  The data folder to tie this window to.
 function BuildRubidiumIWindow(ProjectFolder)
 	String ProjectFolder
 	
@@ -566,10 +599,13 @@ function BuildRubidiumIWindow(ProjectFolder)
 	SetActiveSubwindow ##
 
 	SetDataFolder fldrSav
-EndMacro
+End
 // ******************** BuildRubidiumIWindow *********************************
 
 // ******************** BuildRbYbWindow *********************************
+//!
+//! @brief Build GUI window for RbYb
+//! @param[in] ProjectFolder  The data folder to tie this window to.
 function BuildRbYbWindow(ProjectFolder)
 	String ProjectFolder
 	
@@ -757,11 +793,14 @@ function BuildRbYbWindow(ProjectFolder)
 	SetActiveSubwindow ##
 	
 	SetDataFolder fldrSav
-EndMacro
+End
 // ******************** BuildRbYbWindow *********************************
 
 
 // ******************** BuildRubidiumIIWindow ********************************
+//!
+//! @brief Build GUI window for Rubidium II
+//! @param[in] ProjectFolder  The data folder to tie this window to.
 function BuildRubidiumIIWindow(ProjectFolder)
 	String ProjectFolder
 	
@@ -1100,10 +1139,13 @@ function BuildRubidiumIIWindow(ProjectFolder)
 	SetActiveSubwindow ##
 
 	SetDataFolder fldrSav
-EndMacro
+End
 // ******************** BuildRubidiumIIWindow *********************************
 
 // ******************** BuildSrWindow *********************************
+//!
+//! @brief Build GUI window for Sr
+//! @param[in] ProjectFolder  The data folder to tie this window to.
 function BuildSrWindow(ProjectFolder)
 	String ProjectFolder
 	
@@ -1425,9 +1467,10 @@ function BuildSrWindow(ProjectFolder)
 	SetActiveSubwindow ##
 	
 	SetDataFolder fldrSav
-EndMacro
+End
 // ******************** BuildSrWindow *********************************
-
+//!
+//! @brief PopupMenuControl handling saving user choices to global variables
 Function ChooseCenter(ctrlName,popNum,popStr) : PopupMenuControl
 	String ctrlName
 	Variable popNum
@@ -1444,6 +1487,8 @@ Function ChooseCenter(ctrlName,popNum,popStr) : PopupMenuControl
 	SetDataFolder fldrSav
 End
 
+//!
+//! @brief PopupMenuControl handling saving user choices to global variables
 Function ChooseAnalysis(ctrlName,popNum,popStr) : PopupMenuControl
 	String ctrlName
 	Variable popNum
@@ -1460,6 +1505,8 @@ Function ChooseAnalysis(ctrlName,popNum,popStr) : PopupMenuControl
 	SetDataFolder fldrSav
 End
 
+//!
+//! @brief CheckBoxControl handling saving user choices to global variables
 Function GetScopeTrace(ctrlName,checked) : CheckBoxControl
 	String ctrlName
 	Variable checked
@@ -1475,6 +1522,8 @@ Function GetScopeTrace(ctrlName,checked) : CheckBoxControl
 	SetDataFolder fldrSav
 End
 
+//!
+//! @brief CheckBoxControl handling saving user choices to global variables
 Function SetRotateImage(ctrlName,checked) : CheckBoxControl
 	String ctrlName
 	Variable checked
@@ -1491,6 +1540,8 @@ Function SetRotateImage(ctrlName,checked) : CheckBoxControl
 End
 
 
+//!
+//! @brief PopupMenuControl handling saving user choices to global variables
 Function SetTrapType(ctrlName,popNum,popStr) : PopupMenuControl
 	String ctrlName
 	Variable popNum
@@ -1508,6 +1559,9 @@ Function SetTrapType(ctrlName,popNum,popStr) : PopupMenuControl
 End
 
 
+//!
+//! @brief PopupMenuControl handling saving user choices to global variables
+//! @detail Also calls ::ComputeTrapProperties to handle update
 Function SetHyperfineLevel(ctrlName,popNum,popStr) : PopupMenuControl
 	String ctrlName
 	Variable popNum
@@ -1526,6 +1580,10 @@ Function SetHyperfineLevel(ctrlName,popNum,popStr) : PopupMenuControl
 	SetDataFolder fldrSav
 End
 
+//!
+//! @brief PopupMenuControl handling saving user choices to global variables
+//! @details Handles translating choice into actual atomic mass and scattering length,
+//! and calls ::ComputeTrapProperties
 Function SetIsotope(ctrlName,popNum,popStr) : PopupMenuControl
 	String ctrlName
 	Variable popNum
@@ -1560,6 +1618,8 @@ Function SetIsotope(ctrlName,popNum,popStr) : PopupMenuControl
 	SetDataFolder fldrSav
 End
 
+//!
+//! @brief ButtonControl handling calls ::ReinitializeIndexedWaves
 Function ResetIndex(ctrlName) : ButtonControl
 	String ctrlName
 
@@ -1573,6 +1633,8 @@ Function ResetIndex(ctrlName) : ButtonControl
 	SetDataFolder fldrSav
 End
 
+//!
+//! @brief CheckBoxControl handling saving user choices to global variables
 Function UpdateFromFile(ctrlName,checked) : CheckBoxControl
 	String ctrlName
 	Variable checked
@@ -1588,6 +1650,8 @@ Function UpdateFromFile(ctrlName,checked) : CheckBoxControl
 	SetDataFolder fldrSav
 End
 
+//!
+//! @brief SetVariableControl calls ::ComputeTrapProperties to handle value changes
 Function Set_TrapParams(ctrlName,varNum,varStr,varName) : SetVariableControl
 	String ctrlName
 	Variable varNum
@@ -1603,6 +1667,8 @@ Function Set_TrapParams(ctrlName,varNum,varStr,varName) : SetVariableControl
 	SetDataFolder fldrSav
 End
 	
+//!
+//! @brief SetVariableControl calls ::Update_Magnification to handle value change
 Function Set_Mag(ctrlName,varNum,varStr,varName) : SetVariableControl
 	String ctrlName
 	Variable varNum
@@ -1619,6 +1685,8 @@ Function Set_Mag(ctrlName,varNum,varStr,varName) : SetVariableControl
 	SetDataFolder fldrSav
 End
 
+//!
+//! @brief SetVariableControl handling saving user choices to global variables
 Function Set_PeakOD(ctrlName,varNum,varStr,varName) : SetVariableControl
 	String ctrlName
 	Variable varNum
@@ -1635,6 +1703,8 @@ Function Set_PeakOD(ctrlName,varNum,varStr,varName) : SetVariableControl
 	SetDataFolder fldrSav
 End
 
+//!
+//! @brief SetVariableControl handling saving user choices to global variables
 Function Set_theta(ctrlName,varNum,varStr,varName) : SetVariableControl
 	String ctrlName
 	Variable varNum
@@ -1651,6 +1721,8 @@ Function Set_theta(ctrlName,varNum,varStr,varName) : SetVariableControl
 	SetDataFolder fldrSav
 End
 
+//!
+//! @brief CheckboxControl handling saving user choices to global variables
 Function Set_center(ctrlName,checked) : CheckboxControl
 	String ctrlName
 	Variable checked
@@ -1666,6 +1738,8 @@ Function Set_center(ctrlName,checked) : CheckboxControl
 	SetDataFolder fldrSav
 End
 
+//!
+//! @brief PopupMenuControl handling saving user choices to global variables
 Function Set_DualAxis(ctrlName,checked) : CheckboxControl
 	String ctrlName
 	Variable checked
@@ -1689,6 +1763,8 @@ Function Set_DualAxis(ctrlName,checked) : CheckboxControl
 End
 
 
+//!
+//! @brief PopupMenuControl handling saving user choices to global variables
 Function SetCamDir(ctrlName,popNum,popStr) : PopupMenuControl
 	String ctrlName
 	Variable popNum
@@ -1706,6 +1782,8 @@ Function SetCamDir(ctrlName,popNum,popStr) : PopupMenuControl
 	SetDataFolder fldrSav
 End
 
+//!
+//! @brief PopupMenuControl handling saving user choices to global variables
 Function SetDataType(ctrlName,popNum,popStr) : PopupMenuControl
 	String ctrlName
 	Variable popNum
@@ -1723,6 +1801,8 @@ Function SetDataType(ctrlName,popNum,popStr) : PopupMenuControl
 	SetDataFolder fldrSav
 End
 
+//!
+//! @brief ButtonControl calls ::AbsImg_AnalyzeImage(OptDepth)
 Function Refit(ctrlName) : ButtonControl
 	String ctrlName
 
@@ -1739,6 +1819,8 @@ Function Refit(ctrlName) : ButtonControl
 	SetDataFolder fldrSav
 End
 
+//!
+//! @brief PopupMenuControl handling saving user choices to global variables
 Function SetFit_Type(ctrlName,popNum,popStr) : PopupMenuControl
 	String ctrlName
 	Variable popNum
@@ -1755,6 +1837,8 @@ Function SetFit_Type(ctrlName,popNum,popStr) : PopupMenuControl
 	SetDataFolder fldrSav
 End
 
+//!
+//! @brief SetVariableControl that calls ::ComputeCastinDum
 Function SetCastDum(ctrlName,varNum,varStr,varName) : SetVariableControl
 	String ctrlName
 	Variable varNum
@@ -1771,6 +1855,8 @@ Function SetCastDum(ctrlName,varNum,varStr,varName) : SetVariableControl
 	SetDataFolder fldrSav
 End
 
+//!
+//! @brief Checks provided trap frequencies and makes call to ::CastinDum
 Function ComputeCastinDum()
 	// Get the current path
 	String ProjectFolder = Activate_Top_ColdAtomInfo();
@@ -1811,6 +1897,8 @@ Function ComputeCastinDum()
 	SetDataFolder fldrSav
 End
 
+//!
+//! @brief PopupMenuControl translates choice and saves to global variable
 Function SetAutoUpdate(ctrlName,popNum,popStr) : PopupMenuControl
 	String ctrlName
 	Variable popNum
@@ -1830,6 +1918,8 @@ Function SetAutoUpdate(ctrlName,popNum,popStr) : PopupMenuControl
 	SetDataFolder fldrSav
 End
 
+//!
+//! @brief ButtonControl that calls ::UpdateWaves
 Function ManUpdate(ctrlName) : ButtonControl
 	String ctrlName
 	UpdateWaves()
@@ -1838,6 +1928,8 @@ End
 // ***********************dec_update **********************************************************************
 // this function deincrements the running waves of temperature/ density/ number etc.
 // 17Oct04: IBS modified to change the length of the waves as well
+//!
+//! @brief ButtonControl that calls ::IndexedWavesDeletePoints to remove last point from IndexedWaves
 Function dec_update(ctrlName) : ButtonControl
 	String ctrlName
 
@@ -1855,7 +1947,8 @@ Function dec_update(ctrlName) : ButtonControl
 end
 
 //********************************************************************************************************************
-
+//!
+//! @brief PopupMenuControl that handles selection of ROI things
 Function SetROI(ctrlName,popNum,popStr) : PopupMenuControl
 	String ctrlName
 	Variable popNum
@@ -1981,6 +2074,8 @@ Function SetROI(ctrlName,popNum,popStr) : PopupMenuControl
 	SetDataFolder fldrSav
 End
 
+//!
+//! @brief ButtonControl that reads current ROI and moves cursors to bound it.
 Function CursorsToROI(ctrlName) : ButtonControl
 	String ctrlName
 	
@@ -2005,6 +2100,8 @@ Function CursorsToROI(ctrlName) : ButtonControl
 	SetDataFolder fldrSav
 End
 
+//!
+//! @brief PopupMenuControl that saves selection to global variables
 Function PopMenuProc(ctrlName,popNum,popStr) : PopupMenuControl
 	String ctrlName
 	Variable popNum
