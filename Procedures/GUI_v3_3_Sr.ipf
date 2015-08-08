@@ -1196,8 +1196,8 @@ function BuildSrWindow(ProjectFolder)
 	PopupMenu AnalysisType,pos={172,226},size={57,21},bodyWidth=57,proc=ChooseAnalysis
 	PopupMenu AnalysisType,mode=1,popvalue="1 Shot",value= #"\"1 Shot;Basis;PCA\""
 	
-	PopupMenu popup0,pos={40,151},size={127,21},bodyWidth=127,proc=SetTrapType
-	PopupMenu popup0,mode=1,popvalue="Magnetic Trap",value= #"\"Magnetic Trap;Dipole;MOT;MOT Diagnostics;Cross Dipole;Vert. Lattice\""
+	PopupMenu trapType,pos={40,151},size={127,21},bodyWidth=127,proc=SetTrapType
+	PopupMenu trapType,mode=1,popvalue="Magnetic Trap",value= #"\"Magnetic Trap;Dipole;MOT;MOT Diagnostics;Cross Dipole;Vert. Lattice\""
 	
 	PopupMenu sriso,pos={175,151},size={47,21},proc=SetIsotope
 	PopupMenu sriso,mode=1,popvalue="86",value= #"\"84;86;87;88\""
@@ -1225,7 +1225,7 @@ function BuildSrWindow(ProjectFolder)
 	PopupMenu DataType_popup,mode=1,popvalue="Absorption",value= #"\"Absorption;Fluorescence;PhaseContrast;\""
 	
 	PopupMenu FitTypePopup,pos={40,201},size={109,21},bodyWidth=109,proc=SetFit_Type
-	PopupMenu FitTypePopup,mode=1,popvalue="Thermal 1D",value= #"\"Thermal 1D;TF+Thermal 1D;TF only 1D;TF+Thermal 2D;TF only 2D;Thermal 2D;TriGauss 2D;BandMap 1D;None\""
+	PopupMenu FitTypePopup,mode=1,popvalue="Thermal 1D",value= #"\"Thermal 1D;TF+Thermal 1D;TF only 1D;TF+Thermal 2D;TF only 2D;Thermal 2D;TriGauss 2D;BandMap 1D;Thermal Integral;None\""
 	
 	CheckBox DualAxisImage,pos={155,205},size={80,16},bodyWidth=60,proc=Set_DualAxis,title="2 Axis Img"
 	CheckBox DualAxisImage,value=0

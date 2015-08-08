@@ -79,7 +79,7 @@ Function AbsImg_AnalyzeImage(inputimage)
 	//						E: black crosshair (initial fit center mark).
 	//						F: yellow/green square (fitted center, displayed slices point)
 	
-	If (fit_Type < 7)
+	If (fit_Type < 10)
 		switch(findmax)
 			case 1:	// Max value in the ROI
 				ImageStats /M=1 /GS={(xmin),(xmax),(ymin),(ymax)} optdepth  // output globals: V_min, V_minColLoc, V_minRowLoc, (similar for max)
@@ -216,6 +216,14 @@ Function AbsImg_AnalyzeImage(inputimage)
 			res_xsec_col = ((p > qmin) && (p < qmax) ? res_optdepth[pcsr(F,ImageWindowName)][p] : 0);
 			res_xsec_row = ((p > pmin) && (p < pmax) ? res_optdepth[p][qcsr(F,ImageWindowName)] : 0);
 			ThermalUpdateCloudPars(Gauss3D_Coef) // use cursor F to adjust the on-center amplitude
+		break
+		
+		case 9:	// Thermal 1D
+			IntegralThermalFit1D(optdepth,"E"); 	 // do a simple thermal fit (gaussian) based on cursor E.
+			UpdateCursor(Gauss3d_coef, "F");	 // put cursor F on fit center
+			GetCounts(optdepth)	
+			
+			ThermalUpdateCloudPars(Gauss3D_Coef) // use cursor F to adjust the on-center amplitude
 		break	
 			
 		default: // Do nothing, just count counts
@@ -223,14 +231,18 @@ Function AbsImg_AnalyzeImage(inputimage)
 		break;
 	endswitch
 
+	//The fits update front panel objects already.
+	//These lines are not needed.
 	// Update Front Panel objects
-	UpdateCursor(Gauss3d_coef, "F");	 // put cursor F on fit center
-	MakeSlice(OptDepth,"F");
+	//UpdateCursor(Gauss3d_coef, "F");	 // put cursor F on fit center
+	//MakeSlice(OptDepth,"F");
 	
 	if (findmax == 2)	// Cursor follows fit
 		UpdateCursor(Gauss3d_coef, "E");	 // put cursor E on fit center
 	Endif
 	
+	ImageStats /M=1 /GS={(xmin),(xmax),(ymin),(ymax)} optdepth;
+	ModifyImage/W=$(ImageWindowName) optdepth, ctab={-0.25,V_max,Grays,0};
 
 	// Update the indexed waves and counter.
 	UpdateWaves();
@@ -533,6 +545,170 @@ Function SimpleThermalFit1D(inputimage,cursorname)
 	sprintf TempString, "K2 > %e", ymin; T_Constraints[0] = TempString;
 	sprintf TempString, "K2 < %e", ymax; T_Constraints[1] = TempString; 
 	ver_coef[0] = background; ver_coef[2]=0;
+	CurveFit/Q/O/H="1000" gauss  kwCWave=ver_coef, xsec_col((ymin),(ymax)) /D=fit_xsec_col /W=xsec_col_weight /M=xsec_col_mask /C=T_Constraints 
+	//FuncFit/N/Q/H="1010" ThermalSliceFit, ver_coef, xsec_col((ymin),(ymax))  /D=fit_xsec_col  /W=xsec_col_mask
+	
+	// Perform the actual fit
+	CurveFit /N/G/Q/H="1000" gauss kwCWave=ver_coef, xsec_col((ymin),(ymax)) /D=fit_xsec_col /W=xsec_col_weight /M=xsec_col_mask /R=res_xsec_col /C=T_Constraints
+	//FuncFit/N/Q/H="0000" ThermalSliceFit, ver_coef, xsec_col((ymin),(ymax)) /D=fit_xsec_col /W=xsec_col_mask
+	
+	//store the fitting errors
+	G3d_confidence[0] = Sqrt(((G3d_confidence[0])^2+(W_sigma[0])^2)/4);
+	G3d_confidence[1] = Sqrt(((G3d_confidence[1])^2+(W_sigma[1])^2)/4);
+	G3d_confidence[4] = W_sigma[2];
+	G3d_confidence[5] = W_sigma[3];
+	G3d_confidence[9] = V_chisq;
+	G3d_confidence[10] = V_npnts-V_nterms;
+	G3d_confidence[11] = G3d_confidence[9]/G3d_confidence[10];
+	
+	// Fill in Coefs wave
+	make/O/N=6 :Fit_Info:Gauss3d_coef
+	Wave Gauss3d_coef=:Fit_Info:Gauss3d_coef
+
+	Gauss3d_coef[0] = (ver_coef[0] + hor_coef[0]) / 2;		// Offset
+	Gauss3d_coef[1] = (ver_coef[1] + hor_coef[1]) / 2;		// Amplitude
+	Gauss3d_coef[2] = hor_coef[2];                                       // Horizontal position
+	Gauss3d_coef[3] = hor_coef[3];						// Horizontal width
+	Gauss3d_coef[4] = ver_coef[2];							// Vertical position
+	Gauss3d_coef[5] = ver_coef[3];							// Vertical width
+	
+	killwaves xsec_row_mask, xsec_col_mask, xsec_row_weight, xsec_col_weight;
+	SetDataFolder fldrSav
+	return 1
+End
+
+// ******************** SimpleThermalFit ****************************************************************************
+
+// ******************** IntegralThermalFit1D *************************************************************************
+//! @brief This function takes a given image, integrates along the col and row dimension 
+//! and fits the two cross sections to a simple Gaussian.
+//! @details It assumes that xsec_col,xsec_row, ver_coef,
+//! hor_coef all exist.  The fit is done using the x and y scaling of the image (i.e. in real length units if you have 
+//! scaled them correctly.)  It does not assume that the cursor is on the center of the cloud.
+//!
+//! @param[in]  inputimage  The image to run the fit on
+//! @param[in]  cursorname  The name of the cursor to use for center of the slices
+//! @return \b 1, always
+Function IntegralThermalFit1D(inputimage,cursorname)
+	Wave inputimage
+	String cursorname
+
+	// Get the current path and active windows
+	String ProjectFolder = Activate_Top_ColdAtomInfo();
+	String fldrSav= GetDataFolder(1)
+	SetDataFolder ProjectFolder
+
+	// Discover the name of the current image and graph windows
+	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel;
+	String ImageWindowName = CurrentPanel + "#ColdAtomInfoImage";
+	String GraphWindowName = CurrentPanel + "#ColdAtomInfoSections";
+
+	NVAR DoRealMask = :Fit_Info:DoRealMask
+	NVAR xmax=:fit_info:xmax,xmin=:fit_info:xmin
+	NVAR ymax=:fit_info:ymax,ymin=:fit_info:ymin
+	NVAR PeakOD = :Experimental_Info:PeakOD
+
+ 	Wave xsec_col=:Fit_Info:xsec_col, xsec_row=:Fit_Info:xsec_row
+	Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row
+	Wave res_xsec_col = :Fit_Info:res_xsec_col, res_xsec_row=:Fit_Info:res_xsec_row
+
+	Make/O/T/N=2 :Fit_Info:T_Constraints
+	wave/T T_Constraints = :Fit_Info:T_Constraints
+	String TempString;
+	make/O/N=4 :Fit_Info:ver_coef; make/O/N=4 :Fit_Info:hor_coef;
+	Wave ver_coef=:Fit_Info:ver_coef, hor_coef=:Fit_Info:hor_coef
+	
+	variable background_row, background_col, bg_sdev_row,bg_sdev_col;
+	
+	// In this procedure, and other image procedures, the YMIN/YMAX variable
+	// is the physical Z axes for XZ imaging.
+	
+	// **************************************************
+	// define the 1-D crosssections which are to be fit:
+
+	MakeIntegral(inputimage);
+	Duplicate /O xsec_row fit_xsec_row xsec_row_mask xsec_row_weight res_xsec_row; fit_xsec_row = nan;
+	Duplicate /O xsec_col fit_xsec_col xsec_col_mask xsec_col_weight res_xsec_col; fit_xsec_col = nan;
+	
+	// Get the background average
+	
+	Duplicate/O xsec_row, bg_mask;
+	bg_mask *= ( x > xmax || x < xmin ? 1 : 0);
+	background_row = sum(bg_mask)/(DimSize(xsec_row,0)-(x2pnt(xsec_row,xmax)-x2pnt(xsec_row,xmin)));
+	bg_mask -= ( x > xmax || x < xmin ? background_row : 0);
+	bg_mask = bg_mask^2;
+	bg_sdev_row = sqrt(sum(bg_mask)/(DimSize(xsec_row,0)-(x2pnt(xsec_row,xmax)-x2pnt(xsec_row,xmin))-1));
+	
+	Duplicate/O xsec_col, bg_mask;
+	bg_mask *= ( x > ymax || x < ymin ? 1 : 0);
+	background_col = sum(bg_mask)/(DimSize(xsec_col,0)-(x2pnt(xsec_col,ymax)-x2pnt(xsec_col,ymin)));
+	bg_mask -= ( x > ymax || x < ymin ? background_col : 0);
+	bg_mask = bg_mask^2;
+	bg_sdev_col = sqrt(sum(bg_mask)/(DimSize(xsec_col,0)-(x2pnt(xsec_col,xmax)-x2pnt(xsec_col,xmin))-1));
+	
+	// Create weight waves which eliminate regions which have an excessive OD from the fit
+	
+	If(DoRealMask)
+	
+		//Create mask waves to have a hard boundary at PeakOD if desired.
+		xsec_row_mask = (xsec_row[p] > PeakOD ? 0 : 1);
+		xsec_col_mask = (xsec_col[p] > PeakOD ? 0 : 1); 
+		xsec_row_weight = 1/bg_sdev_row;
+		xsec_col_weight = 1/bg_sdev_col;
+	
+	else
+	
+		// Using the the weight waves creates a soft boundary at PeakOD
+		xsec_row_weight = (1/bg_sdev_row)*exp(-(xsec_row[p] / PeakOD)^2);
+		xsec_col_weight = (1/bg_sdev_col)*exp(-(xsec_col[p] / PeakOD)^2);
+		xsec_row_mask = 1;
+		xsec_col_mask = 1;
+	
+	endif
+	
+	
+
+	// **************************************************
+       // Fit coefficients:
+       // ver_coef[0] = Amplitude offset
+       // ver_coef[1] = Amplitude
+       // ver_coef[2] = Position
+       // ver_coef[3] = Width (defined as w in exp(-x^2/w^2))
+       
+	// Fit in the horizontal direction	--CDH: This is the slice display window! 
+	Cursor /W=$(GraphWindowName)  A, xsec_row, xmin; 
+	Cursor /W=$(GraphWindowName)  B, xsec_row, xmax; 
+
+	// Have igor guess at the fit paramaters, instead of my guesses
+	sprintf TempString, "K2 > %e", xmin; T_Constraints[0] = TempString;
+	sprintf TempString, "K2 < %e", xmax; T_Constraints[1] = TempString; 
+	
+	// wave to store confidence intervals
+	make/O/N=12 :Fit_Info:G3d_confidence
+	Wave G3d_confidence=:Fit_Info:G3d_confidence
+	
+	Variable V_FitOptions=4
+	hor_coef[0] = background_row; hor_coef[2]=0;
+	CurveFit/Q/O/H="1000" gauss  kwCWave=hor_coef xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_weight /M=xsec_row_mask /C=T_Constraints
+	//FuncFit/N/Q/H="1010" ThermalSliceFit, hor_coef, xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_mask
+	// Perform the Actual fit
+	CurveFit /N/G/Q/H="1000" gauss kwCWave=hor_coef, xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_weight /M=xsec_row_mask /R=res_xsec_row /C=T_Constraints
+	//FuncFit/N/Q/H="0000" ThermalSliceFit, hor_coef, xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_mask
+	
+	wave W_sigma = :W_sigma;
+	//store the fitting errors
+	G3d_confidence[0] = W_sigma[0];
+	G3d_confidence[1] = W_sigma[1];
+	G3d_confidence[2] = W_sigma[2];
+	G3d_confidence[3] = W_sigma[3];
+	G3d_confidence[6] = V_chisq;
+	G3d_confidence[7] = V_npnts-V_nterms;
+	G3d_confidence[8] = G3d_confidence[6]/G3d_confidence[7];
+	
+	// Fit in the vertical direction:
+	sprintf TempString, "K2 > %e", ymin; T_Constraints[0] = TempString;
+	sprintf TempString, "K2 < %e", ymax; T_Constraints[1] = TempString; 
+	ver_coef[0] = background_col; ver_coef[2]=0;
 	CurveFit/Q/O/H="1000" gauss  kwCWave=ver_coef, xsec_col((ymin),(ymax)) /D=fit_xsec_col /W=xsec_col_weight /M=xsec_col_mask /C=T_Constraints 
 	//FuncFit/N/Q/H="1010" ThermalSliceFit, ver_coef, xsec_col((ymin),(ymax))  /D=fit_xsec_col  /W=xsec_col_mask
 	
@@ -2287,7 +2463,43 @@ Function MakeSlice(inputimage,cursorname)
 End
 // ******************** MakeSlice **************************************************************************
 
+// ******************** MakeIntegral **************************************************************************
+Function MakeIntegral(inputimage)
+	Wave inputimage
+	
+	// Get the current path
+	String ProjectFolder = Activate_Top_ColdAtomInfo();
+	String fldrSav= GetDataFolder(1)
+	SetDataFolder ProjectFolder
 
+	// Discover the name of the current image window
+	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel;
+	String ImageWindowName = CurrentPanel + "#ColdAtomInfoImage";
+	
+	// **************************************************
+	// Do the vert and horz integration
+
+	Wave xsec_col=:Fit_Info:xsec_col, xsec_row=:Fit_Info:xsec_row;
+	Wave fit_xsec_col=:Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row;
+	NVAR delta_pix=:Experimental_Info:delta_pix
+
+	// **************************************************
+	// This creates waves containing sums over cols and rows of the image
+		
+	xsec_col = 0; xsec_row = 0;
+	
+	//Sum over cols and rows
+	MatrixOp/O xsec_col = sumRows(inputimage);
+	MatrixOp/O xsec_row = sumCols(inputimage)^t;
+	//multiply by pixel size to make it an integral
+	xsec_col*=delta_pix;
+	xsec_row*=delta_pix;
+	//note the row and column now have units of um, so they are no longer an optical depth
+	//I should see if there is a way to convert it into a unitless quantity.
+	
+	SetDataFolder fldrSav
+End
+// ******************** MakeIntegral **************************************************************************
 
 // ******************** CropImage **************************************************************************
 //!

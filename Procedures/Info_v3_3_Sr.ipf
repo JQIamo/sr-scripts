@@ -592,7 +592,7 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	//For Gauss2D
 	Make/O/D/N=7 temp_params;
 	temp_params[0] = 0;
-	temp_params[1] = .2;
+	temp_params[1] = 1;
 	temp_params[2] = 0;
 	temp_params[3] = abs(xmin/8);
 	temp_params[4] = 0;
@@ -739,9 +739,11 @@ Function UpdatePanelImage(imagename)
 	OldImageList = ImageNameList(WindowName,";");	
 	ImageToProcess = StringFromList(0,OldImageList);
 	
+	// Doing this is problematic with integral fitting since the integral slice and image scales
+	// are very different. I'm just going to let things autoscale instead.
 	// Make the new image a rainbow plot and set the scale based on the 1D trace plot
-	GetAxis/Q/W=$(GraphName) left
-	ModifyImage/W=$(WindowName) $(ImageToProcess) ctab= {V_min,v_max,Grays,0};
+	//GetAxis/Q/W=$(GraphName) left
+	//ModifyImage/W=$(WindowName) $(ImageToProcess) ctab= {V_min,v_max,Grays,0};
 		
 	// Transfer the cursors
 	AddMissingCursor("A", ImageToProcess);
