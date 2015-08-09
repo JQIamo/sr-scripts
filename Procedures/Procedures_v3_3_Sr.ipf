@@ -218,7 +218,7 @@ Function AbsImg_AnalyzeImage(inputimage)
 			ThermalUpdateCloudPars(Gauss3D_Coef) // use cursor F to adjust the on-center amplitude
 		break
 		
-		case 9:	// Thermal 1D
+		case 9:	// Thermal Integral
 			IntegralThermalFit1D(optdepth,"E"); 	 // do a simple thermal fit (gaussian) based on cursor E.
 			UpdateCursor(Gauss3d_coef, "F");	 // put cursor F on fit center
 			GetCounts(optdepth)	
@@ -718,7 +718,7 @@ Function IntegralThermalFit1D(inputimage,cursorname)
 	
 	//store the fitting errors
 	G3d_confidence[0] = Sqrt(((G3d_confidence[0])^2+(W_sigma[0])^2)/4);
-	G3d_confidence[1] = Sqrt(((G3d_confidence[1])^2+(W_sigma[1])^2)/4);
+	G3d_confidence[1] = Sqrt(((G3d_confidence[1]/ver_coef[3])^2+(W_sigma[3]*hor_coef[1]/ver_coef[3]^2)^2+(W_sigma[1]/hor_coef[3])^2+(G3d_confidence[3]*ver_coef[1]/hor_coef[3]^2)^2)/(4*pi));
 	G3d_confidence[4] = W_sigma[2];
 	G3d_confidence[5] = W_sigma[3];
 	G3d_confidence[9] = V_chisq;
@@ -730,7 +730,8 @@ Function IntegralThermalFit1D(inputimage,cursorname)
 	Wave Gauss3d_coef=:Fit_Info:Gauss3d_coef
 
 	Gauss3d_coef[0] = (ver_coef[0] + hor_coef[0]) / 2;		// Offset
-	Gauss3d_coef[1] = (ver_coef[1] + hor_coef[1]) / 2;		// Amplitude
+	//The new expression for the amplitude is necessary for the cloudpars functions to extract atom number correctly
+	Gauss3d_coef[1] = (ver_coef[1]/hor_coef[3] + hor_coef[1]/ver_coef[3]) / (2*sqrt(pi));		// Amplitude
 	Gauss3d_coef[2] = hor_coef[2];                                       // Horizontal position
 	Gauss3d_coef[3] = hor_coef[3];						// Horizontal width
 	Gauss3d_coef[4] = ver_coef[2];							// Vertical position
@@ -741,7 +742,7 @@ Function IntegralThermalFit1D(inputimage,cursorname)
 	return 1
 End
 
-// ******************** SimpleThermalFit ****************************************************************************
+// ******************** IntegralThermalFit ****************************************************************************
 
 // ******************** SimpleThermalFit2D *************************************************************************
 //!
@@ -1951,8 +1952,8 @@ Function ThermalUpdateCloudPars(Gauss3D_coef)
 		yposition = Gauss3D_coef[4]; yrms = abs(Gauss3D_coef[5]);
 		zposition = NAN;
 		sigma=3*lambda^2/(2*pi) ;        // This imaging direction uses a sigma+ probe beam.
-									//detuning is now accounted for in FileIO										
-		
+									//detuning is now accounted for in FileIO	
+									
 		if(traptype==1)    	  	// Quad only (Sr coils give 0.97 G/cm/A in z direction)
 			zrms = (xrms+yrms)/2; 												// Assume width in 3rd direction is average of x,y; valid of long TOF.
 			density = amplitude / (sqrt(pi)*sigma*zrms);								// Get image density.
