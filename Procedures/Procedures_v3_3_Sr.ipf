@@ -149,6 +149,7 @@ Function AbsImg_AnalyzeImage(inputimage)
 			
 			ThomasFermiFit2D(optdepth, fit_type)
 			UpdateCursor(Gauss3d_coef, "F");	 // put cursor F on fit center
+			MakeSlice(OptDepth,"F");
 			GetCounts(optdepth)
 			Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row, fit_optdepth=:Fit_Info:fit_optdepth
 			Wave res_xsec_col = :Fit_Info:res_xsec_col, res_xsec_row=:Fit_Info:res_xsec_row, res_optdepth=:Fit_Info:res_optdepth
@@ -168,6 +169,7 @@ Function AbsImg_AnalyzeImage(inputimage)
 
 			ThomasFermiFit2D(optdepth, fit_type)
 			UpdateCursor(Gauss3d_coef, "F");	 // put cursor F on fit center
+			MakeSlice(OptDepth,"F");
 			GetCounts(optdepth)
 			Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row, fit_optdepth=:Fit_Info:fit_optdepth
 			Wave res_xsec_col = :Fit_Info:res_xsec_col, res_xsec_row=:Fit_Info:res_xsec_row, res_optdepth=:Fit_Info:res_optdepth
@@ -183,6 +185,7 @@ Function AbsImg_AnalyzeImage(inputimage)
 			SimpleThermalFit2D(optdepth);  // do a simple thermal fit (gaussian) with autoguessing
 			GetCounts(optdepth)
 			UpdateCursor(Gauss3d_coef, "F");	 // put cursor F on fit center
+			MakeSlice(OptDepth,"F");
 			Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row, fit_optdepth=:Fit_Info:fit_optdepth
 			Wave res_xsec_col = :Fit_Info:res_xsec_col, res_xsec_row=:Fit_Info:res_xsec_row, res_optdepth=:Fit_Info:res_optdepth
 			fit_xsec_col = ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)][p] : 0);
@@ -196,6 +199,7 @@ Function AbsImg_AnalyzeImage(inputimage)
 			TriGaussFit2D(optdepth);  // do a TriGauss fit with autoguessing
 			GetCounts(optdepth)
 			UpdateCursor(Gauss3d_coef, "F");	 // put cursor F on fit center
+			MakeSlice(OptDepth,"F");
 			Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row, fit_optdepth=:Fit_Info:fit_optdepth
 			Wave res_xsec_col = :Fit_Info:res_xsec_col, res_xsec_row=:Fit_Info:res_xsec_row, res_optdepth=:Fit_Info:res_optdepth
 			fit_xsec_col = ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)][p] : 0);
@@ -209,6 +213,7 @@ Function AbsImg_AnalyzeImage(inputimage)
 			BandMapFit1D(optdepth);  // do a BandMap fit with autoguessing
 			GetCounts(optdepth)
 			UpdateCursor(Gauss3d_coef, "F");	 // put cursor F on fit center
+			MakeSlice(OptDepth,"F");
 			Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row, fit_optdepth=:Fit_Info:fit_optdepth
 			Wave res_xsec_col = :Fit_Info:res_xsec_col, res_xsec_row=:Fit_Info:res_xsec_row, res_optdepth=:Fit_Info:res_optdepth
 			fit_xsec_col = ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)][p] : 0);
@@ -2490,8 +2495,8 @@ Function MakeIntegral(inputimage)
 	xsec_col = 0; xsec_row = 0;
 	
 	//Sum over cols and rows
-	MatrixOp/O xsec_col = sumRows(inputimage);
-	MatrixOp/O xsec_row = sumCols(inputimage)^t;
+	MatrixOp/O xsec_col = sumCols(inputimage)^t;
+	MatrixOp/O xsec_row = sumRows(inputimage);
 	//multiply by pixel size to make it an integral
 	xsec_col*=delta_pix;
 	xsec_row*=delta_pix;

@@ -593,7 +593,7 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	Make/O/D/N=7 temp_params;
 	temp_params[0] = 0;
 	temp_params[1] = 1;
-	temp_params[2] = 0;
+	temp_params[2] = 10;
 	temp_params[3] = abs(xmin/8);
 	temp_params[4] = 0;
 	temp_params[5] = abs(ymin/8);
