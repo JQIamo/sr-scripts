@@ -20,6 +20,8 @@ Menu "ColdAtom"
 	"Graph indexed Waves...", Dialog_Graph_IndexedWaves();
 	"View image header...", Dialog_ViewHeader();
 	"Copy ROI cursors...", Dialog_CopyROI();
+	"Save ROI...", Dialog_SaveROI();
+	"Load ROI...", Dialog_LoadROI();
 	"Sort data series...", Dialog_SortIndexedWaves();
 	"Separate Data by Key...", Dialog_DecimateIndexedWaves();
 	"Process XY wave pair...", Dialog_DataSortXYWaves();
