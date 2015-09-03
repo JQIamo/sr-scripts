@@ -226,7 +226,10 @@ Function AbsImg_AnalyzeImage(inputimage)
 		case 9:	// Thermal Integral
 			IntegralThermalFit1D(optdepth,"E"); 	 // do a simple thermal fit (gaussian) based on cursor E.
 			UpdateCursor(Gauss3d_coef, "F");	 // put cursor F on fit center
-			GetCounts(optdepth)	
+			GetCounts(optdepth)
+			Wave res_xsec_col = :Fit_Info:res_xsec_col, res_xsec_row=:Fit_Info:res_xsec_row;
+			res_xsec_col = ((p > qmin) && (p < qmax) ? res_xsec_col[p] : 0);
+			res_xsec_row = ((p > pmin) && (p < pmax) ? res_xsec_row[p] : 0);
 			
 			ThermalUpdateCloudPars(Gauss3D_Coef) // use cursor F to adjust the on-center amplitude
 		break	
@@ -533,7 +536,7 @@ Function SimpleThermalFit1D(inputimage,cursorname)
 	CurveFit/Q/O/H="1000" gauss  kwCWave=hor_coef xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_weight /M=xsec_row_mask /C=T_Constraints
 	//FuncFit/N/Q/H="1010" ThermalSliceFit, hor_coef, xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_mask
 	// Perform the Actual fit
-	CurveFit /N/G/Q/H="0000" gauss kwCWave=hor_coef, xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_weight /M=xsec_row_mask /R=res_xsec_row /C=T_Constraints
+	CurveFit /N/G/Q/H="1000" gauss kwCWave=hor_coef, xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_weight /M=xsec_row_mask /R=res_xsec_row /C=T_Constraints
 	//FuncFit/N/Q/H="0000" ThermalSliceFit, hor_coef, xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_mask
 	
 	wave W_sigma = :W_sigma;
@@ -554,7 +557,7 @@ Function SimpleThermalFit1D(inputimage,cursorname)
 	//FuncFit/N/Q/H="1010" ThermalSliceFit, ver_coef, xsec_col((ymin),(ymax))  /D=fit_xsec_col  /W=xsec_col_mask
 	
 	// Perform the actual fit
-	CurveFit /N/G/Q/H="0000" gauss kwCWave=ver_coef, xsec_col((ymin),(ymax)) /D=fit_xsec_col /W=xsec_col_weight /M=xsec_col_mask /R=res_xsec_col /C=T_Constraints
+	CurveFit /N/G/Q/H="1000" gauss kwCWave=ver_coef, xsec_col((ymin),(ymax)) /D=fit_xsec_col /W=xsec_col_weight /M=xsec_col_mask /R=res_xsec_col /C=T_Constraints
 	//FuncFit/N/Q/H="0000" ThermalSliceFit, ver_coef, xsec_col((ymin),(ymax)) /D=fit_xsec_col /W=xsec_col_mask
 	
 	//store the fitting errors
@@ -2488,15 +2491,19 @@ Function MakeIntegral(inputimage)
 	Wave xsec_col=:Fit_Info:xsec_col, xsec_row=:Fit_Info:xsec_row;
 	Wave fit_xsec_col=:Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row;
 	NVAR delta_pix=:Experimental_Info:delta_pix
+	NVAR xmax=:Fit_Info:xmax, xmin=:Fit_Info:xmin;
+	NVAR ymax=:Fit_Info:ymax, ymin=:Fit_Info:ymin;
 
 	// **************************************************
 	// This creates waves containing sums over cols and rows of the image
 		
 	xsec_col = 0; xsec_row = 0;
+	Duplicate/O/D/FREE/R=(xmin,xmax)() inputimage, verttemp;
+	Duplicate/O/D/FREE/R=()(ymin,ymax) inputimage, hortemp;
 	
 	//Sum over cols and rows
-	MatrixOp/O xsec_col = sumCols(inputimage)^t;
-	MatrixOp/O xsec_row = sumRows(inputimage);
+	MatrixOp/O xsec_col = sumCols(verttemp)^t;
+	MatrixOp/O xsec_row = sumRows(hortemp);
 	//multiply by pixel size to make it an integral
 	xsec_col*=delta_pix;
 	xsec_row*=delta_pix;
