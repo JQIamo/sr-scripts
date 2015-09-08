@@ -379,3 +379,215 @@ Function SubSlicesPlot()
 	Legend/C/N=text0/J/A=LT "\\s(hsub) hsub\r\\s(vsub) vsub\r\\s(TFh_fit) TFh_fit\r\\s(TFv_fit) TFv_fit"
 End
 
+Function DiLogApprox(z)
+//Approximation for di-logarithm (polylog of order 2)
+//Based on matlab procedure by Didier Clamond
+//Computes Li_2 (z)
+
+	//Initialize:
+	Variable z;
+	Variable d = 0;
+	Variable s = 1
+	
+	if (z == 1)
+		return pi^2/6;
+	endif
+	
+	//For large module, map onto unit circle |z| <= 1
+	if (abs(z)>1)
+		d = -1.64493406684822643 - 0.5*ln(-z)^2;
+		s = -s;
+		z = 1/z;
+	endif
+	
+	//For large positive real parts: mapping onto the unit circle with Re(z) <= 1/2
+	if (real(z) > 0.5)
+		d = d + s*( 1.64493406684822643 - ln((1-z)^ln(z)) );
+		s = -s;
+		z = 1-z;
+	endif
+	
+	//Transformation to Debeye function and rational approximation
+	z = -ln(1-z);
+	
+s = s*z;
+	
+d = d - 0.25*s*z;
+	
+z = z*z;
+	
+s = s*(1+z*(6.3710458848408100e-2+z*(1.04089578261587314e-3+z*4.0481119635180974e-6)));
+	
+s = s/(1+z*(3.5932681070630322e-2+z*(3.20543530653919745e-4+z*4.0131343133751755e-7)));
+	
+d = d + s; 
+		
+	return d;
+	
+End
+
+Function TF_FD_2D(w,x,z) : FitFunc
+	Wave w
+	Variable x
+	Variable z
+	
+	//CurveFitDialog/ These comments were created by the Curve Fitting dialog. Altering them will
+	//CurveFitDialog/ make the function less convenient to work with in the Curve Fitting dialog.
+	//CurveFitDialog/ Equation:
+	//CurveFitDialog/ f(x) = offset + A*DiLogApprox(-f*exp( (-1/2)* ( ((x-x0)/sigma_x)^2 + ((z-z0)/sigma_z)^2 ) ) ) / DiLogApprox(-f)
+	//CurveFitDialog/ End of Equation
+	//CurveFitDialog/ Independent Variables 2
+	//CurveFitDialog/ x
+	//CurveFitDialog/ z
+	//CurveFitDialog/ Coefficients 7
+	//CurveFitDialog/ w[0] = offset
+	//CurveFitDialog/ w[1] = A
+	//CurveFitDialog/ w[2] = x0
+	//CurveFitDialog/ w[3] = sigma_x
+	//CurveFitDialog/ w[4] = z0
+	//CurveFitDialog/ w[5] = sigma_z
+	//CurveFitDialog/ w[6] = fugacity
+	
+	return w[0] + w[1]*DiLogApprox(-w[6]*exp( -(1/2)*(((x-w[2])/w[3])^2 + ((z-w[4])/w[5])^2) ) ) / DiLogApprox(-w[6])
+End
+
+	
+Function FermiDiracFit2D(inputimage)
+	Wave inputimage
+	
+	// Get the current path and active windows
+	String ProjectFolder = Activate_Top_ColdAtomInfo();
+	String fldrSav= GetDataFolder(1)
+	SetDataFolder ProjectFolder
+	
+	// Discover the name of the current image window
+	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel;
+	String ImageWindowName = CurrentPanel + "#ColdAtomInfoImage";
+
+	NVAR xmax=:fit_info:xmax, xmin=:fit_info:xmin
+	NVAR ymax=:fit_info:ymax, ymin=:fit_info:ymin
+	NVAR DoRealMask = :fit_info:DoRealMask
+	NVAR PeakOD = :Experimental_Info:PeakOD
+
+	// Coefficent wave	
+	make/O/N=7 :Fit_Info:Gauss3d_coef
+	Wave Gauss3d_coef=:Fit_Info:Gauss3d_coef
+	Wave fit_optdepth = :Fit_Info:fit_optdepth;
+	Wave res_optdepth = :fit_info:res_optdepth
+	
+	// wave to store confidence intervals
+	make/O/N=12 :Fit_Info:G3d_confidence
+	Wave G3d_confidence=:Fit_Info:G3d_confidence	
+
+	string Hold;
+	
+	variable bgxmax, bgxmin;
+	variable bgymax, bgymin;
+	variable background, bg_sdev;
+
+	// Get the background average
+	
+	bgymax = max(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgymin = min(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgxmax = max(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
+	bgxmin = min(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
+	
+	Duplicate /O inputimage, bg_mask;
+	bg_mask *= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? 1 : 0);
+	background = sum(bg_mask)/((bgxmax-bgxmin)*(bgymax-bgymin));
+	bg_mask -= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? background : 0);
+	bg_mask = bg_mask^2;
+	bg_sdev = sqrt(sum(bg_mask)/((bgxmax-bgxmin)*(bgymax-bgymin)-1))
+	
+	// Create weight waves which softly eliminate regions which have an excessive OD from the fit
+	Duplicate /O inputimage, inputimage_mask, inputimage_weight;
+	
+	If(DoRealMask)
+	
+		//Create mask waves to have a hard boundary at PeakOD if desired.
+		inputimage_mask = (inputimage[p][q] > PeakOD ? 0 : 1);
+		inputimage_weight = 1/bg_sdev;
+	else
+	
+		inputimage_weight = (1/bg_sdev)*exp(-(inputimage / PeakOD)^2);
+		inputimage_mask = 1;
+	
+	endif
+	
+		// In this procedure, and other image procedures, the YMIN/YMAX variable
+	// is the physical Z axes for XZ imaging.
+	
+	// **************************************************
+	// Perform the fit
+	// 1) use Igor's gaussian to get the intial guesses
+	// 2) Run a full fit with Igors Gaussian because it is fast.	
+	// 3) use the Thermal_2D function to get the final paramaters
+	// 4) Fit to the 3D Thomas Fermi
+	
+	Variable V_FitOptions=4 //this suppresses the curve fit window
+	Variable K0 = background;
+	Variable K6 = 0;			// No correlation term
+	//Generate guess:
+	CurveFit /O/N/Q/H="0000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
+	Gauss3d_coef[6] = 0;			// No correlation term
+	Gauss3d_coef[0] = background;		//fix background to average OD in atom free region
+	
+	//Fit with 2D Gaussian:
+	CurveFit /G/N/Q/H="0000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
+	//Gauss3d_coef[3] *= sqrt(2); Gauss3d_coef[5] *= sqrt(2);
+	
+	// Note the sqt(2) on the widths -- this is due to differing definitions of 1D and 2D gaussians in igor
+	
+	//2D Fermi Dirac Fit uses the following parameters:
+	//CurveFitDialog/ w[0] = offset
+	//CurveFitDialog/ w[1] = A
+	//CurveFitDialog/ w[2] = x0
+	//CurveFitDialog/ w[3] = sigma_x
+	//CurveFitDialog/ w[4] = z0
+	//CurveFitDialog/ w[5] = sigma_z
+	//CurveFitDialog/ w[6] = fugacity
+	Gauss3d_coef[6] = 100000; //Initial guess for fugacity
+	
+	FuncFitMD/G/N/Q/H="0000000" TF_FD_2D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight 
+	
+	print Gauss3d_coef; //temporary
+
+	wave W_sigma = :W_sigma;
+	//store the fitting errors - come back and update this once I figure out the right format
+	G3d_confidence[0] = W_sigma[0];
+	G3d_confidence[1] = W_sigma[1];
+	G3d_confidence[2] = W_sigma[2];
+	G3d_confidence[3] = W_sigma[3];
+	G3d_confidence[4] = W_sigma[4];
+	G3d_confidence[5] = W_sigma[5];
+	G3d_confidence[6] = W_sigma[6];
+	G3d_confidence[7] = W_sigma[7];
+	G3d_confidence[8] = W_sigma[8];
+	G3d_confidence[9] = V_chisq;
+	G3d_confidence[10] = V_npnts-V_nterms;
+	G3d_confidence[11] = G3d_confidence[9]/G3d_confidence[10];
+	
+	// Update Display Waves
+	variable pmax = (xmax - DimOffset(inputimage, 0))/DimDelta(inputimage,0);
+	variable pmin = (xmin - DimOffset(inputimage, 0))/DimDelta(inputimage,0);
+	variable qmax = (ymax - DimOffset(inputimage, 1))/DimDelta(inputimage,1);
+	variable qmin = (ymin - DimOffset(inputimage, 1))/DimDelta(inputimage,1);
+	fit_optdepth[pmin,pmax][qmin,qmax] = TF_FD_2D(Gauss3d_coef,x,y)
+	
+	//update slices, possibly move this elsewhere
+	Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row
+	Wave res_xsec_col = :Fit_Info:res_xsec_col, res_xsec_row=:Fit_Info:res_xsec_row
+	fit_xsec_col = ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)][p] : 0);
+	fit_xsec_row = ((p > pmin) && (p < pmax) ? fit_optdepth[p][qcsr(F,ImageWindowName)] : 0);
+	res_xsec_col = ((p > qmin) && (p < qmax) ? res_optdepth[pcsr(F,ImageWindowName)][p] : 0);
+	res_xsec_row = ((p > pmin) && (p < pmax) ? res_optdepth[p][qcsr(F,ImageWindowName)] : 0);
+	
+	killwaves inputimage_mask, inputimage_weight;
+		
+	SetDataFolder fldrSav
+	return 1
+End
+	
+	
+	
+End
