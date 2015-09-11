@@ -590,6 +590,22 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	//xsec_col = TriGauss_2D(temp_params,0,x)+gnoise(.1,2);
 	
 	//For Gauss2D
+	//Make/O/D/N=7 temp_params;
+	//temp_params[0] = 0;
+	//temp_params[1] = 1;
+	//temp_params[2] = 10;
+	//temp_params[3] = abs(xmin/8);
+	//temp_params[4] = 0;
+	//temp_params[5] = abs(ymin/8);
+	//temp_params[6] = 0;
+	//optdepth = Gauss2D(temp_params,x,y)+gnoise(.1,2);
+	//xsec_row = Gauss2D(temp_params,x,0)+gnoise(.1,2);
+	//xsec_col = Gauss2D(temp_params,0,x)+gnoise(.1,2);
+	//fit_optdepth = optdepth
+	//res_optdepth = optdepth
+	//print sqrt(2)*temp_params[5]
+	
+	//For Fermi Gas:
 	Make/O/D/N=7 temp_params;
 	temp_params[0] = 0;
 	temp_params[1] = 1;
@@ -597,13 +613,13 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	temp_params[3] = abs(xmin/8);
 	temp_params[4] = 0;
 	temp_params[5] = abs(ymin/8);
-	temp_params[6] = 0;
-	optdepth = Gauss2D(temp_params,x,y)+gnoise(.1,2);
-	xsec_row = Gauss2D(temp_params,x,0)+gnoise(.1,2);
-	xsec_col = Gauss2D(temp_params,0,x)+gnoise(.1,2);
+	temp_params[6] = 1000;
+	optdepth = TF_FD_2D(temp_params,x,y)+gnoise(.1,2);
+	xsec_row =  TF_FD_2D(temp_params,x,0)+gnoise(.1,2);
+	xsec_col = TF_FD_2D(temp_params,0,x)+gnoise(.1,2);
 	fit_optdepth = optdepth
 	res_optdepth = optdepth
-	print sqrt(2)*temp_params[5]
+	//print sqrt(2)*temp_params[5]
 
 	// Add the cursors
 	// Transfer the cursors

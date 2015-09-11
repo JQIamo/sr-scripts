@@ -426,6 +426,59 @@ d = d + s;
 	
 End
 
+Function DiLogApproxWave(z)
+//Approximation for di-logarithm (polylog of order 2)
+//Based on matlab procedure by Didier Clamond
+//Computes Li_2 (z)
+//This version operates on a wave instead of a variable
+
+	//Initialize:
+	Wave z;
+	Variable waveSize = numpnts(z);
+	Make/D/FREE/O/N=(waveSize) dw, sw;
+	dw = 0;
+	sw = 1;
+	
+	//Find entries equal to 1:
+	matrixop/O/Free out1=sumrows(equal(z,1))
+	matrixop/O/Free out1 = out1*pi*pi/6
+	if (z == 1)
+		return pi^2/6;
+	endif
+	
+	//For large module, map onto unit circle |z| <= 1
+	if (abs(z)>1)
+		d = -1.64493406684822643 - 0.5*ln(-z)^2;
+		s = -s;
+		z = 1/z;
+	endif
+	
+	//For large positive real parts: mapping onto the unit circle with Re(z) <= 1/2
+	if (real(z) > 0.5)
+		d = d + s*( 1.64493406684822643 - ln((1-z)^ln(z)) );
+		s = -s;
+		z = 1-z;
+	endif
+	
+	//Transformation to Debeye function and rational approximation
+	z = -ln(1-z);
+	
+s = s*z;
+	
+d = d - 0.25*s*z;
+	
+z = z*z;
+	
+s = s*(1+z*(6.3710458848408100e-2+z*(1.04089578261587314e-3+z*4.0481119635180974e-6)));
+	
+s = s/(1+z*(3.5932681070630322e-2+z*(3.20543530653919745e-4+z*4.0131343133751755e-7)));
+	
+d = d + s; 
+		
+	return d;
+	
+End
+
 Function TF_FD_2D(w,x,z) : FitFunc
 	Wave w
 	Variable x
@@ -450,6 +503,75 @@ Function TF_FD_2D(w,x,z) : FitFunc
 	
 	return w[0] + w[1]*DiLogApprox(-w[6]*exp( -(1/2)*(((x-w[2])/w[3])^2 + ((z-w[4])/w[5])^2) ) ) / DiLogApprox(-w[6])
 End
+
+Function TF_FD_2D_AAO(pw,yw,xw,zw) : FitFunc
+	
+	//CurveFitDialog/ These comments were created by the Curve Fitting dialog. Altering them will
+	//CurveFitDialog/ make the function less convenient to work with in the Curve Fitting dialog.
+	//CurveFitDialog/ Equation:
+	//CurveFitDialog/ f(x) = offset + A*DiLogApprox(-f*exp( (-1/2)* ( ((x-x0)/sigma_x)^2 + ((z-z0)/sigma_z)^2 ) ) ) / DiLogApprox(-f)
+	//CurveFitDialog/ End of Equation
+	//CurveFitDialog/ Independent Variables 2
+	//CurveFitDialog/ x
+	//CurveFitDialog/ z
+	//CurveFitDialog/ Coefficients 7
+	//CurveFitDialog/ w[0] = offset
+	//CurveFitDialog/ w[1] = A
+	//CurveFitDialog/ w[2] = x0
+	//CurveFitDialog/ w[3] = sigma_x
+	//CurveFitDialog/ w[4] = z0
+	//CurveFitDialog/ w[5] = sigma_z
+	//CurveFitDialog/ w[6] = fugacity
+	
+	Wave pw
+	Wave yw
+	Wave xw
+	Wave zw
+	
+	Variable waveSize = numpnts(xw);
+	Make/D/FREE/O/N=(waveSize) tempW1, tempW2;
+	Variable tempV = DiLogApprox(-pw[6]);
+	Variable fac1 = -1/(2*pw[3]^2);
+	Variable fac2 = -1/(2*pw[5]^2);
+	MatrixOP /O tempW1 = fac1*(xw-pw[2])*(xw-pw[2]) + fac2*(zw-pw[4])*(zw-pw[4]) ;
+	//MatrixOP /O tempW1 =  -(1/2)*(powR((xw-pw[2])/pw[3],2) + powR((zw-pw[4])/pw[5],2)) ;
+	
+	MatrixOP /O tempW2 = -pw[6]*exp(tempW1);
+	tempW2 = DiLogApprox(tempW2);
+	MatrixOP /O tempW2 = tempW2/tempV;
+	MatrixOP/O yw = pw[0] + pw[1]*tempW2;
+	
+	
+	//MatrixOP tempW = -pw[6]*exp( -(1/2)*(powR((xw-pw[2])/pw[3],2) + powR((zw-pw[4])/pw[5],2)) );
+	//tempW = DiLogApprox(tempW);
+	//MatrixOP yw = pw[0] + pw[1]*tempW/tempV;
+	
+	//return w[0] + w[1]*DiLogApprox(-w[6]*exp( -(1/2)*(((x-w[2])/w[3])^2 + ((z-w[4])/w[5])^2) ) ) / DiLogApprox(-w[6])
+End
+
+Function AAO_Test(w, yw, xw, zw) : FitFunc
+	wave w
+	wave yw
+	wave xw
+	wave zw
+	//CurveFitDialog/ Equation:
+	//CurveFitDialog/ f(x) = offset
+	//CurveFitDialog/ End of Equation
+	//CurveFitDialog/ Independent Variables 2
+	//CurveFitDialog/ x
+	//CurveFitDialog/ z
+	//CurveFitDialog/ Coefficients 6
+	//CurveFitDialog/ w[0] = offset
+	//CurveFitDialog/ w[1] = Amplitude
+	//CurveFitDialog/ w[2] = x0
+	//CurveFitDialog/ w[3] = sigma_x
+	//CurveFitDialog/ w[4] = z0
+	//CurveFitDialog/ w[5] = sigma_z
+	//yw = w[0] + w[1]*exp( (-1/2)*( ((xw-w[2])/w[3])*((xw-w[2])/w[3]) +((zw-w[4])/w[5])*((zw-w[4])/w[5]) ) )
+	MatrixOp/O step1 =  ((xw-w[2])/w[3])*((xw-w[2])/w[3]) +((zw-w[4])/w[5])*((zw-w[4])/w[5])
+	MatrixOp/O  yw = w[0] + w[1]*exp( -step1/2 )
+End
+
 
 	
 Function FermiDiracFit2D(inputimage)
@@ -527,6 +649,7 @@ Function FermiDiracFit2D(inputimage)
 	Variable V_FitOptions=4 //this suppresses the curve fit window
 	Variable K0 = background;
 	Variable K6 = 0;			// No correlation term
+	tic()
 	//Generate guess:
 	CurveFit /O/N/Q/H="0000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
 	Gauss3d_coef[6] = 0;			// No correlation term
@@ -535,7 +658,7 @@ Function FermiDiracFit2D(inputimage)
 	//Fit with 2D Gaussian:
 	CurveFit /G/N/Q/H="0000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
 	//Gauss3d_coef[3] *= sqrt(2); Gauss3d_coef[5] *= sqrt(2);
-	
+	toc()
 	// Note the sqt(2) on the widths -- this is due to differing definitions of 1D and 2D gaussians in igor
 	
 	//2D Fermi Dirac Fit uses the following parameters:
@@ -548,7 +671,12 @@ Function FermiDiracFit2D(inputimage)
 	//CurveFitDialog/ w[6] = fugacity
 	Gauss3d_coef[6] = 100000; //Initial guess for fugacity
 	
-	FuncFitMD/G/N/Q/H="0000000" TF_FD_2D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight 
+	tic()
+	//FuncFitMD/G/N/Q/H="0000000" TF_FD_2D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight 
+
+	FuncFitMD/G/N/Q/H="0000000" TF_FD_2D_AAO, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight 
+	//This AAO (all at once) fit function uses matrix operations and executes faster than the regular version (speed up depends on size of ROI)
+	toc()
 	
 	print Gauss3d_coef; //temporary
 
@@ -587,7 +715,177 @@ Function FermiDiracFit2D(inputimage)
 	SetDataFolder fldrSav
 	return 1
 End
+
+Function NumPolyLog(v,z)
+
+//This function attempts to evaluate the polylog order v with argument z by direct integration
+//For arguments with z<=0 and v >0, this is done by direct integration of the Fermi-Dirac Integral and 
+//by direct integration of the Bose-Einstein Integral for 0 <= z < 1
+//Note: I could slightly simplify this function by only ever looking at the Bose-Einstein Integral - results are the same
 	
+	Variable v
+	Variable z
 	
+	Variable /G root:polylog:v = v;
+	Variable /G root:polylog:z = z;
+	
+	if (z <= 0 && v > 0)
+		//Evaluate the PolyLog as a Fermi Dirac Integral:
+
+		return (-1/gamma(v))*integrate1D(fermiDiracIntegral, 0, 100,2) //Gaussian quadrature gives better results
+	elseif ( z >= 0 && z <= 1 && v > 0)
+		if (z < 1 || v > 1)
+			//Evaluate the PolyLog as a Bose Einstein Integral:
+			return(1/gamma(v))*integrate1D(boseEinsteinIntegral,0,100,2) //Gaussian quadrature gives better results
+		endif
+	endif
 	
 End
+
+
+Function fermiDiracIntegral(x)
+
+	Variable x
+	
+	NVAR v = root:polylog:v;
+	NVAR z = root:polylog:z;
+	
+	Variable z_local = - z;
+	
+	return x^(v-1) / ( (1/z_local)*exp(x)+1 );
+	
+End
+
+Function boseEinsteinIntegral(x)
+	
+	Variable x
+	NVAR v = root:polylog:v;
+	NVAR z = root:polylog:z
+	
+	return  x^(v-1) / ( (1/z)*exp(x)-1 );
+	
+End
+
+function tic()
+	variable/G tictoc = startMSTimer
+end
+ 
+function toc()
+	NVAR/Z tictoc
+	variable ttTime = stopMSTimer(tictoc)
+	printf "%g seconds\r", (ttTime/1e6)
+	killvariables/Z tictoc
+end
+	
+	
+//Polylog approximations from Bhagat et al.
+//Define helper functions:
+
+Function eta_partial_sums(v,j)
+	// Eta Function  
+      //Eq. 17 (partial sums) following V. Bhagat, et al., On the evaluation of generalized
+      //BoseEinstein and FermiDirac integrals, Computer Physics Communications,
+      // Vol. 155, p.7, 2003
+      // Used for approximations of Bose-Einstein integrals 
+      
+      Variable v, j;
+      Variable n, out;
+      out = 0
+      for (n=1 ; n < j+1 ; n+=1)
+      		out = out + (-1)^(n+1) / n^v;
+      	endfor
+      	return out;
+      	
+End
+
+function zeta_approx6(x)
+        //Zeta Function  
+        // Eq. 18, 6th order tau approximation for zeta
+        // following V. Bhagat, et al., On the evaluation of generalized
+        // BoseEinstein and FermiDirac integrals, Computer Physics Communications,
+        // Vol. 155, p.7, 2003
+        // Used for approximations of Bose-Einstein integrals 
+        // This function diverges at x=1 and is not valid at x <0
+ 
+ 	Variable x;
+ 	Variable prefactor, numerator, denominator;
+ 	
+      prefactor = 2^(x-1) / ( 2^(x-1)-1 );
+      numerator = 1 + 36*2^x*eta_partial_sums(x,2) + 315*3^x*eta_partial_sums(x,3)
+      numerator += 1120*4^x*eta_partial_sums(x,4) + 1890*5^x*eta_partial_sums(x,5)
+      numerator += 1512*6^x*eta_partial_sums(x,6) + 462*7^x*eta_partial_sums(x,7);
+      denominator = 1 + 36*2^x + 315*3^x + 1120*4^x + 1890*5^x + 1512*6^x +462*7^x;
+      
+      return prefactor * numerator / denominator;
+end
+
+function zeta(x)
+	//Zeta Function  
+      // Uses Eq. 18, 6th order tau approximation for zeta but also corrects for large negative x by using Eq. 26
+      // following V. Bhagat, et al., On the evaluation of generalized
+      // BoseEinstein and FermiDirac integrals, Computer Physics Communications,
+      // Vol. 155, p.7, 2003
+      // Used for approximations of Bose-Einstein integrals 
+      
+      Variable x;
+      
+      if (x >= 0)
+      		return zeta_approx6(x);
+      	else
+      		return zeta_approx6(1-x) *pi^(x-1) * 2^x * gamma(1-x) *cos(pi*(1-x)/2);
+      	endif
+end
+
+
+function s_partial_sum(v,z,j)
+	//S Function
+	//Eq. 12 (partial sums) following V. Bhagat, et al., On the evaluation of generalized
+      //BoseEinstein and FermiDirac integrals, Computer Physics Communications,
+      // Vol. 155, p.7, 2003
+      // Used for approximations of Bose-Einstein integrals 
+      
+      Variable v, z, j;
+      Variable out = 0;
+      Variable i;
+      for (i = 1 ; i < j+1 ; i+=1)
+      		out += z^i/(i+1)^v;
+      	endfor
+      	return out
+ end
+ 
+ function b_zeta(v,i)
+ 	//b zeta function for evaluation Eq. 27
+ 	//b_i = zeta(v-i)
+ 	//Following V. Bhagat, et al., On the evaluation of generalized
+      //BoseEinstein and FermiDirac integrals, Computer Physics Communications,
+      // Vol. 155, p.7, 2003
+      // Used for approximations of Bose-Einstein integrals 
+      
+      Variable v, i;
+      return zeta(v-i);
+ end
+ 
+ function BEpolylog(v,z)
+ 	//Computes the v-based polylogarithm of z: Li_v(z)
+ 	//Following V. Bhagat, et al., On the evaluation of generalized
+ 	//BoseEinstein and FermiDirac integrals, Computer Physics Communications,
+ 	// Vol. 155, p.7, 2003
+ 	//Note: returns NaN for integer v
+ 	
+ 	Variable v, z;
+ 	Variable preterm, numerator, denominator, alpha;
+ 	
+ 	//if z > 0.55
+ 	
+ 	alpha = -ln(z); 
+ 	
+	preterm = gamma(1-v)/alpha^(1-v);
+	numerator = b_zeta(v,0) - alpha*( b_zeta(v,1) - 4*b_zeta(v,0)*b_zeta(v,4)/7/b_zeta(v,3) ) ;
+	numerator += alpha^2*( b_zeta(v,2)/2 + b_zeta(v,0)*b_zeta(v,4)/7/b_zeta(v,2) - 4*b_zeta(v,1)*b_zeta(v,4)/7/b_zeta(v,3) ) ;
+	numerator -=  alpha^3*( b_zeta(v,3)/6 - 2*b_zeta(v,0)*b_zeta(v,4)/105/b_zeta(v,1) + b_zeta(v,1)*b_zeta(v,4)/7/b_zeta(v,2) - 2*b_zeta(v,2)*b_zeta(v,4)/7/b_zeta(v,3) );
+ 	denominator = 1 + alpha*4*b_zeta(v,4)/7/b_zeta(v,3) + alpha^2*b_zeta(v,4)/7/b_zeta(v,2) 
+ 	denominator += alpha^3*2*b_zeta(v,4)/105/b_zeta(v,1) + alpha^4*b_zeta(v,4)/840/b_zeta(v,0);
+ 	return preterm + numerator / denominator;
+      
+end
+
