@@ -393,7 +393,7 @@ Function DiLogApprox(z)
 		return pi^2/6;
 	endif
 	
-	//For large module, map onto unit circle |z| <= 1
+	//For large moduli, map onto unit circle |z| <= 1
 	if (abs(z)>1)
 		d = -1.64493406684822643 - 0.5*ln(-z)^2;
 		s = -s;
@@ -426,7 +426,7 @@ d = d + s;
 	
 End
 
-Function DiLogApproxWave(z)
+Function/Wave DiLogApproxWave(z)
 //Approximation for di-logarithm (polylog of order 2)
 //Based on matlab procedure by Didier Clamond
 //Computes Li_2 (z)
@@ -440,42 +440,69 @@ Function DiLogApproxWave(z)
 	sw = 1;
 	
 	//Find entries equal to 1:
-	matrixop/O/Free out1=sumrows(equal(z,1))
-	matrixop/O/Free out1 = out1*pi*pi/6
-	if (z == 1)
-		return pi^2/6;
-	endif
+	matrixop/O/Free out1=equal(abs(z),1);
+	matrixop/O/Free notOut1 = greater(z,1) + greater(1,z);
+	matrixop/O/Free out1 = out1*pi*pi;
+	out1 = out1/6;
+	//if (z == 1)
+	//	return pi^2/6;
+	//endif
 	
-	//For large module, map onto unit circle |z| <= 1
-	if (abs(z)>1)
-		d = -1.64493406684822643 - 0.5*ln(-z)^2;
-		s = -s;
-		z = 1/z;
-	endif
+	//For large moduli, map onto unit circle |z| <= 1
+	matrixop/O caseA = greater(abs(z),1);
+	matrixop/O notCaseA = greater(1,abs(z)); // + equal(1,abs(z)); this case is handled above
+	matrixop/O/Free temp =ln(-z);
+	matrixop/O temp = ReplaceNaNs(temp, 0)
+	matrixop/O temp = Replace(temp,-inf,0) //fixes infinity when input is 0
+	matrixop/O dw = dw +caseA*(-0.5*temp*temp-1.64493406684822643);
+	matrixop/O sw =sw*notCaseA+(-sw*caseA); //(s -> -s for entries of z >1)
+	matrixop/O z = z*notCaseA +caseA/z;
+	matrixop/O z = replaceNaNs(z,0); //fixes NaN when input is 0
+	
+	//if (abs(z)>1)
+	//	d = -1.64493406684822643 - 0.5*ln(-z)^2;
+	//	s = -s;
+	//	z = 1/z;
+	//endif
 	
 	//For large positive real parts: mapping onto the unit circle with Re(z) <= 1/2
-	if (real(z) > 0.5)
-		d = d + s*( 1.64493406684822643 - ln((1-z)^ln(z)) );
-		s = -s;
-		z = 1-z;
-	endif
+	matrixop/O/Free caseB = greater(real(z),0.5);
+	matrixop/O/Free notCaseB = greater(0.5,real(z)) + equal(0.5,real(z)));
+	matrixop/O/Free temp = ln(powR(-z+1,ln(z)));
+	matrixop/O temp = caseB*(dw+sw*(-temp+ 1.64493406684822643))
+	matrixop/O temp = ReplaceNaNs(temp, 0)
+	matrixop/O dw = temp*caseB+ dw*notcaseB;
+	matrixop/O sw = sw*notCaseB + (-sw*caseB);
+	matrixop/O z = z*notCaseB + caseB*(-z+1);
+
+
+	//if (real(z) > 0.5)
+	//	d = d + s*( 1.64493406684822643 - ln((1-z)^ln(z)) );
+	//	s = -s;
+	//	z = 1-z;
+	//endif
 	
 	//Transformation to Debeye function and rational approximation
-	z = -ln(1-z);
+	matrixop/O z = -ln(-z+1);
+	matrixop/O sw = sw*z;
+	matrixop/O dw = dw - 0.25*sw*z;
+	matrixop/O z = z*z;
+	matrixop/O sw = sw*(1+z*(6.3710458848408100e-2+z*(1.04089578261587314e-3+z*4.0481119635180974e-6)));
+	matrixop/O sw = sw/(1+z*(3.5932681070630322e-2+z*(3.20543530653919745e-4+z*4.0131343133751755e-7)));
+	matrixop/O dw = dw + sw; 
 	
-s = s*z;
+	matrixop/O dw = dw*notOut1 + out1;
+	return dw;
 	
-d = d - 0.25*s*z;
-	
-z = z*z;
-	
-s = s*(1+z*(6.3710458848408100e-2+z*(1.04089578261587314e-3+z*4.0481119635180974e-6)));
-	
-s = s/(1+z*(3.5932681070630322e-2+z*(3.20543530653919745e-4+z*4.0131343133751755e-7)));
-	
-d = d + s; 
+	//z = -ln(1-z);
+	//s = s*z;
+	//d = d - 0.25*s*z;
+	//z = z*z;
+	//s = s*(1+z*(6.3710458848408100e-2+z*(1.04089578261587314e-3+z*4.0481119635180974e-6)));
+	//s = s/(1+z*(3.5932681070630322e-2+z*(3.20543530653919745e-4+z*4.0131343133751755e-7)));
+	//d = d + s; 
 		
-	return d;
+	//return d;
 	
 End
 
@@ -537,9 +564,16 @@ Function TF_FD_2D_AAO(pw,yw,xw,zw) : FitFunc
 	//MatrixOP /O tempW1 =  -(1/2)*(powR((xw-pw[2])/pw[3],2) + powR((zw-pw[4])/pw[5],2)) ;
 	
 	MatrixOP /O tempW2 = -pw[6]*exp(tempW1);
-	tempW2 = DiLogApprox(tempW2);
-	MatrixOP /O tempW2 = tempW2/tempV;
-	MatrixOP/O yw = pw[0] + pw[1]*tempW2;
+	
+	//Non vectorized version of approximation, this way is a little slower:
+	//tempW2 = DiLogApprox(tempW2);
+	//MatrixOP /O tempW2 = tempW2/tempV;
+	//MatrixOP/O yw = pw[0] + pw[1]*tempW2;
+	
+	
+	Wave tempW3 = DiLogApproxWave(tempW2);
+	MatrixOP /O tempW3 = tempW3/tempV;
+	MatrixOP/O yw = pw[0] + pw[1]*tempW3;
 	
 	
 	//MatrixOP tempW = -pw[6]*exp( -(1/2)*(powR((xw-pw[2])/pw[3],2) + powR((zw-pw[4])/pw[5],2)) );
@@ -672,9 +706,9 @@ Function FermiDiracFit2D(inputimage)
 	Gauss3d_coef[6] = 100000; //Initial guess for fugacity
 	
 	tic()
-	//FuncFitMD/G/N/Q/H="0000000" TF_FD_2D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight 
+	FuncFitMD/G/N/Q/H="0000000" TF_FD_2D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight 
 
-	FuncFitMD/G/N/Q/H="0000000" TF_FD_2D_AAO, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight 
+	//FuncFitMD/G/N/Q/H="0000000" TF_FD_2D_AAO, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight 
 	//This AAO (all at once) fit function uses matrix operations and executes faster than the regular version (speed up depends on size of ROI)
 	toc()
 	
@@ -889,3 +923,8 @@ function s_partial_sum(v,z,j)
       
 end
 
+function test()
+	Make/O/N=5 testA = {0.75,1,0,-4,-5};
+	//Wave testC = DiLogApproxWave(testA);
+	//print testC
+end
