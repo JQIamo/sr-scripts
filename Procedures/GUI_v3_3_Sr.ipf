@@ -1265,14 +1265,14 @@ function BuildSrWindow(ProjectFolder)
 	SetVariable fz,pos={566,248},size={128,16},bodyWidth=75,title="Z trap freq"
 	SetVariable fz,limits={-inf,inf,0},value= :Experimental_Info:freqZ,noedit= 1
 	
-	SetVariable aspetratio,pos={554,266},size={140,16},bodyWidth=75,title="Aspect Ratio"
-	SetVariable aspetratio,limits={-inf,inf,0},value= :Experimental_Info:AspectRatio,noedit= 1
+	//SetVariable aspetratio,pos={554,266},size={140,16},bodyWidth=75,title="Aspect Ratio" //get rid of this?
+	//SetVariable aspetratio,limits={-inf,inf,0},value= :Experimental_Info:AspectRatio,noedit= 1
 	
-	SetVariable Trapbottom,pos={518,304},size={176,16},bodyWidth=75,title="Trap Minimum [MHz]"
-	SetVariable Trapbottom,limits={-inf,inf,0},value= :Experimental_Info:trapmin,noedit= 1
+	//SetVariable Trapbottom,pos={518,304},size={176,16},bodyWidth=75,title="Trap Minimum [MHz]" //get rid of this?
+	//SetVariable Trapbottom,limits={-inf,inf,0},value= :Experimental_Info:trapmin,noedit= 1
 	
-	SetVariable TrapDepth,pos={539,285},size={155,16},bodyWidth=75,title="Trap Depth [nK]"
-	SetVariable TrapDepth,limits={-inf,inf,0},value= :Experimental_Info:TrapDepth,noedit= 1
+	//SetVariable TrapDepth,pos={539,285},size={155,16},bodyWidth=75,title="Trap Depth [nK]" //get rid of this?
+	//SetVariable TrapDepth,limits={-inf,inf,0},value= :Experimental_Info:TrapDepth,noedit= 1
 	
 	SetVariable temp,pos={245,175},size={115,16},bodyWidth=35,title="T\Bavg\M [nk]"
 	SetVariable temp,limits={-inf,inf,0},value= :temperature,noedit= 1
@@ -1352,13 +1352,16 @@ function BuildSrWindow(ProjectFolder)
 	SetVariable Tc,pos={326,322},size={138,16},bodyWidth=75,title="BEC Tc [nK]"
 	SetVariable Tc,limits={0,0,0},value= :Tc
 
-	SetVariable CastDumX,pos={513,366},size={60,16},bodyWidth=46,proc=SetCastDum,title="X "
+	//SetVariable CastDumX,pos={513,366},size={60,16},bodyWidth=46,proc=SetCastDum,title="X " //move down 10
+	SetVariable CastDumX,pos={513,376},size={60,16},bodyWidth=46,proc=SetCastDum,title="X "
 	SetVariable CastDumX,value= :Experimental_Info:CastDum_xscale
 
-	SetVariable CastDumy,pos={576,366},size={58,16},bodyWidth=44,proc=SetCastDum,title="Y "
+	//SetVariable CastDumy,pos={576,366},size={58,16},bodyWidth=44,proc=SetCastDum,title="Y " //move down 10
+	SetVariable CastDumy,pos={576,376},size={58,16},bodyWidth=44,proc=SetCastDum,title="Y "
 	SetVariable CastDumy,value= :Experimental_Info:CastDum_yscale
 
-	SetVariable CastDumz,pos={640,366},size={58,16},bodyWidth=44,proc=SetCastDum,title="Z "
+	//SetVariable CastDumz,pos={640,366},size={58,16},bodyWidth=44,proc=SetCastDum,title="Z "//move down 10
+	SetVariable CastDumz,pos={640,376},size={58,16},bodyWidth=44,proc=SetCastDum,title="Z "
 	SetVariable CastDumz,value= :Experimental_Info:CastDum_zscale
 
 	GroupBox TrapProps2,pos={273,8},size={198,148},title="Imaged cloud (t = TOF)"
@@ -1373,14 +1376,20 @@ function BuildSrWindow(ProjectFolder)
 	GroupBox TrapProps7,pos={272,245},size={198,104},title="BEC cloud properties"
 	GroupBox TrapProps7,fSize=11
 
-	GroupBox TrapProps8,pos={501,166},size={209,174},title="Trap properties"
+	//GroupBox TrapProps8,pos={501,166},size={209,174},title="Trap properties"
+	GroupBox TrapProps8,pos={501,166},size={209,105},title="Trap properties" //shrink this verticall
 	GroupBox TrapProps8,fSize=11
 
-	GroupBox TrapProps9,pos={502,344},size={206,53},title="Castin-Dum scale paramaters"
+	//GroupBox TrapProps9,pos={502,344},size={206,53},title="Castin-Dum scale paramaters" //move this down by 10
+	GroupBox TrapProps9,pos={502,354},size={206,53},title="Castin-Dum scale paramaters"
 	GroupBox TrapProps9,fSize=11
 
 	GroupBox TrapProps0,pos={33,8},size={200,342},title="Experimental properties"
 	GroupBox TrapProps0,fSize=11
+	
+	//Add FDG group box
+	GroupBox TrapProps10,pos={500,275},size={210,75},title="Degenerate Fermi Gas properties"
+	GroupBox TrapProps10,fSize=11
 
 	SetVariable Xpos,pos={284,41},size={51,16},bodyWidth=40,title="X"
 	SetVariable Xpos,limits={-inf,inf,0},value= :xposition,noedit= 1
