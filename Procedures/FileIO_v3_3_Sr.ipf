@@ -623,7 +623,7 @@ Function Load_Img(ImageName,FileName)
 	
 	if (RotateImage)
 		NVAR RotAng = :Experimental_Info:RotAng;
-		RotAng = 54;	//check by minimizing crosscorrelation term in 2D thermal fit on PIXIS
+		RotAng = 7;	//check by minimizing crosscorrelation term in 2D thermal fit on PIXIS
 		ImageRotate/Q/O/E=0/A=(RotAng) ImageName;
 		Update_Magnification();			// CDH: why is this here??	
 	endif
