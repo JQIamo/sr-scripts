@@ -2472,6 +2472,74 @@ Function MakeSlice(inputimage,cursorname)
 End
 // ******************** MakeSlice **************************************************************************
 
+// ******************** MakeRadialAverage **************************************************************************
+Function MakeRadialAverage(inputimage,cursorname)
+	Wave inputimage
+	String cursorname
+	
+	// Get the current path
+	String ProjectFolder = Activate_Top_ColdAtomInfo();
+	String fldrSav= GetDataFolder(1)
+	SetDataFolder ProjectFolder
+
+	// Discover the name of the current image window
+	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel;
+	String ImageWindowName = CurrentPanel + "#ColdAtomInfoImage";
+
+	NVAR width = :Fit_Info:slicewidth
+	Wave slice = :LineProfiles:slice
+
+	Make/O/N=100 :Fit_Info:xpts, :Fit_Info:ypts
+	Wave xpts = :Fit_Info:xpts
+	Wave ypts = :Fit_Info:ypts
+	
+	Make/O/N=1 W_imageLineProfile;
+	Wave W_imageLineProfile = W_imageLineProfile;
+
+	// **************************************************
+	// Make the diagional Slice
+	variable DimWidth;
+	xpts = {hcsr(A,ImageWindowName),hcsr(B,ImageWindowName)}
+	ypts = {vcsr(A,ImageWindowName),vcsr(B,ImageWindowName)}
+	ImageLineProfile  xWave=xpts, yWave=ypts, srcwave= inputimage , width = width
+
+	duplicate /O W_imageLineProfile slice
+	
+	// Igor normalizes, but I want the true number of counts 
+	slice = slice * 2*(width+0.5)
+	DimWidth = sqrt((xpts[0]-xpts[1])^2 + (ypts[0]-ypts[1])^2) / 2
+	SetScale/I x -Dimwidth,Dimwidth, "", slice
+
+	KillWaves W_imageLineProfile, xpts, ypts;
+	
+	// **************************************************
+	// Make the vert and horz slices
+
+	Wave xsec_col=:Fit_Info:xsec_col, xsec_row=:Fit_Info:xsec_row;
+	Wave fit_xsec_col=:Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row;
+	variable i = 0;
+
+
+	// **************************************************
+	// define the 1-D crosssections
+	// This creates a slice of the data centered on the selected cursor,
+	// with width neighboring collums averaged.		
+	xsec_col = 0; xsec_row = 0;
+
+	for(i = -floor((width-1)/2) ; i<= floor(width/2); i+=1)
+		xsec_col = xsec_col + inputimage[pcsr($cursorname,ImageWindowName)+i][p]
+	endfor
+	xsec_col = xsec_col/width;
+
+	for(i = -floor((width-1)/2) ; i<= floor(width/2); i+=1)
+		xsec_row = xsec_row + inputimage[p][qcsr($cursorname,ImageWindowName)+i]
+	endfor
+	xsec_row = xsec_row/width;
+	
+	SetDataFolder fldrSav
+End
+// ******************** MakeRadialAverage **************************************************************************
+
 // ******************** MakeIntegral **************************************************************************
 Function MakeIntegral(inputimage)
 	Wave inputimage

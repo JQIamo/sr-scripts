@@ -703,7 +703,7 @@ Function FermiDiracFit2D(inputimage)
 	//CurveFitDialog/ w[4] = z0
 	//CurveFitDialog/ w[5] = sigma_z
 	//CurveFitDialog/ w[6] = fugacity
-	Gauss3d_coef[6] = 1000; //Initial guess for fugacity
+	Gauss3d_coef[6] = 100000; //Initial guess for fugacity
 	
 	tic()
 	//FuncFitMD/G/N/Q/H="0000000" TF_FD_2D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight 

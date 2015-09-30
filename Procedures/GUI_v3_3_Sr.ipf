@@ -1471,6 +1471,79 @@ function BuildSrWindow(ProjectFolder)
 	SetDataFolder fldrSav
 End
 // ******************** BuildSrWindow *********************************
+
+//Function to copy the info sections graph (bottom left subwindow) from the GUI for export.
+Function CopyInfoSections(ProjectFolder)
+
+	String ProjectFolder
+
+	String fldrSav= GetDataFolder(1)
+	SetDataFolder ProjectFolder
+	
+	String fldrSav0= GetDataFolder(1)
+	SetDataFolder :Fit_Info:
+	Display/W=(390,408,835,843)  xsec_col,fit_xsec_col
+	AppendToGraph/T xsec_row,fit_xsec_row
+	AppendToGraph/T/L=Lres res_xsec_row
+	AppendToGraph/B/L=Lres res_xsec_col
+	SetDataFolder fldrSav0
+	ModifyGraph gfSize=12,wbRGB=(56797,56797,56797)
+	ModifyGraph mode(xsec_col)=2,mode(xsec_row)=2,mode(res_xsec_col)=0,mode(res_xsec_row)=0
+	ModifyGraph lSize(xsec_col)=2,lSize(fit_xsec_col)=2,lSize(res_xsec_col)=2,lSize(xsec_row)=2,lSize(fit_xsec_row)=2,lSize(res_xsec_row)=2
+	ModifyGraph rgb(xsec_col)=(0,0,65280),rgb(fit_xsec_col)=(0,0,0),rgb(xsec_row)=(65280,0,0)
+	ModifyGraph rgb(fit_xsec_row)=(0,0,0),rgb(res_xsec_row)=(45000,0,0),rgb(res_xsec_col)=(0,0,45000)
+	ModifyGraph tick=2
+	ModifyGraph zero(left)=4
+	ModifyGraph zero(Lres)=4
+	ModifyGraph mirror(left)=1
+	ModifyGraph mirror(Lres)=1
+	ModifyGraph lblMargin(left)=8
+	ModifyGraph lblPosMode(Lres)=1
+	ModifyGraph lblMargin(Lres)=8
+	ModifyGraph standoff=0
+	ModifyGraph axOffset(left)=0.666667
+	ModifyGraph axThick=0.5
+	ModifyGraph tlblRGB(bottom)=(0,0,65280),tlblRGB(top)=(65280,0,0)
+	ModifyGraph alblRGB(bottom)=(0,0,65280),alblRGB(top)=(65280,0,0)
+	ModifyGraph zeroThick=0.5
+	ModifyGraph btLen=3
+	ModifyGraph btThick=0.5
+	ModifyGraph stLen=2
+	ModifyGraph stThick=0.5
+	ModifyGraph ttThick=0.5
+	ModifyGraph ftThick=0.5
+	ModifyGraph axisEnab(left)={0.25,1}
+	ModifyGraph axisEnab(Lres)={0,0.25}
+	ModifyGraph freePos(Lres)=0
+	Label left "Optical depth\\E"
+	Label Lres "Res. OD\\E"
+	Label bottom "Position [\\f02\\F'Symbol'm\\f00\\]0m\\E]"
+	SetAxis left -0.25,*
+	SetAxis Lres *,*
+	Cursor/P A xsec_row 396;Cursor/P B xsec_row 859
+	
+	SetDataFolder fldrSav
+end
+
+//Function to copy the info sections graph (bottom left subwindow) from the GUI for export.
+Function CopyInfoImage(ProjectFolder)
+
+	String ProjectFolder
+
+	String fldrSav= GetDataFolder(1)
+	SetDataFolder ProjectFolder
+	
+	Display/W=(16,408,388,844)/FG=(FL,,,)
+	AppendImage optdepth
+	ModifyImage optdepth ctab= {-0.25,*,Grays,0}
+	ModifyGraph gfSize=12,wbRGB=(56797,56797,56797)
+	ModifyGraph mirror=2
+	Cursor/P/A=0/I/S=2/H=1/C=(65525,0,0) A optdepth 50,50;Cursor/P/A=0/I/S=2/H=1/C=(65525,0,0) B optdepth 60,60;Cursor/P/A=0/I/S=2/H=1/C=(0,0,65525) C optdepth 20,8;Cursor/P/A=0/I/S=2/H=1/C=(0,0,65525) D optdepth 30,18
+	Cursor/P/I/C=(65525,0,65525) E optdepth 55,55;Cursor/P/I/C=(65525,65525,0) F optdepth 55,55
+	
+	SetDataFolder fldrSav
+end
+
 //!
 //! @brief PopupMenuControl handling saving user choices to global variables
 Function ChooseCenter(ctrlName,popNum,popStr) : PopupMenuControl
