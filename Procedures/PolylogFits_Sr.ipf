@@ -684,7 +684,7 @@ Function FermiDiracFit2D(inputimage)
 	Variable V_FitOptions=4 //this suppresses the curve fit window
 	Variable K0 = background;
 	Variable K6 = 0;			// No correlation term
-	tic()
+	//tic()
 	//Generate guess:
 	CurveFit /O/N/Q/H="0000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
 	Gauss3d_coef[6] = 0;			// No correlation term
@@ -702,7 +702,7 @@ Function FermiDiracFit2D(inputimage)
 	fit_optdepth[pmin,pmax][qmin,qmax] = Gauss2D(Gauss3d_coef,x,y)
 	MakeRadialAverage(fit_optdepth,2);
 	MakeRadialAverage(res_optdepth,4);
-	toc()
+	//toc()
 	// Note the sqt(2) on the widths -- this is due to differing definitions of 1D and 2D gaussians in igor
 	
 	//2D Fermi Dirac Fit uses the following parameters:
@@ -715,14 +715,15 @@ Function FermiDiracFit2D(inputimage)
 	//CurveFitDialog/ w[6] = fugacity
 	Gauss3d_coef[6] = 2; //Initial guess for fugacity
 	
-	tic()
+	//tic()
+	//This is the original, slower version:
 	//FuncFitMD/G/N/Q/H="0000000" TF_FD_2D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight 
 
-	FuncFitMD/G/N/Q/H="0000000" TF_FD_2D_AAO, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight 
 	//This AAO (all at once) fit function uses matrix operations and executes faster than the regular version (speed up depends on size of ROI)
-	toc()
+	FuncFitMD/G/N/Q/H="0000000" TF_FD_2D_AAO, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight 
+	//toc()
 	
-	print Gauss3d_coef; //temporary
+	//print Gauss3d_coef; //temporary
 	fugacity = Gauss3d_coef[6]
 
 	wave W_sigma = :W_sigma;
@@ -758,6 +759,14 @@ Function FermiDiracFit2D(inputimage)
 		
 	SetDataFolder fldrSav
 	return 1
+End
+
+Function CalcTTf(fugacity)
+//This function calculates the ratio of T to Tf given a fugacity. The result is given by solving the equation:
+// Polylog(3,-fugacity) = -1/(6*(T/Tf)^3)
+//The polylog is computed by numerical integration
+	Variable fugacity
+	return (-1/(6*NumPolyLog(3, -fugacity)))^(1/3)
 End
 
 Function NumPolyLog(v,z)
