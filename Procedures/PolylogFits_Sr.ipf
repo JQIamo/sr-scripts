@@ -709,6 +709,9 @@ Function FermiDiracFit2D(inputimage)
 	//This is the original, slower version:
 	//FuncFitMD/G/N/Q/H="0000000" TF_FD_2D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight 
 	
+	//tic()
+	//FuncFitMD/G/N/Q/H="0000000" TF_FD_2D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight 
+
 	//This AAO (all at once) fit function uses matrix operations and executes faster than the regular version (speed up depends on size of ROI)
 	FuncFitMD/G/N/Q/H="0000000" TF_FD_2D_AAO, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight 
 	//toc()
@@ -937,3 +940,11 @@ function test()
 	//Wave testC = DiLogApproxWave(testA);
 	//print testC
 end
+
+Function CalcTTf(fugacity)
+//This function calculates the ratio of T to Tf given a fugacity. The result is given by solving the equation:
+// Polylog(3,-fugacity) = -1/(6*(T/Tf)^3)
+//The polylog is computed by numerical integration
+	Variable fugacity
+	return (-1/(6*NumPolyLog(3, -fugacity)))^(1/3)
+End

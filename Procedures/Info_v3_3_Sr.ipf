@@ -996,6 +996,11 @@ Function Update_Magnification()
 		delta_Y = 4.4 / magnification;
        	starty = -DimSize(OptDepth, 1)*Delta_Y / 2;
 		startx = -DimSize(OptDepth, 0)*Delta_X / 2;
+	elseif (stringmatch(Camera,"GS3_28S4M") == 1) // Grasshopper 3 camera
+		delta_X = 3.69 / magnification;
+		delta_Y = 3.69 / magnification;
+       	starty = -DimSize(OptDepth, 1)*Delta_Y / 2;
+		startx = -DimSize(OptDepth, 0)*Delta_X / 2;
 	else
 		delta_X = 1/magnification
 		delta_Y = 1/magnification
