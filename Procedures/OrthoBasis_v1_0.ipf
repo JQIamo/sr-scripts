@@ -201,7 +201,7 @@ function GS_CreateBasis(ProjectID)
 					//loop through all vectors i.
 					
 					//for debugging
-					print "i = " + num2str(i);
+					//print "i = " + num2str(i);
 					
 					//make orthogonal to previous vectors
 					variable j;
@@ -215,7 +215,7 @@ function GS_CreateBasis(ProjectID)
 						BasisStack[][][i] = BasisStack[p][q][i] - Projection[0]*BasisStack[p][q][j];
 						
 						//for debugging
-						print "j = " + num2str(j);
+						//print "j = " + num2str(j);
 					
 					endfor
 					
@@ -258,4 +258,67 @@ function GS_CreateBasis(ProjectID)
 	
 	//reset datafolder
 	SetDataFolder fldrSav;
+end
+
+function Dialog_GS_CreateBasis()
+	
+	variable TargProjectNum;
+	variable startNum = -1;
+	variable endNum = 1;
+	variable basisSize;
+	string skipList;
+
+	Init_ColdAtomInfo();	// Creates the needed variables if they do not already exist
+
+	// Create a dialog box with a list of active InfoProjects
+	SVAR ActivePaths = root:Packages:ColdAtom:ActivePaths
+	SVAR CurrentPath = root:Packages:ColdAtom:CurrentPath
+	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel
+	
+	//run the prompt
+	Prompt TargProjectNum, "Target Series for Gram-Schmidt:", popup, ActivePaths
+	Prompt basisSize, "Number of images to include in the basis:"
+	Prompt startNum, "File number of first point in data range (without leading zeroes):"
+	Prompt endNum, "File number of last point in data range (without leading zeroes):"
+	Prompt skipList, "semicolon separated list of file numbers to exclude from range (without leading zeroes):"
+	DoPrompt "Batch Run", TargProjectNum, basisSize, startNum, endNum, skipList
+	
+	if(V_Flag)
+		return -1		// User canceled
+	endif
+	
+	//set data folders appropriately
+	String TargPath = StringFromList(TargProjectNum-1, ActivePaths)
+		
+	String SavePanel = CurrentPanel
+	String SavePath = CurrentPath
+	String fldrSav= GetDataFolder(1)
+		
+	Set_ColdAtomInfo(TargPath)
+	String ProjectFolder = Activate_Top_ColdAtomInfo();
+	SetDataFolder ProjectFolder;
+	String ProjectID = ParseFilePath(0, ProjectFolder, ":", 1, 0);
+	
+	//ensure Basis mode is active on the data series
+	ChooseAnalysis("",2,"")
+	
+	//get a random sample of the data range
+	variable i;
+	variable rand, temp, fnum;
+	Make/O/FREE/N=(basisSize) basisHist;
+	For(i=0;i<basisSize;i+=1)
+		rand = (enoise(1, 2)+1)/2; //get a uniform random number from 0 to 1 with Mersenne Twister.
+		fnum =round((endNum-startNum)*rand+startNum); //get an integer in the data range
+		If((fnum == basisHist[i]) || (WhichListItem(num2str(fnum),skipList,";",0,1)!=-1))
+			i-=1; //If file fnum is already in the basis or is in the skipList, get a new fnum.
+		else
+			BatchRun(-1, fnum, 0, skipList);
+			basisHist[i] = fnum;
+		endif
+	endfor
+	
+	GS_CreateBasis(ProjectID);
+	
+	Set_ColdAtomInfo(SavePath)
+	SetDataFolder fldrSav
 end

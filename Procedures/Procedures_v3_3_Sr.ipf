@@ -193,6 +193,7 @@ Function AbsImg_AnalyzeImage(inputimage)
 			res_xsec_col = ((p > qmin) && (p < qmax) ? res_optdepth[pcsr(F,ImageWindowName)][p] : 0);
 			res_xsec_row = ((p > pmin) && (p < pmax) ? res_optdepth[p][qcsr(F,ImageWindowName)] : 0);
 			ThermalUpdateCloudPars(Gauss3D_Coef) // use cursor F to adjust the on-center amplitude
+			FermiDiracFit2D(optdepth)
 		break
 		
 		case 7:	// TriGauss 2D
@@ -2473,9 +2474,9 @@ End
 // ******************** MakeSlice **************************************************************************
 
 // ******************** MakeRadialAverage **************************************************************************
-Function MakeRadialAverage(inputimage,cursorname)
+Function MakeRadialAverage(inputimage,imagetype)
 	Wave inputimage
-	String cursorname
+	Variable imagetype
 	
 	// Get the current path
 	String ProjectFolder = Activate_Top_ColdAtomInfo();
@@ -2486,55 +2487,49 @@ Function MakeRadialAverage(inputimage,cursorname)
 	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel;
 	String ImageWindowName = CurrentPanel + "#ColdAtomInfoImage";
 
-	NVAR width = :Fit_Info:slicewidth
-	Wave slice = :LineProfiles:slice
+	//set where to store the average
+	If(imagetype == 0) //inputimage is optical depth
+		Wave radial = :LineProfiles:RadAvg;
+	elseif(imagetype == 1) //inputimage is the 2D Fermi-Dirac fit
+		Wave radial = :LineProfiles:RadFD;
+	elseif(imagetype == 2) //inputimage is a 2D Gaussian fit
+		Wave radial = :LineProfiles:RadGauss;
+	elseif(imagetype == 3) //inputimage is Fermi-Dirac residuals
+		Wave radial = :LineProfiles:Res_RadFD;
+	elseif(imagetype == 4) //inputimage is Gaussian residuals
+		Wave radial = :LineProfiles:Res_RadGauss;
+	else //just put the image in slice if it's an unexpected imagetype
+		Wave radial = :LineProfiles:Slice;
+	endif
 
-	Make/O/N=100 :Fit_Info:xpts, :Fit_Info:ypts
-	Wave xpts = :Fit_Info:xpts
-	Wave ypts = :Fit_Info:ypts
+	//make waves to store polar transform coordinates
+	Make/O/D/N=100 :Fit_Info:thetapts;
+	Make/O/D/N=30 :Fit_Info:radpts;
+	Wave thetapts = :Fit_Info:thetapts;
+	Wave radpts = :Fit_Info:radpts;
 	
-	Make/O/N=1 W_imageLineProfile;
-	Wave W_imageLineProfile = W_imageLineProfile;
+	thetapts = (2*pi/numpnts(thetapts))*p;
+	variable centerx = hcsr(E,ImageWindowName);
+	variable centery = vcsr(E,ImageWindowName);
+	variable dx1 = abs(hcsr(A,ImageWindowName)-centerx);
+	variable dx2 = abs(hcsr(B,ImageWindowName)-centerx);
+	variable dy1 = abs(vcsr(A,ImageWindowName)-centery);
+	variable dy2 = abs(vcsr(B,ImageWindowName)-centery);
+	variable rmax = min(min(dx1,dx2),min(dy1,dy2));
+	radpts = (rmax/numpnts(radpts))*p;
 
 	// **************************************************
-	// Make the diagional Slice
-	variable DimWidth;
-	xpts = {hcsr(A,ImageWindowName),hcsr(B,ImageWindowName)}
-	ypts = {vcsr(A,ImageWindowName),vcsr(B,ImageWindowName)}
-	ImageLineProfile  xWave=xpts, yWave=ypts, srcwave= inputimage , width = width
-
-	duplicate /O W_imageLineProfile slice
+	// Make the transform to polar coordinates
+	Make/O/D/FREE/N=(numpnts(thetapts),numpnts(radpts)) radTransImage;
 	
-	// Igor normalizes, but I want the true number of counts 
-	slice = slice * 2*(width+0.5)
-	DimWidth = sqrt((xpts[0]-xpts[1])^2 + (ypts[0]-ypts[1])^2) / 2
-	SetScale/I x -Dimwidth,Dimwidth, "", slice
-
-	KillWaves W_imageLineProfile, xpts, ypts;
-	
-	// **************************************************
-	// Make the vert and horz slices
-
-	Wave xsec_col=:Fit_Info:xsec_col, xsec_row=:Fit_Info:xsec_row;
-	Wave fit_xsec_col=:Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row;
-	variable i = 0;
+	radTransImage = interp2D(inputimage,(centerx+radpts[q]*cos(thetapts[p])),(centery+radpts[q]*sin(thetapts[p])));
 
 
 	// **************************************************
-	// define the 1-D crosssections
-	// This creates a slice of the data centered on the selected cursor,
-	// with width neighboring collums averaged.		
-	xsec_col = 0; xsec_row = 0;
-
-	for(i = -floor((width-1)/2) ; i<= floor(width/2); i+=1)
-		xsec_col = xsec_col + inputimage[pcsr($cursorname,ImageWindowName)+i][p]
-	endfor
-	xsec_col = xsec_col/width;
-
-	for(i = -floor((width-1)/2) ; i<= floor(width/2); i+=1)
-		xsec_row = xsec_row + inputimage[p][qcsr($cursorname,ImageWindowName)+i]
-	endfor
-	xsec_row = xsec_row/width;
+	// define the 1-D radial cross-section	
+	
+	MatrixOP/O radial = sumCols(radTransImage)^t;
+	radial = radial/numpnts(thetapts);
 	
 	SetDataFolder fldrSav
 End

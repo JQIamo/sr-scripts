@@ -30,6 +30,8 @@ Menu "ColdAtom"
 	"Set BatchRun base name...", Dialog_SetBasePath();
 	"Copy BatchRun base name...", Dialog_CopyBasePath();
 	"Do BatchRun...", Dialog_DoBatchRun();
+	"-",""
+	"Create GS Basis...", Dialog_GS_CreateBasis()
 End
 //! @endcond
 

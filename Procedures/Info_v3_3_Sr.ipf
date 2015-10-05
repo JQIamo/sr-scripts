@@ -429,10 +429,16 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	New_IndexedWave("detun", ":Experimental_Info:detuning");
 	New_IndexedWave("X_Point_Number", ":IndexedWaves:Index");
 	New_IndexedWave("N2T3",":N2T3var");
+	New_IndexedWave("z_fermi",":fugacity");
 
 
 	Variable/G $(ProjectFolder + ":LineProfiles:slicesource") = 0;
 	make/O/N=100 $(ProjectFolder + ":LineProfiles:Slice")
+	make/O/N=100 $(ProjectFolder + ":LineProfiles:RadAvg")
+	make/O/N=100 $(ProjectFolder + ":LineProfiles:RadFD")
+	make/O/N=100 $(ProjectFolder + ":LineProfiles:RadGauss")
+	make/O/N=100 $(ProjectFolder + ":LineProfiles:Res_RadFD")
+	make/O/N=100 $(ProjectFolder + ":LineProfiles:Res_RadGauss")
 	wave Slice = $(ProjectFolder + ":LineProfiles:Slice")
 
 	// Fitting properties
