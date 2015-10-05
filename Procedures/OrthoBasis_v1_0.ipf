@@ -305,15 +305,14 @@ function Dialog_GS_CreateBasis()
 	//get a random sample of the data range
 	variable i;
 	variable rand, temp, fnum;
-	Make/O/FREE/N=(basisSize) basisHist;
 	For(i=0;i<basisSize;i+=1)
 		rand = (enoise(1, 2)+1)/2; //get a uniform random number from 0 to 1 with Mersenne Twister.
 		fnum =round((endNum-startNum)*rand+startNum); //get an integer in the data range
-		If((fnum == basisHist[i]) || (WhichListItem(num2str(fnum),skipList,";",0,1)!=-1))
+		If(WhichListItem(num2str(fnum),skipList,";",0,1)!=-1)
 			i-=1; //If file fnum is already in the basis or is in the skipList, get a new fnum.
 		else
 			BatchRun(-1, fnum, 0, skipList);
-			basisHist[i] = fnum;
+			skipList= AddListItem(num2str(fnum), skipList);
 		endif
 	endfor
 	

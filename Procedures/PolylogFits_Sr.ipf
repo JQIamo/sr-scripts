@@ -713,7 +713,7 @@ Function FermiDiracFit2D(inputimage)
 	//CurveFitDialog/ w[4] = z0
 	//CurveFitDialog/ w[5] = sigma_z
 	//CurveFitDialog/ w[6] = fugacity
-	Gauss3d_coef[6] = 2; //Initial guess for fugacity
+	Gauss3d_coef[6] = 100000; //Initial guess for fugacity
 	
 	//tic()
 	//This is the original, slower version:
