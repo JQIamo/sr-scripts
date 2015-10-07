@@ -79,7 +79,7 @@ Function AbsImg_AnalyzeImage(inputimage)
 	//						E: black crosshair (initial fit center mark).
 	//						F: yellow/green square (fitted center, displayed slices point)
 	
-	If (fit_Type < 10)
+	If (fit_Type < 11)
 		switch(findmax)
 			case 1:	// Max value in the ROI
 				ImageStats /M=1 /GS={(xmin),(xmax),(ymin),(ymax)} optdepth  // output globals: V_min, V_minColLoc, V_minRowLoc, (similar for max)
@@ -193,7 +193,7 @@ Function AbsImg_AnalyzeImage(inputimage)
 			res_xsec_col = ((p > qmin) && (p < qmax) ? res_optdepth[pcsr(F,ImageWindowName)][p] : 0);
 			res_xsec_row = ((p > pmin) && (p < pmax) ? res_optdepth[p][qcsr(F,ImageWindowName)] : 0);
 			ThermalUpdateCloudPars(Gauss3D_Coef) // use cursor F to adjust the on-center amplitude
-			FermiDiracFit2D(optdepth)
+			//FermiDiracFit2D(optdepth)
 		break
 		
 		case 7:	// TriGauss 2D
@@ -234,6 +234,21 @@ Function AbsImg_AnalyzeImage(inputimage)
 			
 			ThermalUpdateCloudPars(Gauss3D_Coef) // use cursor F to adjust the on-center amplitude
 		break	
+		
+		case 10:	// Fermi-Dirac 2D
+			FermiDiracFit2D(optdepth) //Do a full 2D Fermi Dirac fit
+			GetCounts(optdepth)
+			UpdateCursor(Gauss3d_coef, "F");	 // put cursor F on fit center
+			MakeSlice(OptDepth,"F");
+			Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row, fit_optdepth=:Fit_Info:fit_optdepth
+			Wave res_xsec_col = :Fit_Info:res_xsec_col, res_xsec_row=:Fit_Info:res_xsec_row, res_optdepth=:Fit_Info:res_optdepth
+			fit_xsec_col = ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)][p] : 0);
+			fit_xsec_row = ((p > pmin) && (p < pmax) ? fit_optdepth[p][qcsr(F,ImageWindowName)] : 0);
+			res_xsec_col = ((p > qmin) && (p < qmax) ? res_optdepth[pcsr(F,ImageWindowName)][p] : 0);
+			res_xsec_row = ((p > pmin) && (p < pmax) ? res_optdepth[p][qcsr(F,ImageWindowName)] : 0);
+			ThermalUpdateCloudPars(Gauss3D_Coef) // use cursor F to adjust the on-center amplitude
+			FDUpdateCloudPars(Gauss3D_Coef)
+		break
 			
 		default: // Do nothing, just count counts
 			GetCounts(optdepth)
@@ -2069,6 +2084,19 @@ Function ThermalUpdateCloudPars(Gauss3D_coef)
 	density_BEC = NAN; density_BEC_t0 = NAN; absdensity_BEC_t0=NAN;
 
 	SetDataFolder fldrSav	
+End
+
+Function FDUpdateCloudPars(Gauss3D_coef)	
+	Wave Gauss3D_coef
+
+	// Get the current path
+	String ProjectFolder = Activate_Top_ColdAtomInfo();
+	String fldrSav= GetDataFolder(1)
+	SetDataFolder ProjectFolder
+
+	NVAR fugacity = :fugacity
+	fugacity = Gauss3d_coef[6]
+	Print CalcTTf(fugacity)
 End
 // ******************** ThermalUpdateCloudPars *****************************************************************************
 
