@@ -624,7 +624,7 @@ Function FermiDiracFit2D(inputimage)
 	NVAR ymax=:fit_info:ymax, ymin=:fit_info:ymin
 	NVAR DoRealMask = :fit_info:DoRealMask
 	NVAR PeakOD = :Experimental_Info:PeakOD
-	NVAR fugacity = :fugacity
+	//NVAR fugacity = :fugacity
 
 	// Coefficent wave	
 	make/O/N=7 :Fit_Info:Gauss3d_coef
@@ -724,7 +724,7 @@ Function FermiDiracFit2D(inputimage)
 	//toc()
 	
 	//print Gauss3d_coef; //temporary
-	fugacity = Gauss3d_coef[6]
+	//fugacity = Gauss3d_coef[6]
 
 	wave W_sigma = :W_sigma;
 	//store the fitting errors - come back and update this once I figure out the right format
@@ -748,12 +748,12 @@ Function FermiDiracFit2D(inputimage)
 	MakeRadialAverage(inputimage,0);
 	
 	//update slices, possibly move this elsewhere
-	Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row
-	Wave res_xsec_col = :Fit_Info:res_xsec_col, res_xsec_row=:Fit_Info:res_xsec_row
-	fit_xsec_col = ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)][p] : 0);
-	fit_xsec_row = ((p > pmin) && (p < pmax) ? fit_optdepth[p][qcsr(F,ImageWindowName)] : 0);
-	res_xsec_col = ((p > qmin) && (p < qmax) ? res_optdepth[pcsr(F,ImageWindowName)][p] : 0);
-	res_xsec_row = ((p > pmin) && (p < pmax) ? res_optdepth[p][qcsr(F,ImageWindowName)] : 0);
+	//Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row
+	//Wave res_xsec_col = :Fit_Info:res_xsec_col, res_xsec_row=:Fit_Info:res_xsec_row
+	//fit_xsec_col = ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)][p] : 0);
+	//fit_xsec_row = ((p > pmin) && (p < pmax) ? fit_optdepth[p][qcsr(F,ImageWindowName)] : 0);
+	//res_xsec_col = ((p > qmin) && (p < qmax) ? res_optdepth[pcsr(F,ImageWindowName)][p] : 0);
+	//res_xsec_row = ((p > pmin) && (p < pmax) ? res_optdepth[p][qcsr(F,ImageWindowName)] : 0);
 	
 	killwaves inputimage_mask, inputimage_weight;
 		
