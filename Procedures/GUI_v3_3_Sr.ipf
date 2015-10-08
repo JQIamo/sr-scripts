@@ -1392,6 +1392,12 @@ function BuildSrWindow(ProjectFolder)
 	//Add FDG group box
 	GroupBox TrapProps10,pos={500,275},size={210,75},title="Degenerate Fermi Gas properties"
 	GroupBox TrapProps10,fSize=11
+	
+	SetVariable fug,pos={522,290},size={95,16},bodyWidth=60,title="Fugacity"
+	SetVariable fug,limits={-inf,inf,0},value= :fugacity,noedit= 1
+	
+	SetVariable T_Tf,pos={522,310},size={95,16},bodyWidth=60,title="T/Tf"
+	SetVariable T_Tf,limits={0,inf,0},value= :TTf,noedit= 1
 
 	SetVariable Xpos,pos={284,41},size={51,16},bodyWidth=40,title="X"
 	SetVariable Xpos,limits={-inf,inf,0},value= :xposition,noedit= 1
