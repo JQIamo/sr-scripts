@@ -558,8 +558,10 @@ Function TF_FD_2D_AAO(pw,yw,xw,zw) : FitFunc
 	Variable waveSize = numpnts(xw);
 	Make/D/FREE/O/N=(waveSize) tempW1, tempW2;
 	Variable tempV = DiLogApprox(-pw[6]);
-	Variable fac1 = -1/(2*pw[3]^2);
+	
+	Variable fac1 = -1/(2*pw[3]^2); 
 	Variable fac2 = -1/(2*pw[5]^2);
+
 	MatrixOP /O tempW1 = fac1*(xw-pw[2])*(xw-pw[2]) + fac2*(zw-pw[4])*(zw-pw[4]) ;
 	//MatrixOP /O tempW1 =  -(1/2)*(powR((xw-pw[2])/pw[3],2) + powR((zw-pw[4])/pw[5],2)) ;
 	
@@ -624,7 +626,6 @@ Function FermiDiracFit2D(inputimage)
 	NVAR ymax=:fit_info:ymax, ymin=:fit_info:ymin
 	NVAR DoRealMask = :fit_info:DoRealMask
 	NVAR PeakOD = :Experimental_Info:PeakOD
-	//NVAR fugacity = :fugacity
 
 	// Coefficent wave	
 	make/O/N=7 :Fit_Info:Gauss3d_coef
@@ -633,7 +634,7 @@ Function FermiDiracFit2D(inputimage)
 	Wave res_optdepth = :fit_info:res_optdepth
 	
 	// wave to store confidence intervals
-	make/O/N=12 :Fit_Info:G3d_confidence
+	make/O/N=10 :Fit_Info:G3d_confidence
 	Wave G3d_confidence=:Fit_Info:G3d_confidence	
 
 	string Hold;
@@ -692,7 +693,7 @@ Function FermiDiracFit2D(inputimage)
 	
 	//Fit with 2D Gaussian:
 	CurveFit /G/N/Q/H="0000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask /R=res_optdepth
-	//Gauss3d_coef[3] *= sqrt(2); Gauss3d_coef[5] *= sqrt(2);
+	
 	//make radial average of the gaussian
 	// Update Display Waves
 	variable pmax = (xmax - DimOffset(inputimage, 0))/DimDelta(inputimage,0);
@@ -703,7 +704,7 @@ Function FermiDiracFit2D(inputimage)
 	MakeRadialAverage(fit_optdepth,2);
 	MakeRadialAverage(res_optdepth,4);
 	//toc()
-	// Note the sqt(2) on the widths -- this is due to differing definitions of 1D and 2D gaussians in igor
+	
 	
 	//2D Fermi Dirac Fit uses the following parameters:
 	//CurveFitDialog/ w[0] = offset
@@ -723,23 +724,23 @@ Function FermiDiracFit2D(inputimage)
 	FuncFitMD/G/N/Q/H="0000000" TF_FD_2D_AAO, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight 
 	//toc()
 	
+	
+	
 	//print Gauss3d_coef; //temporary
 	//fugacity = Gauss3d_coef[6]
 
 	wave W_sigma = :W_sigma;
-	//store the fitting errors - come back and update this once I figure out the right format
+	//store the fitting errors 
 	G3d_confidence[0] = W_sigma[0];
 	G3d_confidence[1] = W_sigma[1];
 	G3d_confidence[2] = W_sigma[2];
-	G3d_confidence[3] = W_sigma[3];
+	G3d_confidence[3] = sqrt(2)*W_sigma[3];
 	G3d_confidence[4] = W_sigma[4];
-	G3d_confidence[5] = W_sigma[5];
+	G3d_confidence[5] = sqrt(2)*W_sigma[5];
 	G3d_confidence[6] = W_sigma[6];
-	G3d_confidence[7] = W_sigma[7];
-	G3d_confidence[8] = W_sigma[8];
-	G3d_confidence[9] = V_chisq;
-	G3d_confidence[10] = V_npnts-V_nterms;
-	G3d_confidence[11] = G3d_confidence[9]/G3d_confidence[10];
+	G3d_confidence[7] = V_chisq;
+	G3d_confidence[8] = V_npnts-V_nterms;
+	G3d_confidence[9] = G3d_confidence[9]/G3d_confidence[10];
 	
 	// Update Display Waves
 	fit_optdepth[pmin,pmax][qmin,qmax] = TF_FD_2D(Gauss3d_coef,x,y)
@@ -747,13 +748,8 @@ Function FermiDiracFit2D(inputimage)
 	MakeRadialAverage(res_optdepth,3);
 	MakeRadialAverage(inputimage,0);
 	
-	//update slices, possibly move this elsewhere
-	//Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row
-	//Wave res_xsec_col = :Fit_Info:res_xsec_col, res_xsec_row=:Fit_Info:res_xsec_row
-	//fit_xsec_col = ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)][p] : 0);
-	//fit_xsec_row = ((p > pmin) && (p < pmax) ? fit_optdepth[p][qcsr(F,ImageWindowName)] : 0);
-	//res_xsec_col = ((p > qmin) && (p < qmax) ? res_optdepth[pcsr(F,ImageWindowName)][p] : 0);
-	//res_xsec_row = ((p > pmin) && (p < pmax) ? res_optdepth[p][qcsr(F,ImageWindowName)] : 0);
+	// Note the sqt(2) on the widths -- this is due to differing definitions of 1D and 2D gaussians in igor
+	Gauss3d_coef[3] *= sqrt(2); Gauss3d_coef[5] *= sqrt(2);
 	
 	killwaves inputimage_mask, inputimage_weight;
 		
