@@ -2095,8 +2095,9 @@ Function FDUpdateCloudPars(Gauss3D_coef)
 	SetDataFolder ProjectFolder
 
 	NVAR fugacity = :fugacity
+	NVAR TTf = :TTf
 	fugacity = Gauss3d_coef[6]
-	Print CalcTTf(fugacity)
+	TTf = CalcTTf(fugacity)
 End
 // ******************** ThermalUpdateCloudPars *****************************************************************************
 
