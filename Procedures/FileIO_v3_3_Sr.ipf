@@ -426,7 +426,8 @@ Function Load_Img(ImageName,FileName)
 				strswitch(ImageDirection)
 					case "XY":
 						//single axis imaging XY ISatCounts goes here
-						ISatCounts = 14650;     //measurement on 6/30/2014 for Sr
+						//ISatCounts = 14650;     //measurement on 6/30/2014 for Sr
+						ISatCounts = 12851;     //measurement on 12/11/2015 for Sr
 						//ISatCounts = inf;
 					break;
 					case "XZ":
@@ -584,7 +585,10 @@ Function Load_Img(ImageName,FileName)
 					//SetScale/P x, -64, 1, sigma87
 					//SetScale/P y, .001, .01, sigma87
 					variable temp = 31.99*detuning
-					Isat = (Isat[p][q] > .001 ? (Isat[p][q] < 1 ? interp2d(sigma87, temp, Isat[p][q]) : interp(temp,Dets,highS)) : interp(temp,Dets,lowS));
+					//The strange upper bound in the IF statement below prevents unintended NaNs.
+					//A better solution would be to remake the Sr87sigma lookup table so that it contains at least one more saturation point.
+					//I'll do this when I update it to properly account for a circularly polarized probe beam
+					Isat = (Isat[p][q] > .001 ? (Isat[p][q] < .991 ? interp2d(sigma87, temp, Isat[p][q]) : interp(temp,Dets,highS)) : interp(temp,Dets,lowS));
 					//Isat is now a local, relative (to peak bosonic Sr absorption), absorption cross-section and not the local saturation parameter
 					ImageName = -(ln(ImageName))/Isat
 				elseif((isotope==1)||(isotope==2)||(isotope==4))	//case Sr88, Sr86, Sr84
@@ -623,7 +627,7 @@ Function Load_Img(ImageName,FileName)
 	
 	if (RotateImage)
 		NVAR RotAng = :Experimental_Info:RotAng;
-		RotAng = 9;	//check by minimizing crosscorrelation term in 2D thermal fit on PIXIS
+		RotAng = 45;	//check by minimizing crosscorrelation term in 2D thermal fit on PIXIS
 		//RotAng = 52;
 		ImageRotate/Q/O/E=0/A=(RotAng) ImageName;
 		Update_Magnification();			// CDH: why is this here??	
