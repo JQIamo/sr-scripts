@@ -2053,6 +2053,8 @@ Function SetROI(ctrlName,popNum,popStr) : PopupMenuControl
 
 	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel;
 	String WindowName = CurrentPanel + "#ColdAtomInfoImage";
+	String SecWindowName = CurrentPanel + "#ColdAtomInfoSections";
+	
 	
 	NVAR ymax=:fit_info:ymax,ymin=:fit_info:ymin;
 	NVAR xmax=:fit_info:xmax,xmin=:fit_info:xmin;
@@ -2126,6 +2128,8 @@ Function SetROI(ctrlName,popNum,popStr) : PopupMenuControl
 			break;
 		case 2:	// Set the View to the ROI
 			SetAxis/W=$(WindowName) left ymin, ymax;
+			SetAxis/W=$(SecWindowName) bottom ymin, ymax;
+			SetAxis/W=$(SecWindowName) top xmin, xmax;
 			
 			// If we are the pixelfly reverse the X axes
 			if (stringmatch(Camera,"PixelFly") == 1)
@@ -2138,6 +2142,8 @@ Function SetROI(ctrlName,popNum,popStr) : PopupMenuControl
 			break;
 		case 3: // Zoom to the ROI
 			SetAxis/W=$(WindowName) left ymin, ymax	;
+			SetAxis/W=$(SecWindowName) bottom ymin, ymax;
+			SetAxis/W=$(SecWindowName) top xmin, xmax;
 			
 			// If we are the pixelfly reverse the X axes
 			if (stringmatch(Camera,"PixelFly") == 1)
@@ -2148,7 +2154,9 @@ Function SetROI(ctrlName,popNum,popStr) : PopupMenuControl
 
 			break
 		case 4: // Unzoom
-			SetAxis/W=$(WindowName)/A left;					
+			SetAxis/W=$(WindowName)/A left;
+			SetAxis/A/W=$(SecWindowName) bottom;
+			SetAxis/A/W=$(SecWindowName) top;					
 
 			// If we are the pixelfly reverse the X axes
 			if (stringmatch(Camera,"PixelFly") == 1)
