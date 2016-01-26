@@ -97,6 +97,7 @@ Function AbsImg_AnalyzeImage(inputimage)
 	
 	// Fit types:
 	
+	variable i=0;
 	switch(fit_type)
 		case 1:	// Thermal 1D
 			SimpleThermalFit1D(optdepth,"E"); 	 // do a simple thermal fit (gaussian) based on cursor E.
@@ -153,10 +154,24 @@ Function AbsImg_AnalyzeImage(inputimage)
 			GetCounts(optdepth)
 			Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row, fit_optdepth=:Fit_Info:fit_optdepth
 			Wave res_xsec_col = :Fit_Info:res_xsec_col, res_xsec_row=:Fit_Info:res_xsec_row, res_optdepth=:Fit_Info:res_optdepth
-			fit_xsec_col = ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)][p] : 0);
-			fit_xsec_row = ((p > pmin) && (p < pmax) ? fit_optdepth[p][qcsr(F,ImageWindowName)] : 0);
-			res_xsec_col = ((p > qmin) && (p < qmax) ? res_optdepth[pcsr(F,ImageWindowName)][p] : 0);
-			res_xsec_row = ((p > pmin) && (p < pmax) ? res_optdepth[p][qcsr(F,ImageWindowName)] : 0);
+			NVAR width = :Fit_Info:slicewidth
+			fit_xsec_col = 0;
+			fit_xsec_row = 0;
+			res_xsec_col = 0;
+			res_xsec_row = 0;
+			
+			for(i = -floor((width-1)/2) ; i<= floor(width/2); i+=1)
+				fit_xsec_col = fit_xsec_col + ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)+i][p] : 0);
+				fit_xsec_row = fit_xsec_row + ((p > pmin) && (p < pmax) ? fit_optdepth[p][qcsr(F,ImageWindowName)+i] : 0);
+				res_xsec_col = res_xsec_col + ((p > qmin) && (p < qmax) ? res_optdepth[pcsr(F,ImageWindowName)+i][p] : 0);
+				res_xsec_row = res_xsec_row + ((p > pmin) && (p < pmax) ? res_optdepth[p][qcsr(F,ImageWindowName)+i] : 0);
+			endfor
+			
+			fit_xsec_col = fit_xsec_col/width;
+			fit_xsec_row = fit_xsec_row/width;
+			res_xsec_col = res_xsec_col/width;
+			res_xsec_row = res_xsec_row/width;
+			
 			ThermalUpdateCloudPars(Gauss3D_Coef) // use cursor F to adjust the on-center amplitude
 			TFUpdateCloudPars(Gauss3d_coef, fit_type)
 		break
@@ -173,10 +188,23 @@ Function AbsImg_AnalyzeImage(inputimage)
 			GetCounts(optdepth)
 			Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row, fit_optdepth=:Fit_Info:fit_optdepth
 			Wave res_xsec_col = :Fit_Info:res_xsec_col, res_xsec_row=:Fit_Info:res_xsec_row, res_optdepth=:Fit_Info:res_optdepth
-			fit_xsec_col = ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)][p] : 0);
-			fit_xsec_row = ((p > pmin) && (p < pmax) ? fit_optdepth[p][qcsr(F,ImageWindowName)] : 0);
-			res_xsec_col = ((p > qmin) && (p < qmax) ? res_optdepth[pcsr(F,ImageWindowName)][p] : 0);
-			res_xsec_row = ((p > pmin) && (p < pmax) ? res_optdepth[p][qcsr(F,ImageWindowName)] : 0);
+			NVAR width = :Fit_Info:slicewidth
+			fit_xsec_col = 0;
+			fit_xsec_row = 0;
+			res_xsec_col = 0;
+			res_xsec_row = 0;
+			
+			for(i = -floor((width-1)/2) ; i<= floor(width/2); i+=1)
+				fit_xsec_col = fit_xsec_col + ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)+i][p] : 0);
+				fit_xsec_row = fit_xsec_row + ((p > pmin) && (p < pmax) ? fit_optdepth[p][qcsr(F,ImageWindowName)+i] : 0);
+				res_xsec_col = res_xsec_col + ((p > qmin) && (p < qmax) ? res_optdepth[pcsr(F,ImageWindowName)+i][p] : 0);
+				res_xsec_row = res_xsec_row + ((p > pmin) && (p < pmax) ? res_optdepth[p][qcsr(F,ImageWindowName)+i] : 0);
+			endfor
+			
+			fit_xsec_col = fit_xsec_col/width;
+			fit_xsec_row = fit_xsec_row/width;
+			res_xsec_col = res_xsec_col/width;
+			res_xsec_row = res_xsec_row/width;
 			
 			TFUpdateCloudPars(Gauss3d_coef, fit_type)
 		break
@@ -188,10 +216,24 @@ Function AbsImg_AnalyzeImage(inputimage)
 			MakeSlice(OptDepth,"F");
 			Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row, fit_optdepth=:Fit_Info:fit_optdepth
 			Wave res_xsec_col = :Fit_Info:res_xsec_col, res_xsec_row=:Fit_Info:res_xsec_row, res_optdepth=:Fit_Info:res_optdepth
-			fit_xsec_col = ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)][p] : 0);
-			fit_xsec_row = ((p > pmin) && (p < pmax) ? fit_optdepth[p][qcsr(F,ImageWindowName)] : 0);
-			res_xsec_col = ((p > qmin) && (p < qmax) ? res_optdepth[pcsr(F,ImageWindowName)][p] : 0);
-			res_xsec_row = ((p > pmin) && (p < pmax) ? res_optdepth[p][qcsr(F,ImageWindowName)] : 0);
+			NVAR width = :Fit_Info:slicewidth
+			fit_xsec_col = 0;
+			fit_xsec_row = 0;
+			res_xsec_col = 0;
+			res_xsec_row = 0;
+			
+			for(i = -floor((width-1)/2) ; i<= floor(width/2); i+=1)
+				fit_xsec_col = fit_xsec_col + ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)+i][p] : 0);
+				fit_xsec_row = fit_xsec_row + ((p > pmin) && (p < pmax) ? fit_optdepth[p][qcsr(F,ImageWindowName)+i] : 0);
+				res_xsec_col = res_xsec_col + ((p > qmin) && (p < qmax) ? res_optdepth[pcsr(F,ImageWindowName)+i][p] : 0);
+				res_xsec_row = res_xsec_row + ((p > pmin) && (p < pmax) ? res_optdepth[p][qcsr(F,ImageWindowName)+i] : 0);
+			endfor
+			
+			fit_xsec_col = fit_xsec_col/width;
+			fit_xsec_row = fit_xsec_row/width;
+			res_xsec_col = res_xsec_col/width;
+			res_xsec_row = res_xsec_row/width;
+			
 			ThermalUpdateCloudPars(Gauss3D_Coef) // use cursor F to adjust the on-center amplitude
 			//FermiDiracFit2D(optdepth)
 		break
@@ -203,10 +245,24 @@ Function AbsImg_AnalyzeImage(inputimage)
 			MakeSlice(OptDepth,"F");
 			Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row, fit_optdepth=:Fit_Info:fit_optdepth
 			Wave res_xsec_col = :Fit_Info:res_xsec_col, res_xsec_row=:Fit_Info:res_xsec_row, res_optdepth=:Fit_Info:res_optdepth
-			fit_xsec_col = ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)][p] : 0);
-			fit_xsec_row = ((p > pmin) && (p < pmax) ? fit_optdepth[p][qcsr(F,ImageWindowName)] : 0);
-			res_xsec_col = ((p > qmin) && (p < qmax) ? res_optdepth[pcsr(F,ImageWindowName)][p] : 0);
-			res_xsec_row = ((p > pmin) && (p < pmax) ? res_optdepth[p][qcsr(F,ImageWindowName)] : 0);
+			NVAR width = :Fit_Info:slicewidth
+			fit_xsec_col = 0;
+			fit_xsec_row = 0;
+			res_xsec_col = 0;
+			res_xsec_row = 0;
+			
+			for(i = -floor((width-1)/2) ; i<= floor(width/2); i+=1)
+				fit_xsec_col = fit_xsec_col + ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)+i][p] : 0);
+				fit_xsec_row = fit_xsec_row + ((p > pmin) && (p < pmax) ? fit_optdepth[p][qcsr(F,ImageWindowName)+i] : 0);
+				res_xsec_col = res_xsec_col + ((p > qmin) && (p < qmax) ? res_optdepth[pcsr(F,ImageWindowName)+i][p] : 0);
+				res_xsec_row = res_xsec_row + ((p > pmin) && (p < pmax) ? res_optdepth[p][qcsr(F,ImageWindowName)+i] : 0);
+			endfor
+			
+			fit_xsec_col = fit_xsec_col/width;
+			fit_xsec_row = fit_xsec_row/width;
+			res_xsec_col = res_xsec_col/width;
+			res_xsec_row = res_xsec_row/width;
+			
 			ThermalUpdateCloudPars(Gauss3D_Coef) // use cursor F to adjust the on-center amplitude
 		break
 			
@@ -217,10 +273,24 @@ Function AbsImg_AnalyzeImage(inputimage)
 			MakeSlice(OptDepth,"F");
 			Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row, fit_optdepth=:Fit_Info:fit_optdepth
 			Wave res_xsec_col = :Fit_Info:res_xsec_col, res_xsec_row=:Fit_Info:res_xsec_row, res_optdepth=:Fit_Info:res_optdepth
-			fit_xsec_col = ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)][p] : 0);
-			fit_xsec_row = ((p > pmin) && (p < pmax) ? fit_optdepth[p][qcsr(F,ImageWindowName)] : 0);
-			res_xsec_col = ((p > qmin) && (p < qmax) ? res_optdepth[pcsr(F,ImageWindowName)][p] : 0);
-			res_xsec_row = ((p > pmin) && (p < pmax) ? res_optdepth[p][qcsr(F,ImageWindowName)] : 0);
+			NVAR width = :Fit_Info:slicewidth
+			fit_xsec_col = 0;
+			fit_xsec_row = 0;
+			res_xsec_col = 0;
+			res_xsec_row = 0;
+			
+			for(i = -floor((width-1)/2) ; i<= floor(width/2); i+=1)
+				fit_xsec_col = fit_xsec_col + ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)+i][p] : 0);
+				fit_xsec_row = fit_xsec_row + ((p > pmin) && (p < pmax) ? fit_optdepth[p][qcsr(F,ImageWindowName)+i] : 0);
+				res_xsec_col = res_xsec_col + ((p > qmin) && (p < qmax) ? res_optdepth[pcsr(F,ImageWindowName)+i][p] : 0);
+				res_xsec_row = res_xsec_row + ((p > pmin) && (p < pmax) ? res_optdepth[p][qcsr(F,ImageWindowName)+i] : 0);
+			endfor
+			
+			fit_xsec_col = fit_xsec_col/width;
+			fit_xsec_row = fit_xsec_row/width;
+			res_xsec_col = res_xsec_col/width;
+			res_xsec_row = res_xsec_row/width;
+			
 			ThermalUpdateCloudPars(Gauss3D_Coef) // use cursor F to adjust the on-center amplitude
 		break
 		
@@ -242,10 +312,24 @@ Function AbsImg_AnalyzeImage(inputimage)
 			MakeSlice(OptDepth,"F");
 			Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row, fit_optdepth=:Fit_Info:fit_optdepth
 			Wave res_xsec_col = :Fit_Info:res_xsec_col, res_xsec_row=:Fit_Info:res_xsec_row, res_optdepth=:Fit_Info:res_optdepth
-			fit_xsec_col = ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)][p] : 0);
-			fit_xsec_row = ((p > pmin) && (p < pmax) ? fit_optdepth[p][qcsr(F,ImageWindowName)] : 0);
-			res_xsec_col = ((p > qmin) && (p < qmax) ? res_optdepth[pcsr(F,ImageWindowName)][p] : 0);
-			res_xsec_row = ((p > pmin) && (p < pmax) ? res_optdepth[p][qcsr(F,ImageWindowName)] : 0);
+			NVAR width = :Fit_Info:slicewidth
+			fit_xsec_col = 0;
+			fit_xsec_row = 0;
+			res_xsec_col = 0;
+			res_xsec_row = 0;
+			
+			for(i = -floor((width-1)/2) ; i<= floor(width/2); i+=1)
+				fit_xsec_col = fit_xsec_col + ((p > qmin) && (p < qmax) ? fit_optdepth[pcsr(F,ImageWindowName)+i][p] : 0);
+				fit_xsec_row = fit_xsec_row + ((p > pmin) && (p < pmax) ? fit_optdepth[p][qcsr(F,ImageWindowName)+i] : 0);
+				res_xsec_col = res_xsec_col + ((p > qmin) && (p < qmax) ? res_optdepth[pcsr(F,ImageWindowName)+i][p] : 0);
+				res_xsec_row = res_xsec_row + ((p > pmin) && (p < pmax) ? res_optdepth[p][qcsr(F,ImageWindowName)+i] : 0);
+			endfor
+			
+			fit_xsec_col = fit_xsec_col/width;
+			fit_xsec_row = fit_xsec_row/width;
+			res_xsec_col = res_xsec_col/width;
+			res_xsec_row = res_xsec_row/width;
+			
 			ThermalUpdateCloudPars(Gauss3D_Coef) // use cursor F to adjust the on-center amplitude
 			FDUpdateCloudPars(Gauss3D_Coef)
 		break
@@ -2559,6 +2643,7 @@ Function MakeRadialAverage(inputimage,imagetype)
 	
 	MatrixOP/O radial = sumCols(radTransImage)^t;
 	radial = radial/numpnts(thetapts);
+	SetScale/P x, 0, (rmax/numpnts(radpts)), radial
 	
 	SetDataFolder fldrSav
 End
