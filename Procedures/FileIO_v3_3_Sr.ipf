@@ -574,21 +574,41 @@ Function Load_Img(ImageName,FileName)
 					//If there is an error, the data for Sr87sigma can be found with Englebert in the AeroFS folder
 					//use the generic load waves dialog to import
 					SetDataFolder "root:Packages:Sr87CrossSect";
-					Wave sigma87 = :Sr87sigma;
-					Wave highS =:Sr87sigma_highS;
-					Wave lowS = :Sr87sigma_lowS;
+					
+					strswitch(ImageDirection)
+					case "XY":
+						//The vertical imaging axis uses a circularly polarized probe beam.
+						Wave sigma87 = :Sr87sigmaCircular;
+						Wave highS = :Sr87sigmaCircular_highS;
+						Wave lowS = :Sr87sigmaCircular_lowS;
+					break;
+					case "XZ":
+						//The horizontal imaging axis uses a linearly polarized probe beam.
+						Wave sigma87 = :Sr87sigmaLinear;
+						Wave highS = :Sr87sigmaLinear_highS;
+						Wave lowS = :Sr87sigmaLinear_lowS;
+					break;
+					default:
+						//default to linear polarization
+						Wave sigma87 = :Sr87sigmaLinear;
+						Wave highS = :Sr87sigmaLinear_highS;
+						Wave lowS = :Sr87sigmaLinear_lowS;
+					break;
+				endswitch
+					
+					//always need the detunings, which do not depend on image direction
 					Wave Dets = :Detunings;
 					SetDataFolder ProjectFolder;
 					
 					//If you had to reload the 87sigma wave, you MUST uncomment the following two lines
 					//the first time a new image is loaded so that the interpolation works properly.
-					//SetScale/P x, -64, 1, sigma87
-					//SetScale/P y, .001, .01, sigma87
+					//I'm just going to leave them uncommented to be safe. DSB - 2016
+					SetScale/P x, -64, 1, sigma87
+					SetScale/P y, .001, .01, sigma87
 					variable temp = 31.99*detuning
-					//The strange upper bound in the IF statement below prevents unintended NaNs.
-					//A better solution would be to remake the Sr87sigma lookup table so that it contains at least one more saturation point.
-					//I'll do this when I update it to properly account for a circularly polarized probe beam
-					Isat = (Isat[p][q] > .001 ? (Isat[p][q] < .991 ? interp2d(sigma87, temp, Isat[p][q]) : interp(temp,Dets,highS)) : interp(temp,Dets,lowS));
+					//keep an eye out for NaNs in the Isat image since that indicates that there are problems with the Sr87 sigma lookup tables.
+					//The new lookup tables should not have a NaN problem, but...
+					Isat = (Isat[p][q] > .001 ? (Isat[p][q] < 5.001 ? interp2d(sigma87, temp, Isat[p][q]) : interp(temp,Dets,highS)) : interp(temp,Dets,lowS));
 					//Isat is now a local, relative (to peak bosonic Sr absorption), absorption cross-section and not the local saturation parameter
 					ImageName = -(ln(ImageName))/Isat
 				elseif((isotope==1)||(isotope==2)||(isotope==4))	//case Sr88, Sr86, Sr84
