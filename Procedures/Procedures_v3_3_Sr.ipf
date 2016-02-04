@@ -2642,3 +2642,171 @@ Function CropImage(Image, x0, y0, x1, y1)
 End
 // ******************** CropImage **************************************************************************
 
+Function Gauss2DwithRot(w,x,z) : FitFunc
+	Wave w
+	Variable x
+	Variable z
+	
+	//CurveFitDialog/ These comments were created by the Curve Fitting dialog. Altering them will
+	//CurveFitDialog/ make the function less convenient to work with in the Curve Fitting dialog.
+	//CurveFitDialog/ Equation:
+	//CurveFitDialog/ f(x) = offset + A*exp( -(a(x-x0)^2 -2b(x-x0)(z-z0) +c(y-y0)^2 ) ), a = cos(theta)^2/(2sigma_x^2) + sin(theta)^2/(2sigma_z^2), b=-sin(2*theta)/(4sigma_x^2) + sin(2*theta)/(4sigma_z^2), c = sin(theta)^2/(2sigma_x^2) + cos(theta)^2/(2sigma_z^2),
+	//CurveFitDialog/ End of Equation
+	//CurveFitDialog/ Independent Variables 2
+	//CurveFitDialog/ x
+	//CurveFitDialog/ z
+	//CurveFitDialog/ Coefficients 7
+	//CurveFitDialog/ w[0] = offset
+	//CurveFitDialog/ w[1] = A
+	//CurveFitDialog/ w[2] = x0
+	//CurveFitDialog/ w[3] = sigma_x
+	//CurveFitDialog/ w[4] = z0
+	//CurveFitDialog/ w[5] = sigma_z
+	//CurveFitDialog/ w[6] = theta
+	
+	Variable a
+	Variable b
+	Variable c
+	a = cos(w[6])^2/(2*w[3]^2) + sin(w[6])^2/(2*w[5]^2);
+	b = -sin(2*w[6])/(4*w[3]^2) + sin(2*w[6])/(4*w[5]^2)
+	c = sin(w[6])^2/(2*w[3]^2) + cos(w[6])^2/(2*w[5]^2)
+	return w[0] + w[1]*exp( -(a*(x-w[2])^2 -2*b*(x-w[2])*(z-w[4])+ c*(z-w[4])^2 ) );
+End
+
+Function GaussRotate2DFit(inputimage)
+	Wave inputimage
+	
+	// Get the current path and active windows
+	String ProjectFolder = Activate_Top_ColdAtomInfo();
+	String fldrSav= GetDataFolder(1)
+	SetDataFolder ProjectFolder
+	
+	// Discover the name of the current image window
+	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel;
+	String ImageWindowName = CurrentPanel + "#ColdAtomInfoImage";
+
+	NVAR xmax=:fit_info:xmax, xmin=:fit_info:xmin
+	NVAR ymax=:fit_info:ymax, ymin=:fit_info:ymin
+	NVAR DoRealMask = :fit_info:DoRealMask
+	NVAR PeakOD = :Experimental_Info:PeakOD
+
+	// Coefficent wave	
+	make/O/N=7 :Fit_Info:Gauss3d_coef
+	Wave Gauss3d_coef=:Fit_Info:Gauss3d_coef
+	Wave fit_optdepth = :Fit_Info:fit_optdepth;
+	Wave res_optdepth = :fit_info:res_optdepth
+	
+	// wave to store confidence intervals
+	make/O/N=10 :Fit_Info:G3d_confidence
+	Wave G3d_confidence=:Fit_Info:G3d_confidence	
+
+	string Hold;
+	
+	variable bgxmax, bgxmin;
+	variable bgymax, bgymin;
+	variable background, bg_sdev;
+
+	// Get the background average
+	
+	bgymax = max(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgymin = min(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgxmax = max(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
+	bgxmin = min(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
+	
+	Duplicate /O inputimage, bg_mask;
+	bg_mask *= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? 1 : 0);
+	background = sum(bg_mask)/((bgxmax-bgxmin)*(bgymax-bgymin));
+	bg_mask -= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? background : 0);
+	bg_mask = bg_mask^2;
+	bg_sdev = sqrt(sum(bg_mask)/((bgxmax-bgxmin)*(bgymax-bgymin)-1))
+	
+	// Create weight waves which softly eliminate regions which have an excessive OD from the fit
+	Duplicate /O inputimage, inputimage_mask, inputimage_weight;
+	If(DoRealMask)
+	
+		//Create mask waves to have a hard boundary at PeakOD if desired.
+		inputimage_mask = (inputimage[p][q] > PeakOD ? 0 : 1);
+		inputimage_weight = 1/bg_sdev;
+	else
+	
+		inputimage_weight = (1/bg_sdev)*exp(-(inputimage / PeakOD)^2);
+		inputimage_mask = 1;
+	
+	endif
+	
+		// In this procedure, and other image procedures, the YMIN/YMAX variable
+	// is the physical Z axes for XZ imaging.
+	
+	// **************************************************
+	// Perform the fit
+	// 1) use Igor's gaussian to get the intial guesses
+	// 2) Run a full fit with Igors Gaussian because it is fast.	
+	// 3) use the Thermal_2D function to get the final paramaters
+	// 4) Fit to the 3D Thomas Fermi
+	
+	Variable V_FitOptions=4 //this suppresses the curve fit window
+	Variable K0 = background;
+	Variable K6 = 0;			// No correlation term
+	//tic()
+	//Generate guess:
+	CurveFit /O/N/Q/H="0000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
+	Gauss3d_coef[6] = 0;			// No correlation term
+	Gauss3d_coef[0] = background;		//fix background to average OD in atom free region
+	
+	//Fit with 2D Gaussian:
+	CurveFit /G/N/Q/H="0000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask /R=res_optdepth
+	
+	//2D Gaussian with Rotation Fit uses the following parameters:
+	//CurveFitDialog/ w[0] = offset
+	//CurveFitDialog/ w[1] = A
+	//CurveFitDialog/ w[2] = x0
+	//CurveFitDialog/ w[3] = sigma_x
+	//CurveFitDialog/ w[4] = z0
+	//CurveFitDialog/ w[5] = sigma_z
+	//CurveFitDialog/ w[6] = theta (rotation angle, CW direction)
+	Gauss3d_coef[6] = -2 //Initial guess for theta
+	
+	Make /D/O/N=7 epsilonWave = 1e-6;
+	epsilonWave = 1e-5*Gauss3d_coef;
+	epsilonWave[6] = .1;
+	
+	//tic()
+	Variable/G V_FitTol=0.0000001
+	Variable/G V_FitNumIters
+	Variable/G V_FitmaxIters = 100;
+	//This is the original, slower version:
+	//FuncFitMD/G/N/Q/H="0000000"/ODR=0 TF_FD_2D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight 
+
+	//This AAO (all at once) fit function uses matrix operations and executes faster than the regular version (speed up depends on size of ROI)
+	FuncFitMD/G/N/Q/H="0000000" Gauss2DwithRot, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight // /E=epsilonWave
+	//toc()
+
+	print V_FitNumIters
+	print Gauss3d_coef[6]
+	
+	//print Gauss3d_coef; //temporary
+	//fugacity = Gauss3d_coef[6]
+
+	wave W_sigma = :W_sigma;
+	//store the fitting errors 
+	G3d_confidence[0] = W_sigma[0];
+	G3d_confidence[1] = W_sigma[1];
+	G3d_confidence[2] = W_sigma[2];
+	G3d_confidence[3] = sqrt(2)*W_sigma[3];
+	G3d_confidence[4] = W_sigma[4];
+	G3d_confidence[5] = sqrt(2)*W_sigma[5];
+	G3d_confidence[6] = W_sigma[6];
+	G3d_confidence[7] = V_chisq;
+	G3d_confidence[8] = V_npnts-V_nterms;
+	G3d_confidence[9] = G3d_confidence[9]/G3d_confidence[10];
+	
+
+	
+	// Note the sqt(2) on the widths -- this is due to differing definitions of 1D and 2D gaussians in igor
+	Gauss3d_coef[3] *= sqrt(2); Gauss3d_coef[5] *= sqrt(2);
+	
+	killwaves inputimage_mask, inputimage_weight;
+		
+	SetDataFolder fldrSav
+	return 1
+End
