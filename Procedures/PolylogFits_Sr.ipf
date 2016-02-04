@@ -719,11 +719,12 @@ Function FermiDiracFit2D(inputimage)
 	//CurveFitDialog/ w[4] = z0
 	//CurveFitDialog/ w[5] = sigma_z
 	//CurveFitDialog/ w[6] = fugacity
+
 	Gauss3d_coef[6] = .1; //Initial guess for fugacity
 	
-	Make /D/O/N=7 epsilonWave = 1e-6;
-	epsilonWave = 1e-5*Gauss3d_coef;
-	epsilonWave[6] = .1;
+	//Make /D/O/N=7 epsilonWave = 1e-6;
+	//epsilonWave = 1e-5*Gauss3d_coef;
+	//epsilonWave[6] = .1;
 	
 	//tic()
 	Variable/G V_FitTol=0.0000001
