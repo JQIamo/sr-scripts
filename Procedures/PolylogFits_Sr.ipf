@@ -492,6 +492,7 @@ Function/Wave DiLogApproxWave(z)
 	matrixop/O dw = dw + sw; 
 	
 	matrixop/O dw = dw*notOut1 + out1;
+	//print dw
 	return dw;
 	
 	//z = -ln(1-z);
@@ -530,6 +531,8 @@ Function TF_FD_2D(w,x,z) : FitFunc
 	
 	return w[0] + w[1]*DiLogApprox(-w[6]*exp( -(1/2)*(((x-w[2])/w[3])^2 + ((z-w[4])/w[5])^2) ) ) / DiLogApprox(-w[6])
 End
+
+
 
 Function TF_FD_2D_AAO(pw,yw,xw,zw) : FitFunc
 	
@@ -706,6 +709,8 @@ Function FermiDiracFit2D(inputimage)
 	//toc()
 	
 	
+	
+	
 	//2D Fermi Dirac Fit uses the following parameters:
 	//CurveFitDialog/ w[0] = offset
 	//CurveFitDialog/ w[1] = A
@@ -714,17 +719,24 @@ Function FermiDiracFit2D(inputimage)
 	//CurveFitDialog/ w[4] = z0
 	//CurveFitDialog/ w[5] = sigma_z
 	//CurveFitDialog/ w[6] = fugacity
-	Gauss3d_coef[6] = 100000; //Initial guess for fugacity
+	Gauss3d_coef[6] = .1; //Initial guess for fugacity
+	
+	Make /D/O/N=7 epsilonWave = 1e-6;
+	epsilonWave = 1e-5*Gauss3d_coef;
+	epsilonWave[6] = .1;
 	
 	//tic()
+	Variable/G V_FitTol=0.0000001
+	Variable/G V_FitNumIters
+	Variable/G V_FitmaxIters = 100;
 	//This is the original, slower version:
-	//FuncFitMD/G/N/Q/H="0000000" TF_FD_2D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight 
+	//FuncFitMD/G/N/Q/H="0000000"/ODR=0 TF_FD_2D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight 
 
 	//This AAO (all at once) fit function uses matrix operations and executes faster than the regular version (speed up depends on size of ROI)
-	FuncFitMD/G/N/Q/H="0000000" TF_FD_2D_AAO, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight 
+	FuncFitMD/G/N/Q/H="0000000" TF_FD_2D_AAO, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight // /E=epsilonWave
 	//toc()
-	
-	
+
+	print V_FitNumIters
 	
 	//print Gauss3d_coef; //temporary
 	//fugacity = Gauss3d_coef[6]
@@ -943,3 +955,5 @@ function test()
 	//Wave testC = DiLogApproxWave(testA);
 	//print testC
 end
+
+
