@@ -1646,17 +1646,22 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 	
 	// Create weight waves which softly eliminate regions which have an excessive OD from the fit
 	Duplicate /O inputimage, inputimage_mask, inputimage_weight;
+	//Find the location of the maximum to do a better mask for the gaussian guess
+	ImageStats /M=1 /GS={(xmin),(xmax),(ymin),(ymax)} optdepth
+	print V_max
 	
-	If(DoRealMask)
+	If( (fit_type == 4) )		//only need special mask if TF + Thermal
+		If(DoRealMask)
 	
-		//Create mask waves to have a hard boundary at PeakOD if desired.
-		inputimage_mask = (inputimage[p][q] > PeakOD ? 0 : 1);
-		inputimage_weight = 1/bg_sdev;
-	else
+			//Create mask waves to have a hard boundary at PeakOD if desired.
+			inputimage_mask = (inputimage[p][q] > (V_max/10) ? 0 : 1);
+			inputimage_weight = 1/bg_sdev;
+		else
+		
+			inputimage_weight = (1/bg_sdev)*exp(-(inputimage / (V_max/10))^2);
+			inputimage_mask = 1;
 	
-		inputimage_weight = (1/bg_sdev)*exp(-(inputimage / PeakOD)^2);
-		inputimage_mask = 1;
-	
+		endif
 	endif
 	
 	// In this procedure, and other image procedures, the YMIN/YMAX variable
@@ -1664,14 +1669,41 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 	
 	// **************************************************
 	// Perform the fit
-	// 1) use Igor's gaussian to get the intial guesses
-	// 2) Run a full fit with Igors Gaussian because it is fast.	
+	// 1) Get a guess for the thermal fraction
+	// 	1) use Igor's gaussian to get the intial guesses 
+	// 	2) Run a full fit with Igors Gaussian because it is fast.	
+	// 2) Get a guess for the BEC fraction
+	// 	1) use Igor's gaussian to get the intial guesses 
+	// 	2) Run a full fit with Igors Gaussian because it is fast.
 	// 3) use the Thermal_2D function to get the final paramaters
 	// 4) Fit to the 3D Thomas Fermi
 	
 	Variable V_FitOptions=4
 	Variable K0 = background;
 	Variable K6 = 0;			// No corrilation term
+	If( (fit_type == 4) )		//only guess thermal parameters if fitting TF + Thermal
+		CurveFit /O/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
+		Gauss3d_coef[6] = 0;			// No corrilation term
+		Gauss3d_coef[0] = background;		//fix background to average OD in atom free region
+		CurveFit /G/N/Q/H="0000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
+		Gauss3d_coef[3] *= sqrt(2); Gauss3d_coef[5] *= sqrt(2);
+	endif
+	Duplicate/O/FREE Gauss3d_coef, Gauss3d_temp;
+	
+	If(DoRealMask)
+	
+		//Create mask waves to have a hard boundary at PeakOD if desired.
+		inputimage_mask = (inputimage[p][q] > (PeakOD) ? 0 : 1);
+		inputimage_weight = 1/bg_sdev;
+	else
+	
+		inputimage_weight = (1/bg_sdev)*exp(-(inputimage / (PeakOD))^2);
+		inputimage_mask = 1;
+	
+	endif
+	
+	K0 = background;
+	K6 = 0;			// No corrilation term
 	CurveFit /O/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
 	Gauss3d_coef[6] = 0;			// No corrilation term
 	Gauss3d_coef[0] = background;		//fix background to average OD in atom free region
@@ -1697,9 +1729,9 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 
 	If( (fit_type == 4) )  // Thermal and TF fit
 		//Gauss3d_coef[0] = background;
-		Gauss3d_coef[1] /= 6;  // Based on the initial gauss peak assume that the gaussion component is 1/6 the height
-		Gauss3d_coef[3] *= 2.5;	// And Twice as wide
-		Gauss3d_coef[5] *= 2.5;
+		Gauss3d_coef[1] = Gauss3d_temp[1];  // Recall the initial guess at the thermal distribution
+		Gauss3d_coef[3] = Gauss3d_temp[3];	
+		Gauss3d_coef[5] = Gauss3d_temp[5];
 		Hold = "000000000"; // fit both thermal widths
 	endif
 	
@@ -2293,7 +2325,7 @@ Function TF_2D(w,x,z) : FitFunc
 	//CurveFitDialog/ w[7] = Rx_TF
 	//CurveFitDialog/ w[8] = Rz_TF
 	
-	duplicate/O w w_therm ; w_therm[5] = w[2]; // The TF2D fit assumes that the X and Y widths are the same
+	duplicate/O w w_therm ; //w_therm[5] = w[3]; // The TF2D fit assumes that the X and Y widths are the same
 	
 	return Thermal_2d(w_therm,x,z) + w[6]*( ( (z-w[4])/(w[8]) )^2+((x-w[2])/(w[7]))^2<1?(1-( (z-w[4])/(w[8]) )^2-( (x-w[2])/(w[7]) )^2)^(3/2):0)
 End
