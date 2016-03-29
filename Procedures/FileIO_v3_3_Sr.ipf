@@ -427,7 +427,7 @@ Function Load_Img(ImageName,FileName)
 					case "XY":
 						//single axis imaging XY ISatCounts goes here
 						//ISatCounts = 14650;     //measurement on 6/30/2014 for Sr
-						ISatCounts = 12851;     //measurement on 12/11/2015 for Sr
+						ISatCounts = 12851;     //measurement on 12/11/2015 for Sr for 2x2 bin, 10 us
 						//ISatCounts = inf;
 					break;
 					case "XZ":
@@ -571,7 +571,7 @@ Function Load_Img(ImageName,FileName)
 				// ImageName = -ln(ImageName) - Isat * (ImageName-1);
 				// See AMO notes from Gretchen (lectures 26 and 27) and Barker NB 3 p. 51 on why this is valid:
 				If(isotope==3)	//case Sr87
-					//If there is an error, the data for Sr87sigma can be found with Englebert in the AeroFS folder
+					//If there is an error, the data for Sr87sigma can be found with Englebert in the AeroFS/Sr87 Correction Tables
 					//use the generic load waves dialog to import
 					SetDataFolder "root:Packages:Sr87CrossSect";
 					
@@ -647,8 +647,8 @@ Function Load_Img(ImageName,FileName)
 	
 	if (RotateImage)
 		NVAR RotAng = :Experimental_Info:RotAng;
-		RotAng = 20;	//check by minimizing crosscorrelation term in 2D thermal fit on PIXIS
-		//RotAng = 52;
+		//RotAng = 26.67;	//check by minimizing crosscorrelation term in 2D thermal fit on PIXIS (20)
+		RotAng = 22.6;
 		ImageRotate/Q/O/E=0/A=(RotAng) ImageName;
 		Update_Magnification();			// CDH: why is this here??	
 	endif
