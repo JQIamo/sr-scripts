@@ -259,8 +259,10 @@ function Dialog_SetBasePath()
 		return -1		// User canceled
 	endif
 	
-	//Form Base Name
+	//Form Base Name for Acquisition computer
 	String baseName="I:Data:"+Year+":"+Month+":"+Day+":"+Cam+"_"+Day+Month[0,2]+Year;
+	//Form Base Name for Dan's office computer
+	//String baseName="dbarker2:Data:"+Year+":"+Month+":"+Day+":"+Cam+"_"+Day+Month[0,2]+Year;
 	
 	//set base name
 	SetBasePath(baseName)
