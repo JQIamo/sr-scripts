@@ -989,8 +989,8 @@ Function Update_Magnification()
 		starty = -DimSize(OptDepth, 1)*Delta_Y / 2;
 		startx = -DimSize(OptDepth, 0)*Delta_X / 2;
 	elseif (stringmatch(Camera,"PIXIS") == 1) // PI Pixis camera
-		delta_X = 2*13 / magnification;
-		delta_Y = 2*13 / magnification;
+		delta_X = 13 / magnification; //multiply by 2 if binning pixels
+		delta_Y = 13 / magnification; //multiply by 2 if binning pixels
 		starty = -DimSize(OptDepth, 1)*Delta_Y / 2;
 		startx = -DimSize(OptDepth, 0)*Delta_X / 2;
 	elseif (stringmatch(Camera,"Flea3") == 1) // Flea 3 camera
