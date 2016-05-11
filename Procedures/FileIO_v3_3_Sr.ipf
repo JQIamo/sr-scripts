@@ -406,7 +406,11 @@ Function Load_Img(ImageName,FileName)
 					RotateImage = 0;
 				break;
 			endswitch
-
+			
+			if (stringmatch(Camera,"FL3_32S2M") && stringmatch(ImageDirection,"XY"))
+				RotateImage=1
+			endif
+			
 			if (DualAxis == 1)
 				strswitch(ImageDirection)
 					case "XY":
@@ -648,7 +652,10 @@ Function Load_Img(ImageName,FileName)
 	if (RotateImage)
 		NVAR RotAng = :Experimental_Info:RotAng;
 		//RotAng = 26.67;	//check by minimizing crosscorrelation term in 2D thermal fit on PIXIS (20)
-		RotAng = 22.6;
+		//RotAng = 53.2; //rotation angle to level the main dipole beam
+		//RotAng = 6.7 //rotation angle to approximately level cross beam
+		RotAng = 7.43;	// rotation angle to level box on pixix
+		//RotAng =7;	// rotation angle to level box on vert flea
 		ImageRotate/Q/O/E=0/A=(RotAng) ImageName;
 		Update_Magnification();			// CDH: why is this here??	
 	endif
