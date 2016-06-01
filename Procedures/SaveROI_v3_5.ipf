@@ -166,3 +166,37 @@ function Dialog_LoadROI()
 	
 
 end
+
+function LoadROI(ROI_Name)
+
+	//This function loads the ROI specified. The data series that the ROI is applied to is the one specified by "CurrentPanel", or the last one that had a button pushed.
+	String ROI_Name;
+	
+	String ROI_path = "root:Packages:SavedROIs:" + ROI_Name;
+	if (DataFolderExists(ROI_Path)==0)
+		print "ROI Not Found"
+		return -1
+	endif
+	
+	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel;
+	
+	//Get saved cursor positions:
+	NVAR xmax = $(ROI_path + ":xmax")
+	NVAR xmin = $(ROI_path + ":xmin")
+	NVAR ymax = $(ROI_path + ":ymax")
+	NVAR ymin = $(ROI_path + ":ymin")
+	NVAR bgxmax = $(ROI_path + ":bgxmax")
+	NVAR bgxmin = $(ROI_path + ":bgxmin")
+	NVAR bgymax = $(ROI_path + ":bgymax")
+	NVAR bgymin = $(ROI_path + ":bgymin")
+	
+	//Set Cursor Positions:
+	String ImageWindowName = CurrentPanel + "#ColdAtomInfoImage";
+	Cursor/I/W = $(ImageWindowName) A, optdepth, xmax, ymax;
+	Cursor/I/W = $(ImageWindowName) B, optdepth, xmin, ymin;
+	Cursor/I/W = $(ImageWindowName) C, optdepth, bgxmax, bgymax;
+	Cursor/I/W = $(ImageWindowName) D, optdepth, bgxmin, bgymin;
+	SetROI("",1,"")
+	
+end
+
