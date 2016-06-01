@@ -244,7 +244,7 @@ function Dialog_SetBasePath()
 	
 	String Months="January;February;March;April;May;June;July;August;September;October;November;December"
 	String Days="01;02;03;04;05;06;07;08;09;10;11;12;13;14;15;16;17;18;19;20;21;22;23;24;25;26;27;28;29;30;31"
-	String Years="2008;2009;2010;2011;2012;2013;2014;2015;2016;2017"
+	String Years="2012;2013;2014;2015;2016;2017"
 	String Cams= "FL3_32S2M;Flea3;Flea3_20S4M;Flea2;PIXIS;PI"
 
 	String Month, Day, Year, Cam
