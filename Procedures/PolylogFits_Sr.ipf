@@ -726,14 +726,16 @@ Function FermiDiracFit2D(inputimage)
 
 	Gauss3d_coef[6] = .1; //Initial guess for fugacity
 	
-	//Make /D/O/N=7 epsilonWave = 1e-6;
-	//epsilonWave = 1e-5*Gauss3d_coef;
-	//epsilonWave[6] = .1;
+	Make /D/O/N=7 epsilonWave = 1e-6;
+	epsilonWave = 1e-6*Gauss3d_coef;
+	epsilonWave[6] = .0005;
 	
 	//tic()
-	Variable/G V_FitTol=0.0000001
+	Variable/G V_FitTol=0.0005
+	//Variable/G V_FitTol=0.001 //default value
+	//Variable/G V_FitTol=0.0000001
 	Variable/G V_FitNumIters
-	Variable/G V_FitmaxIters = 100;
+	Variable/G V_FitmaxIters = 300;
 	//This is the original, slower version:
 	//FuncFitMD/G/N/Q/H="0000000"/ODR=0 TF_FD_2D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight 
 
@@ -1096,3 +1098,51 @@ function PolyLog(v,x)
 	return Interp(x,xWave,yWave) 
 	
 end
+
+Function ArbPolyLogFit2D(w,x,z) : FitFunc
+	Wave w
+	Variable x
+	Variable z
+	
+	//CurveFitDialog/ These comments were created by the Curve Fitting dialog. Altering them will
+	//CurveFitDialog/ make the function less convenient to work with in the Curve Fitting dialog.
+	//CurveFitDialog/ Equation:
+	//CurveFitDialog/ f(x) = offset + A*PolyLog(alpha,f*exp( (-1/2)* ( ((x-x0)/sigma_x)^2 + ((z-z0)/sigma_z)^2 ) ) ) 
+	//CurveFitDialog/ End of Equation
+	//CurveFitDialog/ Independent Variables 2
+	//CurveFitDialog/ x
+	//CurveFitDialog/ z
+	//CurveFitDialog/ Coefficients 7
+	//CurveFitDialog/ w[0] = offset
+	//CurveFitDialog/ w[1] = A
+	//CurveFitDialog/ w[2] = x0
+	//CurveFitDialog/ w[3] = sigma_x
+	//CurveFitDialog/ w[4] = z0
+	//CurveFitDialog/ w[5] = sigma_z
+	//CurveFitDialog/ w[6] = fugacity
+	//CurveFitDialog/ w[7] = alpha (order of the polylog)
+	
+	return w[0] + w[1]*PolyLog(w[7],w[6]*exp( -(1/2)*(((x-w[2])/w[3])^2 + ((z-w[4])/w[5])^2) ) ) 
+End
+
+Function ArbPolyLogFit1D(w,x) : FitFunc
+	Wave w
+	Variable x
+	
+	//CurveFitDialog/ These comments were created by the Curve Fitting dialog. Altering them will
+	//CurveFitDialog/ make the function less convenient to work with in the Curve Fitting dialog.
+	//CurveFitDialog/ Equation:
+	//CurveFitDialog/ f(x) = offset + A*PolyLog(alpha,f*exp( (-1/2)* ( ((x-x0)/sigma_x)^2 ) ) ) 
+	//CurveFitDialog/ End of Equation
+	//CurveFitDialog/ Independent Variables 1
+	//CurveFitDialog/ x
+	//CurveFitDialog/ Coefficients 7
+	//CurveFitDialog/ w[0] = offset
+	//CurveFitDialog/ w[1] = A
+	//CurveFitDialog/ w[2] = x0
+	//CurveFitDialog/ w[3] = sigma_x
+	//CurveFitDialog/ w[4] = fugacity
+	//CurveFitDialog/ w[5] = alpha (order of the polylog)
+	
+	return w[0] + w[1]*PolyLog(w[5],w[4]*exp( -(1/2)*(((x-w[2])/w[3])^2) ) ) 
+End
