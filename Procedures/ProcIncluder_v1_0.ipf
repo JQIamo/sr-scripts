@@ -21,6 +21,7 @@
 #include "3BodyAnalysis_0_1"
 #include "OrthoBasis_v1_0"
 #include "SaveROI_v3_5"
+#include "LatticeDepth_Sr"
 
 //!
 //! @brief
