@@ -1,7 +1,17 @@
 #pragma rtGlobals=1		// Use modern global access method.
 
 function Scattering_Depth_Calibration(startNum,endNum,skipList, numDiffOrders)
+	//This function analyzes a sequence of images in order to calibrate a lattice depth based on Kapitza-Dirac scattering. The data should be taken with 
+	//short (1-100us works well) pulses of constant lattice beam power immediately followed by a TOF. The sequenced variable should be named pulseLatT.
+	//In order for this script to work, you first need to define multiple ROIs around the various diffracted order. The 0th order peak ROI should be named P0, 
+	//the first order on the right should be named P1_R, the first order on the left should be named P1_L, etc. 
 	//Make sure batchrun base path has already been set
+	//The current working directory must be set to the data series that you're going to use 
+	//Inputs: startNum: image number of the first image
+	//		endNum: image number of the last image
+	//		skipList: list of "bad" images to skip, format should be like: "1424;1426;1430"
+	//		numDiffOrders: number of populated diffracted orders, must be at least 1 or else you're not doing Kapitza-Dirac scattering
+	
 	variable startNum;
 	variable endNum;
 	string skipList;
@@ -18,7 +28,7 @@ function Scattering_Depth_Calibration(startNum,endNum,skipList, numDiffOrders)
 	New_IndexedWave("diffractedOrder", ":diffractedOrder");
 	
 	
-	string ROI_name = "P" + num2str(numDiffOrders) + "_L"; 
+	string ROI_name;
 	string ss;
 	variable ii, jj;
 	
@@ -45,22 +55,44 @@ function Scattering_Depth_Calibration(startNum,endNum,skipList, numDiffOrders)
 		endif
 	endfor					
 	
-	//Sort by diffracted order and pulse time:			
-	Sort_IndexedWaves(ProjectFolder,"diffractedOrder;pulseLatT",2)		
+	//Call the sorting function that makes convenient waves, plots them, and fits the result
+	Variable numIm = endNum - startNum + 1 - ItemsInList(skipList);
+	Scattering_Depth_Sorting(numIm, numDiffOrders)
 
 end
 
-function Scattering_Depth_Sorting()
+function Scattering_Depth_Sorting(numImages,numDiffOrders)
+	//This function makes a number of waves that will be convenient for plotting and fitting the population in the various diffracted orders. 
+	//The output waves are saved in the folder "LatticePulseCal" below the data series
+	//The current working directory must be set to the data series that you're going to use 
+	//This function also generates a plot of the 0th and 1st order populations as well as the ratio of the 1st order to 0th order populations. 
+	//The ratio is fit to extract trap depth
+	//Inputs: numImages - number of images in the data series
+	//		numDiffOrders -  number of populated diffracted orders
+	//Outputs (saved waves in LatticePulseCal folder): 
+	//		pulseLatT - lattice pulse time (s) (typically use this as your "X" data series when plotting)
+	//		num_0, num_1_L, etc. - atom number in the 0th, 1st diffracted order on left, etc. peak
+	//		pop_0, pop_1_L, etc. - fraction of atom population in 0th, 1st diffracted order on left, etc. peak
+	//		pop_1_avg, etc - average of population in 1st order diffracted peaks,
+	//		ratio_1_0 - ratio of population in 1st order peak to 0th order peak
+	//		mask_0, mask_1, mask_ratio_1_0 - mask waves to filter out bad points when fitting
+	
+	
+	Variable numImages
+	Variable numDiffOrders
 	SVAR ProjectFolder = root:Packages:ColdAtom:CurrentPath;
-	Variable numImages = 25;
-	variable numDiffOrders =3;
 	
-	
+	//Sort Indexed Waves
 	Sort_IndexedWaves(ProjectFolder,"diffractedOrder;pulseLatT",2)
 	
+	//Make a new data folder to store the waves created below
 	NewDataFolder /O $(ProjectFolder + ":LatticePulseCal")
+	
+	//Make a wave to hold the pulst time
 	Duplicate /O /R=(0,numImages-1) $(ProjectFolder + ":IndexedWaves:pulseLatT") $(ProjectFolder + ":LatticePulseCal:pulseLatT")
-	Make /O /N=(numImages) totalAtomNumber =0  //Make wave to track total atom number
+	
+	//Loop over the various diffraction orders and save waves with the atom number for those waves
+	Make /O /N=(numImages) totalAtomNumber =0  //Initialize a wave to track total atom number
 	Wave tempWave;
 	variable order; //the lattice peak order
 	variable i =0; //initialize loop counter
@@ -81,7 +113,8 @@ function Scattering_Depth_Sorting()
 	endfor
 	Duplicate /O totalAtomNumber $(ProjectFolder + ":LatticePulseCal:totalNum")
 	
-	for (order = numDiffOrders*(-1); order <= numDiffOrders; order+=1) //loop over diffraction orders and calculate the population in various orders
+	//loop over diffraction orders and calculate the population in various orders
+	for (order = numDiffOrders*(-1); order <= numDiffOrders; order+=1) 
 		if (order<0)
 			tempString = num2str(abs(order)) + "_L"
 		elseif (order==0)
@@ -94,12 +127,51 @@ function Scattering_Depth_Sorting()
 		Make /O /N=(numImages)  $(ProjectFolder + ":LatticePulseCal:pop_" + tempString) = tempWave/totalAtomNumber;
 	endfor
 	
+	//Calculate the average population in each order:
+	for (order = 1; order <= numDiffOrders; order+=1)
+		Duplicate /O $(ProjectFolder + ":LatticePulseCal:pop_" + num2str(order) + "_L") tempWave1
+		Duplicate /O $(ProjectFolder + ":LatticePulseCal:pop_" + num2str(order) + "_R") tempWave2
+		Make /O /N=(numImages) $(ProjectFolder + ":LatticePulseCal:pop_" + num2str(order) + "_avg") = (tempWave1 + tempWave2)/2;
+	endfor
+	
+	//Calculate ratio of first order population to zeroth order:
+	Duplicate /O $(ProjectFolder + ":LatticePulseCal:pop_1_avg") tempWave1
+	Duplicate /O $(ProjectFolder + ":LatticePulseCal:pop_0") tempWave2
+	Make /O /N=(numImages) $(ProjectFolder + ":LatticePulseCal:ratio_1_0") = tempWave1/tempWave2;
+	
+	//Make mask waves to use for fitting. These wave exclude populations less than 0 or greater than 1 because these are likely outliers where something weird happened with atom counting
+	Make /O /N=(numImages) $(ProjectFolder + ":LatticePulseCal:mask_0") = (tempWave2 <= 1 && tempWave2 >= 0)
+	Make /O /N=(numImages) $(ProjectFolder + ":LatticePulseCal:mask_1") = (tempWave1 <= 1 && tempWave1 >= 0)
+	Make /O /N=(numImages) $(ProjectFolder + ":LatticePulseCal:mask_ratio_1_0") = (tempWave1/tempWave2 >= 0)
+	
+	//Plot some of the results
+	Display :LatticePulseCal:pop_0,:LatticePulseCal:pop_1_avg,:LatticePulseCal:ratio_1_0 vs :LatticePulseCal:pulseLatT
+	
+	//Format Graph
+	ModifyGraph mode(pop_0)=3,marker(pop_0)=8
+	ModifyGraph mode(pop_1_avg)=3,marker(pop_1_avg)=8,rgb(pop_1_avg)=(0,12800,52224)
+	ModifyGraph mode(ratio_1_0)=3,marker(ratio_1_0)=18,rgb(ratio_1_0)=(0,26112,0)
+	Legend/C/N=text0
+	Label left "Population"
+	Label bottom "Pulse Time (s)"
+	SetAxis left 0,1
+	
+	//Fit to ratio:	
+	Make/D/N=3/O W_coef
+	W_coef[0] = {0,1,5}
+	FuncFit/NTHR=0/TBOX=768 LatPulseRatio1_0FitFunc W_coef  :LatticePulseCal:ratio_1_0 /X=:LatticePulseCal:pulseLatT /M=:LatticePulseCal:mask_ratio_1_0 /D 
+	
+	//In the future, it may also be useful to graph or fit additional populations
+		
 	//Cleanup:
-	KillWaves totalAtomNumber, tempWave
+	KillWaves totalAtomNumber, tempWave, tempWave1, tempWave2
 	
 end
 
 Function LatPulseDiffEq(pw, tt, cw, dcdt)
+	//This function defines the differential equation which governs the population in the various orders for Kapitza-Dirac scattering. 
+	//See, for example, eq. 4 of arXiv:0907.3507v1
+	
 	Wave pw //parameter wave (input) pw[0] = V0 (trap depth) in units of Er, 
 	
 	Variable tt //t value at which to calculate derivatives
@@ -168,6 +240,11 @@ Function LatPulseDiffEq(pw, tt, cw, dcdt)
 End
 
 Function LatPulsePop(tau,V0,order)
+//This function numerically integrates the differential equation governing Kapitza-Dirac scattering to calculate the expected population in a given order:
+//Inputs: tau - pulse duration (s)
+//		V0 - trap depth (in units of recoil energy, Er)
+//		order - diffraction order (0, 1, 2, 3, or 4) 
+//Outputs: population in given order (0-1)
 	
 	Variable tau, V0, order
 	
@@ -210,14 +287,6 @@ Function LatPulsePop(tau,V0,order)
 	
 end
 
-function test()
-	Variable ii
-	Make /N=(101)/O testT
-	for (ii=0;ii <102 ; ii+=1)
-		testT[ii]=ii*1e-6
-	endfor
-end
-
 function LatPulseFitFunc(w,t) : FitFunc
 
 	Wave w
@@ -237,4 +306,24 @@ function LatPulseFitFunc(w,t) : FitFunc
 	//CurveFitDialog/ w[3] = order
 	
 	return w[0] + w[1]*LatPulsePop(t,w[2],w[3])
+end
+
+function LatPulseRatio1_0FitFunc(w,t) : FitFunc
+
+	Wave w
+	Variable t
+
+	//CurveFitDialog/ These comments were created by the Curve Fitting dialog. Altering them will
+	//CurveFitDialog/ make the function less convenient to work with in the Curve Fitting dialog.
+	//CurveFitDialog/ Equation:
+	//CurveFitDialog/ f(x) = offset + A* LatPulsePop(tau,V0,order)
+	//CurveFitDialog/ End of Equation
+	//CurveFitDialog/ Independent Variables 1
+	//CurveFitDialog/ t
+	//CurveFitDialog/ Coefficients 3
+	//CurveFitDialog/ w[0] = offset
+	//CurveFitDialog/ w[1] = A
+	//CurveFitDialog/ w[2] = V0
+	
+	return w[0] + w[1]*(LatPulsePop(t,w[2],1)/LatPulsePop(t,w[2],0))
 end
