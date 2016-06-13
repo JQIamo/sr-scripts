@@ -31,7 +31,10 @@ Menu "ColdAtom"
 	"Copy BatchRun base name...", Dialog_CopyBasePath();
 	"Do BatchRun...", Dialog_DoBatchRun();
 	"-",""
-	"Create GS Basis...", Dialog_GS_CreateBasis()
+	"Create GS Basis...", Dialog_GS_CreateBasis();
+	"-",""
+	"Popout X-sections", Dialog_CopyInfoSections();
+	"Popout OD image", Dialog_CopyInfoImage();
 End
 //! @endcond
 
@@ -73,7 +76,7 @@ function Dialog_Set_ColdAtomInfo()
 	SVAR ActivePaths = root:Packages:ColdAtom:ActivePaths
 	SVAR CurrentPath = root:Packages:ColdAtom:CurrentPath
 
-	string title = "Switch from " + CurrentPath + "to...";
+	string title = "Switch from " + CurrentPath + " to...";
 
 	Prompt ProjectNum, title, popup, ActivePaths
 	DoPrompt "Switch project...", ProjectNum
@@ -269,6 +272,46 @@ function Dialog_CopyROI()
 		Set_ColdAtomInfo(SavePath)
 		SetDataFolder fldrSav
 	endif
+end
+
+function Dialog_CopyInfoSections()
+	variable ProjectNum;
+
+	Init_ColdAtomInfo();	// Creates the needed variables if they do not already exist
+
+	// Create a dialog box with a list of active InfoProjects
+	SVAR ActivePaths = root:Packages:ColdAtom:ActivePaths
+
+	string title = "Popout the X-sections graph of";
+
+	Prompt ProjectNum, title, popup, ActivePaths
+	DoPrompt "Copy X-sections", ProjectNum
+
+	if (V_Flag)
+		return -1		// User canceled
+	endif
+	
+	CopyInfoSections( StringFromList(ProjectNum-1, ActivePaths) )
+end
+
+function Dialog_CopyInfoImage()
+	variable ProjectNum;
+
+	Init_ColdAtomInfo();	// Creates the needed variables if they do not already exist
+
+	// Create a dialog box with a list of active InfoProjects
+	SVAR ActivePaths = root:Packages:ColdAtom:ActivePaths
+
+	string title = "Popout the X-sections graph of";
+
+	Prompt ProjectNum, title, popup, ActivePaths
+	DoPrompt "Copy X-sections", ProjectNum
+
+	if (V_Flag)
+		return -1		// User canceled
+	endif
+	
+	CopyInfoImage( StringFromList(ProjectNum-1, ActivePaths) )
 end
 
 
