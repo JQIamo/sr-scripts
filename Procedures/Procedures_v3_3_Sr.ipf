@@ -919,7 +919,7 @@ Function SimpleThermalFit2D(inputimage)
 	
 	else
 	
-		inputimage_weight = (1/bg_sdev)*exp(-(inputimage / PeakOD)^2)
+		inputimage_weight = (1/bg_sdev)*exp(-(abs(inputimage) / PeakOD))
 		inputimage_mask = 1;
 	
 	endif
@@ -935,6 +935,7 @@ Function SimpleThermalFit2D(inputimage)
 	// doing step three is dumb, I've commented it out, DSB 2014.
 	
 	Variable V_FitOptions=4
+	Variable/G V_FitTol=0.0005
 	Gauss3d_coef[6] = 0;			// No corrilation term
 	Gauss3d_coef[0] = background;		//fix background to average OD in atom free region
 	CurveFit /O/N/Q/H="0000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
@@ -1621,7 +1622,7 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 	Wave res_optdepth = :fit_info:res_optdepth
 	
 	// wave to store confidence intervals
-	make/O/N=12 :Fit_Info:G3d_confidence
+	make/O/N=14 :Fit_Info:G3d_confidence
 	Wave G3d_confidence=:Fit_Info:G3d_confidence	
 
 	string Hold;
@@ -1637,7 +1638,7 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 	bgxmax = max(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
 	bgxmin = min(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
 	
-	Duplicate /O inputimage, bg_mask;
+	Duplicate/O inputimage, bg_mask;
 	bg_mask *= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? 1 : 0);
 	background = sum(bg_mask)/((bgxmax-bgxmin)*(bgymax-bgymin));
 	bg_mask -= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? background : 0);
@@ -1645,7 +1646,7 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 	bg_sdev = sqrt(sum(bg_mask)/((bgxmax-bgxmin)*(bgymax-bgymin)-1))
 	
 	// Create weight waves which softly eliminate regions which have an excessive OD from the fit
-	Duplicate /O inputimage, inputimage_mask, inputimage_weight;
+	Duplicate/O inputimage, inputimage_mask, inputimage_weight;
 	//Find the location of the maximum to do a better mask for the gaussian guess
 	ImageStats /M=1 /GS={(xmin),(xmax),(ymin),(ymax)} optdepth
 	print V_max
@@ -1658,7 +1659,7 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 			inputimage_weight = 1/bg_sdev;
 		else
 		
-			inputimage_weight = (1/bg_sdev)*exp(-(inputimage / (V_max/10))^2);
+			inputimage_weight = (1/bg_sdev)*exp(-(abs(inputimage)/(V_max/10)));
 			inputimage_mask = 1;
 	
 		endif
@@ -1689,6 +1690,7 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 		Gauss3d_coef[3] *= sqrt(2); Gauss3d_coef[5] *= sqrt(2);
 	endif
 	Duplicate/O/FREE Gauss3d_coef, Gauss3d_temp;
+	Print bg_sdev;
 	
 	If(DoRealMask)
 	
@@ -1697,21 +1699,31 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 		inputimage_weight = 1/bg_sdev;
 	else
 	
-		inputimage_weight = (1/bg_sdev)*exp(-(inputimage / (PeakOD))^2);
+		inputimage_weight = (1/bg_sdev)*exp(-(abs(inputimage)/PeakOD));
 		inputimage_mask = 1;
 	
 	endif
 	
+	//mask the thermal part to get TF guess
+	variable pmax = (xmax - DimOffset(inputimage, 0))/DimDelta(inputimage,0);
+	variable pmin = (xmin - DimOffset(inputimage, 0))/DimDelta(inputimage,0);
+	variable qmax = (ymax - DimOffset(inputimage, 1))/DimDelta(inputimage,1);
+	variable qmin = (ymin - DimOffset(inputimage, 1))/DimDelta(inputimage,1);
+	Duplicate/O inputimage, thermal_mask;
+	If( (fit_type == 4) )		//only mask thermal out if fitting TF + Thermal
+		thermal_mask[pmin,pmax][qmin,qmax] -= Thermal_2D(Gauss3d_coef,x,y);
+	endif
+	
 	K0 = background;
 	K6 = 0;			// No corrilation term
-	CurveFit /O/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
+	CurveFit /O/N/Q/H="1000001" Gauss2D kwCWave=Gauss3d_coef thermal_mask((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
 	Gauss3d_coef[6] = 0;			// No corrilation term
 	Gauss3d_coef[0] = background;		//fix background to average OD in atom free region
-	CurveFit /G/N/Q/H="0000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
+	CurveFit /G/N/Q/H="0000001" Gauss2D kwCWave=Gauss3d_coef thermal_mask((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
 	Gauss3d_coef[3] *= sqrt(2); Gauss3d_coef[5] *= sqrt(2);
 	
 	// Note the sqt(2) on the widths -- this is due to differing definitions of 1D and 2D gaussians in igor
-	redimension/N=9 Gauss3d_coef;
+	redimension/N=11 Gauss3d_coef;
 
 	//CurveFitDialog/ w[0] = offset
 	//CurveFitDialog/ w[1] = Atherm
@@ -1722,23 +1734,29 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 	//CurveFitDialog/ w[6] = ATF
 	//CurveFitDialog/ w[7] = Rx_TF
 	//CurveFitDialog/ w[8] = Rz_TF
+	//CurveFitDialog/ w[9] = x0_TF
+	//CurveFitDialog/ w[10] = z0_TF
 	
-	Gauss3d_coef[6] = Gauss3d_coef[1]*(2/3);
-	Gauss3d_coef[7] = Gauss3d_coef[3]*1.25;
-	Gauss3d_coef[8] = Gauss3d_coef[5]*1.25;
+	Gauss3d_coef[6] = Gauss3d_coef[1];
+	Gauss3d_coef[7] = Gauss3d_coef[3];
+	Gauss3d_coef[8] = Gauss3d_coef[5];
+	Gauss3d_coef[9] = Gauss3d_coef[2];
+	Gauss3d_coef[10] = Gauss3d_coef[4];
 
 	If( (fit_type == 4) )  // Thermal and TF fit
-		//Gauss3d_coef[0] = background;
+		Gauss3d_coef[0] = Gauss3d_temp[0];
 		Gauss3d_coef[1] = Gauss3d_temp[1];  // Recall the initial guess at the thermal distribution
-		Gauss3d_coef[3] = Gauss3d_temp[3];	
+		Gauss3d_coef[2] = Gauss3d_temp[2];
+		Gauss3d_coef[3] = Gauss3d_temp[3];
+		Gauss3d_coef[4] = Gauss3d_temp[4];
 		Gauss3d_coef[5] = Gauss3d_temp[5];
-		Hold = "000000000"; // fit both thermal widths
+		Hold = "00000000000"; // fit both thermal widths
 	endif
 	
 	if( (fit_type == 5) )  // TF fit only, no thermal fit
 		//Gauss3d_coef[0] = background;
 		Gauss3d_coef[1] = 0;
-		Hold = "010101000";
+		Hold = "01111100000";
 	endif
 	
 	FuncFitMD/G/N/Q/H=(Hold) TF_2D, Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight /D
@@ -1755,18 +1773,16 @@ Function ThomasFermiFit2D(inputimage, fit_type)
 	G3d_confidence[6] = W_sigma[6];
 	G3d_confidence[7] = W_sigma[7];
 	G3d_confidence[8] = W_sigma[8];
-	G3d_confidence[9] = V_chisq;
-	G3d_confidence[10] = V_npnts-V_nterms;
-	G3d_confidence[11] = G3d_confidence[9]/G3d_confidence[10];
+	G3d_confidence[9] = W_sigma[9];
+	G3d_confidence[10] = W_sigma[10];
+	G3d_confidence[11] = V_chisq;
+	G3d_confidence[12] = V_npnts-(V_nterms-V_nheld);
+	G3d_confidence[13] = G3d_confidence[11]/G3d_confidence[12];
 	
 	// Update Display Waves
-	variable pmax = (xmax - DimOffset(inputimage, 0))/DimDelta(inputimage,0);
-	variable pmin = (xmin - DimOffset(inputimage, 0))/DimDelta(inputimage,0);
-	variable qmax = (ymax - DimOffset(inputimage, 1))/DimDelta(inputimage,1);
-	variable qmin = (ymin - DimOffset(inputimage, 1))/DimDelta(inputimage,1);
-	fit_optdepth[pmin,pmax][qmin,qmax] = TF_2D(Gauss3d_coef,x,y)
+	fit_optdepth[pmin,pmax][qmin,qmax] = TF_2D(Gauss3d_coef,x,y);
 	
-	killwaves inputimage_mask, inputimage_weight;
+	killwaves bg_mask, inputimage_mask, inputimage_weight, thermal_mask;
 		
 	SetDataFolder fldrSav
 	return 1
@@ -1833,6 +1849,7 @@ Function TFUpdateCloudPars(Gauss3d_coef,fit_type)
 	NVAR density=:density,    number=:number,      temperature=:temperature,  PSD=:PSD
 	NVAR xrms=:xrms,       yrms=:yrms,         zrms=:zrms
 	NVAR xposition=:xposition,        yposition=:yposition,         zposition=:zposition
+	NVAR xposition_BEC=:xposition_BEC,        yposition_BEC=:yposition_BEC,         zposition_BEC=:zposition_BEC
 	NVAR AspectRatio_meas=:AspectRatio_meas,            amplitude=:amplitude
 	NVAR density_t0=:density_t0,       xrms_t0=:xrms_t0,        yrms_t0=:yrms_t0,        zrms_t0=:zrms_t0
 	NVAR AspectRatio_meas_t0=:AspectRatio_meas_t0,     density_BEC=:density_BEC,      density_BEC_t0=:density_BEC_t0
@@ -1864,7 +1881,11 @@ Function TFUpdateCloudPars(Gauss3d_coef,fit_type)
 			
 			xposition = Gauss3d_coef[2]; 			// Cloud positions
 			yposition = Gauss3d_coef[4];
-			zposition = NAN; 	
+			zposition = NAN; 
+			
+			xposition_BEC = Gauss3d_coef[9]; 			// BEC Cloud positions
+			yposition_BEC = Gauss3d_coef[10];
+			zposition_BEC = NAN; 		
 					
 			xrms = abs(Gauss3d_coef[3])*(!TFonly); // Widths of thermal component.
 			yrms = abs(Gauss3d_coef[5])*(!TFonly);  
@@ -1945,6 +1966,10 @@ Function TFUpdateCloudPars(Gauss3d_coef,fit_type)
 			PSD = density_t0*10^18*(2*pi*hbar^2/(mass*kB*temperature))^1.5;
 			xrms = xrms_t0*sqrt(1+(omgX*expand_time*0.001)^2);
 			yrms = yrms_t0*sqrt(1+(omgY*expand_time*0.001)^2);
+			
+			xposition_BEC = Gauss3d_coef[9]; 			// BEC Cloud positions
+			yposition_BEC = NaN;
+			zposition_BEC = Gauss3d_coef[10]; 	
 			
 			xwidth_BEC = abs(Gauss3d_coef[7]);
 			zwidth_BEC = abs(Gauss3d_coef[8]);   // set the Thomas Fermi widths
@@ -2429,7 +2454,7 @@ Function TF_2D(w,x,z) : FitFunc
 	//CurveFitDialog/ Independent Variables 2
 	//CurveFitDialog/ x
 	//CurveFitDialog/ z
-	//CurveFitDialog/ Coefficients 9
+	//CurveFitDialog/ Coefficients 11
 	//CurveFitDialog/ w[0] = offset
 	//CurveFitDialog/ w[1] = Atherm
 	//CurveFitDialog/ w[2] = x0
@@ -2439,10 +2464,12 @@ Function TF_2D(w,x,z) : FitFunc
 	//CurveFitDialog/ w[6] = ATF
 	//CurveFitDialog/ w[7] = Rx_TF
 	//CurveFitDialog/ w[8] = Rz_TF
+	//CurveFitDialog/ w[9] = x0_TF
+	//CurveFitDialog/ w[10] = z0_TF
 	
-	duplicate/O w w_therm ; //w_therm[5] = w[3]; // The TF2D fit assumes that the X and Y widths are the same
+	duplicate/O w w_therm; //w_therm[5] = w[3]; // The TF2D fit assumes that the X and Y widths are the same
 	
-	return Thermal_2d(w_therm,x,z) + w[6]*( ( (z-w[4])/(w[8]) )^2+((x-w[2])/(w[7]))^2<1?(1-( (z-w[4])/(w[8]) )^2-( (x-w[2])/(w[7]) )^2)^(3/2):0)
+	return Thermal_2D(w_therm,x,z) + w[6]*( ( (z-w[10])/(w[8]) )^2+((x-w[9])/(w[7]))^2<1?(1-( (z-w[10])/(w[8]) )^2-( (x-w[9])/(w[7]) )^2)^(3/2):0)
 End
 
 //! @brief Fit function

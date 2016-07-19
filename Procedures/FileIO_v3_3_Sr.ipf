@@ -490,7 +490,10 @@ Function Load_Img(ImageName,FileName)
 		break;
 	endswitch
 
-
+	//Make a byte wave version of ROI mask to facilitate average Isat correction and histogramming
+	Make/B/U/FREE/N=(DimSize(ROI_mask,0),DimSize(ROI_mask,1)) ROI_mask_byte;
+	ROI_mask_byte=ROI_mask;
+	
 	// Try to discover what camera this is from and set the scaling suitably.  This is based only on
 	// the magnification paramater and the physical pixel size in microns / pixel
 	Update_Magnification();	
@@ -508,6 +511,8 @@ Function Load_Img(ImageName,FileName)
 	SetScale/P y dimoffset(ImageName,1),Dimdelta(ImageName,1),"", ISat;
 	SetScale/P x dimoffset(ImageName,0),Dimdelta(ImageName,0),"", ROI_mask;
 	SetScale/P y dimoffset(ImageName,1),Dimdelta(ImageName,1),"", ROI_mask;
+	SetScale/P x dimoffset(ImageName,0),Dimdelta(ImageName,0),"", ROI_mask_byte;
+	SetScale/P y dimoffset(ImageName,1),Dimdelta(ImageName,1),"", ROI_mask_byte;
 	
 	strswitch(DataType)
 			case "Absorption":
@@ -614,11 +619,24 @@ Function Load_Img(ImageName,FileName)
 					//The new lookup tables should not have a NaN problem, but...
 					Isat = (Isat[p][q] > .001 ? (Isat[p][q] < 5.001 ? interp2d(sigma87, temp, Isat[p][q]) : interp(temp,Dets,highS)) : interp(temp,Dets,lowS));
 					//Isat is now a local, relative (to peak bosonic Sr absorption), absorption cross-section and not the local saturation parameter
-					ImageName = -(ln(ImageName))/Isat
+					//Get the average correction:
+					ImageStats/R=ROI_mask_byte Isat
+					Print V_avg
+					ImageHistogram/R=ROI_mask_byte Isat
+					
+					//Pixel by Pixel correction:
+					//ImageName = -(ln(ImageName))/Isat
+					//Average correction:
+					ImageName = -(ln(ImageName))/V_avg
+					
 				elseif((isotope==1)||(isotope==2)||(isotope==4))	//case Sr88, Sr86, Sr84
+				
 					ImageName = -(ln(ImageName))*(1+4*detuning^2+Isat);
+					
 				else		//case unknown isotope
+				
 					ImageName = -(ln(ImageName))*(1+4*detuning^2+Isat);
+					
 				endif
 	
 				// remove any non-numbers from the data
@@ -651,10 +669,11 @@ Function Load_Img(ImageName,FileName)
 	
 	if (RotateImage)
 		NVAR RotAng = :Experimental_Info:RotAng;
+		RotAng = 22;
 		//RotAng = 26.67;	//check by minimizing crosscorrelation term in 2D thermal fit on PIXIS (20)
 		//RotAng = 53.2; //rotation angle to level the main dipole beam
 		//RotAng = 6.7 //rotation angle to approximately level cross beam
-		RotAng = 7.43;	// rotation angle to level box on pixix
+		//RotAng = 7.43;	// rotation angle to level box on pixix
 		//RotAng =7;	// rotation angle to level box on vert flea
 		ImageRotate/Q/O/E=0/A=(RotAng) ImageName;
 		Update_Magnification();			// CDH: why is this here??	

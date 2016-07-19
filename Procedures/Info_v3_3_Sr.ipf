@@ -416,6 +416,9 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	New_IndexedWave("xpos", ":xposition");
 	New_IndexedWave("ypos", ":yposition");
 	New_IndexedWave("zpos", ":zposition");
+	New_IndexedWave("xpos_BEC", ":xposition_BEC");
+	New_IndexedWave("ypos_BEC", ":yposition_BEC");
+	New_IndexedWave("zpos_BEC", ":zposition_BEC");
 	New_IndexedWave("psd",":PSD");
 	New_IndexedWave("num_BEC", ":number_BEC");
 	New_IndexedWave("num_TF", ":number_TF");
@@ -989,8 +992,8 @@ Function Update_Magnification()
 		starty = -DimSize(OptDepth, 1)*Delta_Y / 2;
 		startx = -DimSize(OptDepth, 0)*Delta_X / 2;
 	elseif (stringmatch(Camera,"PIXIS") == 1) // PI Pixis camera
-		delta_X = 13 / magnification; //multiply by 2 if binning pixels
-		delta_Y = 13 / magnification; //multiply by 2 if binning pixels
+		delta_X = 2*13 / magnification; //multiply by 2 if binning pixels
+		delta_Y = 2*13 / magnification; //multiply by 2 if binning pixels
 		starty = -DimSize(OptDepth, 1)*Delta_Y / 2;
 		startx = -DimSize(OptDepth, 0)*Delta_X / 2;
 	elseif (stringmatch(Camera,"Flea3") == 1) // Flea 3 camera

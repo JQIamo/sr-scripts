@@ -641,7 +641,7 @@ Function FermiDiracFit2D(inputimage)
 	Wave res_optdepth = :fit_info:res_optdepth
 	
 	// wave to store confidence intervals
-	make/O/N=10 :Fit_Info:G3d_confidence
+	make/O/N=11 :Fit_Info:G3d_confidence
 	Wave G3d_confidence=:Fit_Info:G3d_confidence	
 
 	string Hold;
@@ -674,7 +674,7 @@ Function FermiDiracFit2D(inputimage)
 		inputimage_weight = 1/bg_sdev;
 	else
 	
-		inputimage_weight = (1/bg_sdev)*exp(-(inputimage / PeakOD)^2);
+		inputimage_weight = (1/bg_sdev)*exp(-(abs(inputimage)/PeakOD));
 		inputimage_mask = 1;
 	
 	endif
@@ -730,9 +730,14 @@ Function FermiDiracFit2D(inputimage)
 	epsilonWave = 1e-6*Gauss3d_coef;
 	epsilonWave[6] = .0005;
 	
+	//Tried to constrain fugacity greater than 0, but this doesn't seem to work.
+	//Make/O/T/N=1 :Fit_Info:T_Constraints;
+	//Wave/T T_Constraints = :Fit_Info:T_Constraints;
+	//T_Constraints[0] = {"K6 > 0"};
+	
 	//tic()
-	Variable/G V_FitTol=0.0005
-	//Variable/G V_FitTol=0.001 //default value
+	//Variable/G V_FitTol=0.0005
+	Variable/G V_FitTol=0.001 //default value
 	//Variable/G V_FitTol=0.0000001
 	Variable/G V_FitNumIters
 	Variable/G V_FitmaxIters = 300;
@@ -740,7 +745,7 @@ Function FermiDiracFit2D(inputimage)
 	//FuncFitMD/G/N/Q/H="0000000"/ODR=0 TF_FD_2D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight 
 
 	//This AAO (all at once) fit function uses matrix operations and executes faster than the regular version (speed up depends on size of ROI)
-	FuncFitMD/G/N/Q/H="0000000" TF_FD_2D_AAO, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight // /E=epsilonWave
+	FuncFitMD/G/N/Q/H="0000000" TF_FD_2D_AAO, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight //C=T_Constraints //E=epsilonWave
 	//toc()
 
 	print V_FitNumIters
@@ -757,12 +762,13 @@ Function FermiDiracFit2D(inputimage)
 	G3d_confidence[4] = W_sigma[4];
 	G3d_confidence[5] = sqrt(2)*W_sigma[5];
 	G3d_confidence[6] = W_sigma[6];
-	G3d_confidence[7] = V_chisq;
-	G3d_confidence[8] = V_npnts-V_nterms;
-	G3d_confidence[9] = G3d_confidence[9]/G3d_confidence[10];
+	G3d_confidence[7] = sqrt((W_sigma[6]^2)*(NumPolyLog(2,-Gauss3d_coef[6])/(3*(6^(1/3))*Gauss3d_coef[6]*(NumPolyLog(3,-Gauss3d_coef[6])^2)*(-NumPolyLog(3,-Gauss3d_coef[6]))^(-2/3)))^2)
+	G3d_confidence[8] = V_chisq;
+	G3d_confidence[9] = V_npnts-(V_nterms-V_nheld);
+	G3d_confidence[10] = G3d_confidence[8]/G3d_confidence[9];
 	
 	// Update Display Waves
-	fit_optdepth[pmin,pmax][qmin,qmax] = TF_FD_2D(Gauss3d_coef,x,y)
+	fit_optdepth[pmin,pmax][qmin,qmax] = TF_FD_2D(Gauss3d_coef,x,y);
 	MakeRadialAverage(fit_optdepth,1);
 	MakeRadialAverage(res_optdepth,3);
 	MakeRadialAverage(inputimage,0);
