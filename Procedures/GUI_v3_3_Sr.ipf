@@ -1272,7 +1272,7 @@ function BuildSrWindow(ProjectFolder)
 	PopupMenu DataType_popup,mode=1,popvalue="Absorption",value= #"\"Absorption;Fluorescence;PhaseContrast;\""
 	
 	PopupMenu FitTypePopup,pos={40,201},size={109,21},bodyWidth=109,proc=SetFit_Type
-	PopupMenu FitTypePopup,mode=1,popvalue="Thermal 1D",value= #"\"Thermal 1D;TF+Thermal 1D;TF only 1D;TF+Thermal 2D;TF only 2D;Thermal 2D;TriGauss 2D;BandMap 1D;Thermal Integral;Fermi-Dirac 2D;None\""
+	PopupMenu FitTypePopup,mode=1,popvalue="Thermal 1D",value= #"\"Thermal 1D;TF+Thermal 1D;TF only 1D;TF+Thermal 2D;TF only 2D;Thermal 2D;TriGauss 2D;BandMap 1D;Thermal Integral;Fermi-Dirac 2D; Arb PolyLog 2D; None\""
 	
 	CheckBox DualAxisImage,pos={155,205},size={80,16},bodyWidth=60,proc=Set_DualAxis,title="2 Axis Img"
 	CheckBox DualAxisImage,value=0
@@ -1304,10 +1304,10 @@ function BuildSrWindow(ProjectFolder)
 	SetVariable SliceWidth,pos={335,384},size={98,16},bodyWidth=40,title="Slice Width"
 	SetVariable SliceWidth,fSize=9,format="%d",value= :Fit_Info:slicewidth
 	
-	SetVariable fx,pos={566,209},size={128,16},bodyWidth=75,title="X trap freq"
+	SetVariable fx,pos={566,201},size={128,16},bodyWidth=75,title="X trap freq"
 	SetVariable fx,limits={-inf,inf,0},value= :Experimental_Info:freqX,noedit= 1
 	
-	SetVariable fz,pos={566,248},size={128,16},bodyWidth=75,title="Z trap freq"
+	SetVariable fz,pos={566,240},size={128,16},bodyWidth=75,title="Z trap freq"
 	SetVariable fz,limits={-inf,inf,0},value= :Experimental_Info:freqZ,noedit= 1
 	
 	//SetVariable aspetratio,pos={554,266},size={140,16},bodyWidth=75,title="Aspect Ratio" //get rid of this?
@@ -1398,21 +1398,21 @@ function BuildSrWindow(ProjectFolder)
 	SetVariable Tc,limits={0,0,0},value= :Tc
 
 	//SetVariable CastDumX,pos={513,366},size={60,16},bodyWidth=46,proc=SetCastDum,title="X " //move down 10
-	SetVariable CastDumX,pos={513,376},size={60,16},bodyWidth=46,proc=SetCastDum,title="X "
+	SetVariable CastDumX,pos={513,385},size={60,16},bodyWidth=46,proc=SetCastDum,title="X "
 	SetVariable CastDumX,value= :Experimental_Info:CastDum_xscale
 
 	//SetVariable CastDumy,pos={576,366},size={58,16},bodyWidth=44,proc=SetCastDum,title="Y " //move down 10
-	SetVariable CastDumy,pos={576,376},size={58,16},bodyWidth=44,proc=SetCastDum,title="Y "
+	SetVariable CastDumy,pos={576,385},size={58,16},bodyWidth=44,proc=SetCastDum,title="Y "
 	SetVariable CastDumy,value= :Experimental_Info:CastDum_yscale
 
 	//SetVariable CastDumz,pos={640,366},size={58,16},bodyWidth=44,proc=SetCastDum,title="Z "//move down 10
-	SetVariable CastDumz,pos={640,376},size={58,16},bodyWidth=44,proc=SetCastDum,title="Z "
+	SetVariable CastDumz,pos={640,385},size={58,16},bodyWidth=44,proc=SetCastDum,title="Z "
 	SetVariable CastDumz,value= :Experimental_Info:CastDum_zscale
 
 	GroupBox TrapProps2,pos={273,8},size={198,148},title="Imaged cloud (t = TOF)"
 	GroupBox TrapProps2,fSize=11
 
-	GroupBox TrapProps5,pos={500,8},size={211,150},title="Initial cloud (t = 0)"
+	GroupBox TrapProps5,pos={500,8},size={211,147},title="Initial cloud (t = 0)"
 	GroupBox TrapProps5,fSize=11
 
 	GroupBox TrapProps6,pos={273,158},size={198,84},title="Thermal cloud properties"
@@ -1422,48 +1422,62 @@ function BuildSrWindow(ProjectFolder)
 	GroupBox TrapProps7,fSize=11
 
 	//GroupBox TrapProps8,pos={501,166},size={209,174},title="Trap properties"
-	GroupBox TrapProps8,pos={501,166},size={209,105},title="Trap properties" //shrink this verticall
+	GroupBox TrapProps8,pos={501,157},size={209,105},title="Trap properties" //shrink this verticall
 	GroupBox TrapProps8,fSize=11
 
 	//GroupBox TrapProps9,pos={502,344},size={206,53},title="Castin-Dum scale paramaters" //move this down by 10
-	GroupBox TrapProps9,pos={502,354},size={206,53},title="Castin-Dum scale paramaters"
+	GroupBox TrapProps9,pos={502,368},size={206,39},title="Castin-Dum scale paramaters"
 	GroupBox TrapProps9,fSize=11
 
 	GroupBox TrapProps0,pos={33,8},size={200,342},title="Experimental properties"
 	GroupBox TrapProps0,fSize=11
 	
 	//Add FDG group box
-	GroupBox TrapProps10,pos={500,275},size={210,75},title="Degenerate Fermi Gas properties"
+	GroupBox TrapProps10,pos={500,264},size={210,55},title="Degenerate Fermi Gas properties"
 	GroupBox TrapProps10,fSize=11
 	
-	SetVariable fug,pos={522,290},size={95,16},bodyWidth=60,title="Fugacity"
+	SetVariable fug,pos={522,279},size={95,16},bodyWidth=60,title="Fugacity"
 	SetVariable fug,limits={-inf,inf,0},value= :fugacity,noedit= 1
 	
-	SetVariable T_Tf,pos={522,310},size={95,16},bodyWidth=60,title="T/Tf"
+	SetVariable T_Tf,pos={522,298},size={95,16},bodyWidth=60,title="T/Tf"
 	SetVariable T_Tf,limits={0,inf,0},value= :TTf,noedit= 1
+	
+	//Add PolyLog Fit box
+	GroupBox TrapProps11,pos={500,320},size={210,48},title="Arbitrary PolyLog Fits"
+	GroupBox TrapProps11,fSize=11
+	
+	SetVariable fug2,pos={522,335},size={75,16},bodyWidth=40,title="Fugacity"
+	SetVariable fug2,limits={-inf,inf,0},value= :fugacity,noedit= 1
+	
+	SetVariable A_alpha,pos={615,335},size={75,16},bodyWidth=40,title="A\Balpha"
+	SetVariable A_alpha,limits={-inf,inf,0},value= :A_alphaVar,noedit= 1
+	
+	SetVariable polyLogOrd, pos={522,350},size={75,16},bodyWidth=40,title="PolyLogOrder"
+	SetVariable polyLogOrd, limits={0.5,2.5,0.1}, format="%2.1f",value = :polyLogOrderVar
+	//
 
-	SetVariable Xpos,pos={284,41},size={51,16},bodyWidth=40,title="X"
+	SetVariable Xpos,pos={284,40},size={51,16},bodyWidth=40,title="X"
 	SetVariable Xpos,limits={-inf,inf,0},value= :xposition,noedit= 1
 
-	SetVariable Ypos,pos={350,41},size={51,16},bodyWidth=40,title="Y"
+	SetVariable Ypos,pos={350,40},size={51,16},bodyWidth=40,title="Y"
 	SetVariable Ypos,limits={-inf,inf,0},value= :yposition,noedit= 1
 
-	SetVariable Zpos,pos={412,41},size={51,16},bodyWidth=40,title="Z"
+	SetVariable Zpos,pos={412,40},size={51,16},bodyWidth=40,title="Z"
 	SetVariable Zpos,limits={-inf,inf,0},value= :zposition,noedit= 1
 
-	SetVariable DipoleFreqCoef,pos={516,186},size={55,16},bodyWidth=50,proc=Set_TrapParams,title="S\Bx"
+	SetVariable DipoleFreqCoef,pos={516,178},size={55,16},bodyWidth=50,proc=Set_TrapParams,title="S\Bx"
 	SetVariable DipoleFreqCoef,fSize=9,format="%3.2f"
 	SetVariable DipoleFreqCoef,value= :Experimental_Info:FreqScalingX
 	
-	SetVariable DipoleFreqCoef2,pos={584,186},size={55,16},bodyWidth=50,proc=Set_TrapParams,title="S\By"
+	SetVariable DipoleFreqCoef2,pos={584,178},size={55,16},bodyWidth=50,proc=Set_TrapParams,title="S\By"
 	SetVariable DipoleFreqCoef2,fSize=9,format="%3.2f"
 	SetVariable DipoleFreqCoef2,value= :Experimental_Info:FreqScalingY
 	
-	SetVariable DipoleFreqCoef3,pos={651,186},size={55,16},bodyWidth=50,proc=Set_TrapParams,title="S\Bz"
+	SetVariable DipoleFreqCoef3,pos={651,178},size={55,16},bodyWidth=50,proc=Set_TrapParams,title="S\Bz"
 	SetVariable DipoleFreqCoef3,fSize=9,format="%3.2f"
 	SetVariable DipoleFreqCoef3,value= :Experimental_Info:FreqScalingZ
 	
-	SetVariable fy,pos={565,228},size={128,16},bodyWidth=75,title="Y trap freq"
+	SetVariable fy,pos={565,220},size={128,16},bodyWidth=75,title="Y trap freq"
 	SetVariable fy,limits={-inf,inf,0},value= :Experimental_Info:freqY,noedit= 1
 	
 	SetVariable rms_x_t1,pos={509,87},size={57,16},bodyWidth=40,title="X0"
