@@ -762,7 +762,7 @@ Function FermiDiracFit2D(inputimage)
 	G3d_confidence[4] = W_sigma[4];
 	G3d_confidence[5] = sqrt(2)*W_sigma[5];
 	G3d_confidence[6] = W_sigma[6];
-	G3d_confidence[7] = sqrt((W_sigma[6]^2)*(NumPolyLog(2,-Gauss3d_coef[6])/(3*(6^(1/3))*Gauss3d_coef[6]*(NumPolyLog(3,-Gauss3d_coef[6])^2)*(-NumPolyLog(3,-Gauss3d_coef[6]))^(-2/3)))^2)
+	G3d_confidence[7] = sqrt((W_sigma[6]^2)*(NumPolyLog(2,-Gauss3d_coef[6])/(3*(6^(1/3))*Gauss3d_coef[6]*(NumPolyLog(3,-Gauss3d_coef[6])^2)*(-NumPolyLog(3,-Gauss3d_coef[6]))^(-2/3)))^2) //uncertainty in T/Tf from fitted fugacity uncertainty
 	G3d_confidence[8] = V_chisq;
 	G3d_confidence[9] = V_npnts-(V_nterms-V_nheld);
 	G3d_confidence[10] = G3d_confidence[8]/G3d_confidence[9];
@@ -1111,7 +1111,7 @@ Function ArbPolyLogFit2D(w,x,z) : FitFunc
 	//CurveFitDialog/ Independent Variables 2
 	//CurveFitDialog/ x
 	//CurveFitDialog/ z
-	//CurveFitDialog/ Coefficients 7
+	//CurveFitDialog/ Coefficients 8
 	//CurveFitDialog/ w[0] = offset
 	//CurveFitDialog/ w[1] = A
 	//CurveFitDialog/ w[2] = x0
@@ -1121,7 +1121,7 @@ Function ArbPolyLogFit2D(w,x,z) : FitFunc
 	//CurveFitDialog/ w[6] = fugacity
 	//CurveFitDialog/ w[7] = alpha (order of the polylog)
 	
-	return w[0] + w[1]*PolyLog(w[7],w[6]*exp( -(1/2)*(((x-w[2])/w[3])^2 + ((z-w[4])/w[5])^2) ) ) 
+	return w[0] + w[1]*PolyLog(w[7],-w[6]*exp( -(1/2)*(((x-w[2])/w[3])^2 + ((z-w[4])/w[5])^2) ) )  /PolyLog(w[7],-w[6]); 
 End
 
 Function ArbPolyLogFit1D(w,x) : FitFunc
@@ -1135,7 +1135,7 @@ Function ArbPolyLogFit1D(w,x) : FitFunc
 	//CurveFitDialog/ End of Equation
 	//CurveFitDialog/ Independent Variables 1
 	//CurveFitDialog/ x
-	//CurveFitDialog/ Coefficients 7
+	//CurveFitDialog/ Coefficients 6
 	//CurveFitDialog/ w[0] = offset
 	//CurveFitDialog/ w[1] = A
 	//CurveFitDialog/ w[2] = x0
@@ -1144,4 +1144,376 @@ Function ArbPolyLogFit1D(w,x) : FitFunc
 	//CurveFitDialog/ w[5] = alpha (order of the polylog)
 	
 	return w[0] + w[1]*PolyLog(w[5],w[4]*exp( -(1/2)*(((x-w[2])/w[3])^2) ) ) 
+End
+
+	
+Function nBoxInit(x,xc,L)
+	Variable x, xc, L
+	if (L==0) //treat this as a dirac delta function
+		if ((x-xc) == 0)
+			return 1
+		else
+			return 0
+		endif
+	endif
+	if ( Abs(x-xc) <= (L/2))
+		return 1/L
+	else
+		return 0
+	endif
+end
+
+Function integrand(xp)
+	Variable xp
+	Variable mass=1.443156956e-25;
+	Variable T = 100e-9;
+	Variable expT = 30e-3;
+	
+	Variable sigma = sqrt(kB*T*expT^2/mass)
+	Variable fugacity = Exp(-0/(kB*T))
+	
+	Make /O/N=5 funcPar={0,1,0,sigma,fugacity,2}
+	ArbPolyLogFit1D(funcPar,xp)
+End
+
+Function stepF(x,xc)
+	Variable x, xc
+	if ( (x-xc) <= 0)
+		return 1
+	else
+		return -1
+	endif
+end
+
+Function test2()
+	Make /O/N=(10001) test1
+	SetScale x -100, 100, test1
+	Make /O/N=(10001) test3
+	SetScale x -100, 100, test3
+	test1 = stepF(x,0);
+	test3 = exp(-(1/2)*(x^2/10^2));
+	
+	variable dx = 200/10001;
+	test1 = test1 * dx;
+	//Display test3
+	//Variable a = sum(test1);
+	//test1 /= a;
+	//Variable b = sum(test3);
+	//test3 /=b;
+	Convolve /A  test3 test1
+	
+
+	//Variable mass=1.443156956e-25;
+	//Variable T = 100e-9;
+	//Variable expT = 30e-3;
+	
+	//Variable sigma = sqrt(kB*T*expT^2/mass)
+	//Variable fugacity = Exp(-0/(kB*T))
+	
+	//Make /O/N=5 funcPar={0,1,0,sigma,fugacity,2}
+	//testW2 = ArbPolyLogFit1D(funcPar,x)
+	
+	//funcPar={0,1,0,sigma,fugacity,5/2}
+	//testW52 = ArbPolyLogFit1D(funcPar,x)
+	//Display  test3
+End
+
+Function testConv(xx)
+	Variable xx
+	Variable xmin = -100;
+	Variable xmax = 100;
+	
+	Variable/G globalX=xx;
+	
+	return Integrate1D(testInt,xmin,xmax)
+end
+
+Function testInt(xp)
+	Variable xp
+	
+	NVAR xx = globalX;
+	
+	return (stepF(xx-xp,0)* exp(-(1/2)*(xp^2/10^2)))
+end	
+
+Function FermiLinearDosWithRes(yw, xw) 	// linear DOS * Fermi, convolved with Gaussian energy resolution
+	Wave yw, xw
+ 
+	// pw[0] = offset
+	// pw[1] = Fermi level
+	// pw[2] = T
+	// pw[3] = DOS offset
+	// pw[4] = DOS slope
+	// pw[5] = energy resolution FWHM
+ 
+	Variable kB = 8.6173e-5	// Boltzmann k in eV/K
+ 
+	// Make the resolution function wave W_res.
+	Variable x0 = xw[0]
+	Variable dx = (xw[inf]-xw[0])/(numpnts(xw)-1)		
+	print dx					// assumes even data spacing, which is necessary for the convolution anyway
+	Make/O/D/N=(min(max(abs(8*10/dx), 5), numpnts(yw))) W_res	// make the Gaussian resolution wave
+	Redimension/N=(numpnts(W_res)+!mod(numpnts(W_res), 2)) W_res	// force W_res to have odd length
+	SetScale/P x, -dx*(numpnts(W_res)-1)/2, dx, W_res
+	//W_res = gauss( x, 0, pw[5]/(2*sqrt(2*ln(2))) )
+	W_res =exp(-(1/2)*(x^2/10^2));
+	//Variable a = sum(W_res)
+	//W_res /= a
+	W_res *= dx
+ 
+	// To eliminate edge effects due to the convolution, add points to yw, make the spectrum,
+	// do the convolution, and then delete the extra points.
+	Redimension/N=(numpnts(yw)+2*numpnts(W_res)) xw, yw
+	xw = (x0-numpnts(W_res)*dx) + p*dx
+	yw = stepF(xw[p],0);
+	Convolve/A W_res, yw
+	DeletePoints 0, numpnts(W_res), xw, yw
+	DeletePoints numpnts(yw)-numpnts(W_res), numpnts(W_res), xw, yw
+End
+
+Function testEdgeEff()
+	Make /O/N=(10001) xw
+	SetScale x,-100,100, xw
+	xw = x;
+	Make /O/N=(numpnts(xw)) yw
+	SetScale x,-100,100, yw
+	
+	FermiLinearDosWithRes(yw, xw) 
+	
+End
+
+Function ArbPolyLogFit1D_BoxConv(pw,yw, xw)  : FitFunc	
+	Wave pw, yw, xw
+
+	//CurveFitDialog/ These comments were created by the Curve Fitting dialog. Altering them will
+	//CurveFitDialog/ make the function less convenient to work with in the Curve Fitting dialog.
+	//CurveFitDialog/ Equation:
+	//CurveFitDialog/ f(x) = [offset + A*PolyLog(alpha,f*exp( (-1/2)* ( ((x-x0)/sigma_x)^2 ) ) )  ]*Box(x/L)
+	//CurveFitDialog/ End of Equation
+	//CurveFitDialog/ Independent Variables 1
+	//CurveFitDialog/ x
+	//CurveFitDialog/ Coefficients 7
+	//CurveFitDialog/ pw[0] = offset
+	//CurveFitDialog/ pw[1] = A
+	//CurveFitDialog/ pw[2] = x0
+	//CurveFitDialog/ pw[3] = sigma_x
+	//CurveFitDialog/ pw[4] = fugacity
+	//CurveFitDialog/ pw[5] = alpha (order of the polylog)
+	//CurveFitDialog/ pw[6] = L (size of the initial atom distribution (Box Size))
+  
+	// Make the convolution kernel (the in-situ density distribution for a box): W_init
+	Variable x0 = xw[0]
+	Variable dx = (xw[inf]-xw[0])/(numpnts(xw)-1)	  // assumes even data spacing, which is necessary for the convolution anyway
+	Make/O/D/N=(min(max(abs(3*pw[6]/dx), 5), numpnts(yw))) W_init	// make the kernel wave
+	Redimension/N=(numpnts(W_init)+!mod(numpnts(W_init), 2)) W_init	// force W_res to have odd length
+	SetScale/P x, -dx*(numpnts(W_init)-1)/2, dx, W_init
+	//W_res = gauss( x, 0, pw[5]/(2*sqrt(2*ln(2))) )
+	//W_res =exp(-(1/2)*(x^2/10^2));
+	W_init = nBoxInit(x,pw[2],pw[6])
+	Variable a = sum(W_init)
+	W_init /= a
+	//print a
+	//print 1/dx
+	//W_init *= dx; //normalize by multiplying by the x spacing
+ 
+	// To eliminate edge effects due to the convolution, add points to yw, make the spectrum,
+	// do the convolution, and then delete the extra points.
+	Redimension/N=(numpnts(yw)+2*numpnts(W_init)) xw, yw
+	xw = (x0-numpnts(W_init)*dx) + p*dx
+	yw = stepF(xw[p],0);
+	yw = pw[0] + pw[1]*PolyLog(pw[5],pw[4]*exp( -(1/2)*(((xw[p]-pw[2])/pw[3])^2) ) ) 
+	Convolve/A W_init yw
+	DeletePoints 0, numpnts(W_init), xw, yw
+	DeletePoints numpnts(yw)-numpnts(W_init), numpnts(W_init), xw, yw
+End
+
+Function test(s)
+	Variable s;
+	Variable L=25;
+	Make /O/N=(10000) xw
+	SetScale x, -500, 500, xw
+	xw = x;
+	Make /O/N=(numpnts(xw)) yw
+	SetScale x,-500,500, yw
+	
+	//Make /O/N=(1000) testW2
+	//SetScale x -500e-6, 500e-6, testW2
+	//Make /O/N=(1000) testW52
+	//SetScale x -500e-6, 500e-6, testW52
+	Variable mass=1.443156956e-25;
+	Variable T = 100e-9;
+	Variable expT = 30e-3;
+	
+	Variable sigma = sqrt(kB*T*expT^2/mass)
+	Variable fugacity = Exp(-0/(kB*T))
+	
+	//Make /O/N=5 funcPar={0,1,0,sigma,fugacity,2}
+	//testW2 = ArbPolyLogFit1D(funcPar,x)
+	
+	//funcPar={0,1,0,sigma,fugacity,5/2}
+	//testW52 = ArbPolyLogFit1D(funcPar,x)
+	Make /O/N=6 pw = {0,1,0,s,1,5/2,L};
+	
+	ArbPolyLogFit1D_BoxConv(pw,yw, xw) 
+	
+	Make /O/N=5 funcPar={0,1,0,s,1,5/2}
+	Duplicate yw testW2
+	testW2 = ArbPolyLogFit1D(funcPar,x)
+	return wavemax(yw)/wavemax(testw2);
+End
+
+Function PolyLogFit2D(inputimage,PolyLogOrder)
+	Wave inputimage
+	Variable PolyLogOrder
+	
+	// Get the current path and active windows
+	String ProjectFolder = Activate_Top_ColdAtomInfo();
+	String fldrSav= GetDataFolder(1)
+	SetDataFolder ProjectFolder
+	
+	// Discover the name of the current image window
+	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel;
+	String ImageWindowName = CurrentPanel + "#ColdAtomInfoImage";
+
+	NVAR xmax=:fit_info:xmax, xmin=:fit_info:xmin
+	NVAR ymax=:fit_info:ymax, ymin=:fit_info:ymin
+	NVAR DoRealMask = :fit_info:DoRealMask
+	NVAR PeakOD = :Experimental_Info:PeakOD
+
+	// Coefficent wave	
+	make/O/N=7 :Fit_Info:Gauss3d_coef
+	Wave Gauss3d_coef=:Fit_Info:Gauss3d_coef
+	Wave fit_optdepth = :Fit_Info:fit_optdepth;
+	Wave res_optdepth = :fit_info:res_optdepth
+	
+	// wave to store confidence intervals
+	make/O/N=11 :Fit_Info:G3d_confidence
+	Wave G3d_confidence=:Fit_Info:G3d_confidence	
+
+	string Hold;
+	
+	variable bgxmax, bgxmin;
+	variable bgymax, bgymin;
+	variable background, bg_sdev;
+
+	// Get the background average
+	bgymax = max(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgymin = min(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgxmax = max(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
+	bgxmin = min(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
+	
+	Duplicate /O inputimage, bg_mask;
+	bg_mask *= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? 1 : 0);
+	background = sum(bg_mask)/((bgxmax-bgxmin)*(bgymax-bgymin));
+	bg_mask -= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? background : 0);
+	bg_mask = bg_mask^2;
+	bg_sdev = sqrt(sum(bg_mask)/((bgxmax-bgxmin)*(bgymax-bgymin)-1))
+	
+	// Create weight waves which softly eliminate regions which have an excessive OD from the fit
+	Duplicate /O inputimage, inputimage_mask, inputimage_weight;
+	
+	If(DoRealMask)
+		//Create mask waves to have a hard boundary at PeakOD if desired.
+		inputimage_mask = (inputimage[p][q] > PeakOD ? 0 : 1);
+		inputimage_weight = 1/bg_sdev;
+	else
+		inputimage_weight = (1/bg_sdev)*exp(-(abs(inputimage)/PeakOD));
+		inputimage_mask = 1;
+	
+	endif
+	
+	// In this procedure, and other image procedures, the YMIN/YMAX variable
+	// is the physical Z axes for XZ imaging.
+	
+	// **************************************************
+	// Perform the fit
+	// 1) use Igor's gaussian to get the intial guesses
+	// 2) Run a full fit with Igors Gaussian because it is fast.	
+	// 3) use the Thermal_2D function to get the final paramaters
+	// 4) Fit to the 3D Thomas Fermi
+	
+	Variable V_FitOptions=4 //this suppresses the curve fit window
+	Variable K0 = background;
+	Variable K6 = 0;			// No correlation term
+		//Generate guess:
+	CurveFit /O/N/Q/H="0000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask
+	Gauss3d_coef[6] = 0;			// No correlation term
+	Gauss3d_coef[0] = background;		//fix background to average OD in atom free region
+	
+	//Fit with 2D Gaussian:
+	CurveFit /G/N/Q/H="0000001" Gauss2D kwCWave=Gauss3d_coef inputimage((xmin),(xmax))((ymin),(ymax)) /W=inputimage_weight /M=inputimage_mask /R=res_optdepth
+	
+	//make radial average of the gaussian
+	// Update Display Waves
+	variable pmax = (xmax - DimOffset(inputimage, 0))/DimDelta(inputimage,0);
+	variable pmin = (xmin - DimOffset(inputimage, 0))/DimDelta(inputimage,0);
+	variable qmax = (ymax - DimOffset(inputimage, 1))/DimDelta(inputimage,1);
+	variable qmin = (ymin - DimOffset(inputimage, 1))/DimDelta(inputimage,1);
+	fit_optdepth[pmin,pmax][qmin,qmax] = Gauss2D(Gauss3d_coef,x,y)
+	MakeRadialAverage(fit_optdepth,2);
+	MakeRadialAverage(res_optdepth,4);
+		
+	
+	//2D PolyLog Fit uses the following parameters:
+	//CurveFitDialog/ w[0] = offset
+	//CurveFitDialog/ w[1] = A
+	//CurveFitDialog/ w[2] = x0
+	//CurveFitDialog/ w[3] = sigma_x
+	//CurveFitDialog/ w[4] = z0
+	//CurveFitDialog/ w[5] = sigma_z
+	//CurveFitDialog/ w[6] = fugacity
+	//CurveFitDialog/ w[7] = alpha (order of the polylog)
+	Redimension /N=8 Gauss3d_coef; //Add another point to the coefficient wave since the 2D polylog function has an extra input
+	Gauss3d_coef[6] = .1; //Initial guess for fugacity
+	Gauss3d_coef[7] = PolyLogOrder; //Constrain polylog order to be constant
+	
+	Make /D/O/N=8 epsilonWave = 1e-6;
+	epsilonWave = 1e-6*Gauss3d_coef;
+	epsilonWave[6] = .0005;
+	
+	//Tried to constrain fugacity greater than 0, but this doesn't seem to work.
+	//Make/O/T/N=1 :Fit_Info:T_Constraints;
+	//Wave/T T_Constraints = :Fit_Info:T_Constraints;
+	//T_Constraints[0] = {"K6 > 0"};
+	
+	//Variable/G V_FitTol=0.0005
+	Variable/G V_FitTol=0.001 //default value
+	//Variable/G V_FitTol=0.0000001
+	Variable/G V_FitNumIters
+	Variable/G V_FitmaxIters = 300;
+	//Fit the image
+	FuncFitMD/G/N/Q/H="00000001"/ODR=0 ArbPolyLogFit2D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight  //C=T_Constraints //E=epsilonWave
+
+	//print V_FitNumIters
+	
+	//print Gauss3d_coef; //temporary
+	//fugacity = Gauss3d_coef[6]
+
+	wave W_sigma = :W_sigma;
+	//store the fitting errors 
+	G3d_confidence[0] = W_sigma[0];
+	G3d_confidence[1] = W_sigma[1];
+	G3d_confidence[2] = W_sigma[2];
+	G3d_confidence[3] = sqrt(2)*W_sigma[3];
+	G3d_confidence[4] = W_sigma[4];
+	G3d_confidence[5] = sqrt(2)*W_sigma[5];
+	G3d_confidence[6] = W_sigma[6];
+	G3d_confidence[7] = sqrt((W_sigma[6]^2)*(NumPolyLog(2,-Gauss3d_coef[6])/(3*(6^(1/3))*Gauss3d_coef[6]*(NumPolyLog(3,-Gauss3d_coef[6])^2)*(-NumPolyLog(3,-Gauss3d_coef[6]))^(-2/3)))^2)
+	G3d_confidence[8] = V_chisq;
+	G3d_confidence[9] = V_npnts-(V_nterms-V_nheld);
+	G3d_confidence[10] = G3d_confidence[8]/G3d_confidence[9];
+	
+	// Update Display Waves
+	fit_optdepth[pmin,pmax][qmin,qmax] = ArbPolyLogFit2D(Gauss3d_coef,x,y);
+	MakeRadialAverage(fit_optdepth,1);
+	MakeRadialAverage(res_optdepth,3);
+	MakeRadialAverage(inputimage,0);
+	
+	// Note the sqt(2) on the widths -- this is due to differing definitions of 1D and 2D gaussians in igor
+	Gauss3d_coef[3] *= sqrt(2); Gauss3d_coef[5] *= sqrt(2);
+	
+	killwaves inputimage_mask, inputimage_weight;
+		
+	SetDataFolder fldrSav
+	return 1
 End
