@@ -263,6 +263,8 @@ function Dialog_SetBasePath()
 	String baseName="I:Data:"+Year+":"+Month+":"+Day+":"+Cam+"_"+Day+Month[0,2]+Year;
 	//Form Base Name for Dan's office computer
 	//String baseName="dbarker2:Data:"+Year+":"+Month+":"+Day+":"+Cam+"_"+Day+Month[0,2]+Year;
+	//Form Base Name for Ben's office computer
+	//String baseName="Y:Data:"+Year+":"+Month+":"+Day+":"+Cam+"_"+Day+Month[0,2]+Year;
 	
 	//set base name
 	SetBasePath(baseName)
