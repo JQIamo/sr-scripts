@@ -381,3 +381,81 @@ function LatPulseRatio1_0FitFunc(w,t) : FitFunc
 	
 	return w[0] + w[1]*(LatPulsePop(t,w[2],1)/LatPulsePop(t,w[2],0))
 end
+
+Function defineKipDirROIs(numOrders,direction)
+	Variable numOrders
+	String direction
+	
+	//variable hbar = 1.0545718e-34 //this is already defined as a global variable
+	
+	SVAR ProjectFolder = root:Packages:ColdAtom:CurrentPath;
+	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel;
+	String WindowName = CurrentPanel + "#ColdAtomInfoImage";
+	
+	NVAR k = $(ProjectFolder + ":Experimental_Info:k")
+	NVAR mass = $(ProjectFolder + ":Experimental_Info:mass")
+	NVAR expand_time = $(ProjectFolder + ":Experimental_Info:expand_time")
+	
+	//Get the center coordinates
+	Variable centerX, centerY
+	centerX = hcsr(F, WindowName) //F is the green cursor that should be at the center of the 0th order peak
+	centerY = vcsr(F,WindowName)
+	
+	//Calculate the distance corresponding to hbar*k of momentum (hbar*k*TOF/m)
+	Variable hbar_k = 1e6*hbar*k*expand_time*1e-3/mass //(constants are there to convert m to um and ms to s)
+	
+	//Define the ROI around the center peak:
+	Cursor/I/W=$(WindowName) A, optdepth, (centerX+hbar_k), (centerY+hbar_k)
+	Cursor/I/W=$(WindowName) B, optdepth, (centerX-hbar_k), (centerY-hbar_k)
+	if (stringmatch(direction,"H"))
+		//place bg region below 
+		Cursor/I/W=$(WindowName) C, optdepth, (centerX+hbar_k*(numOrders*2+1)), (centerY-hbar_k)
+		Cursor/I/W=$(WindowName) D, optdepth, (centerX-hbar_k*(numOrders*2+1)), (centerY-3*hbar_k)
+		
+		//place bg region above 
+		//Cursor/I/W=$(WindowName) C, optdepth, (centerX+hbar_k*(numOrders*2+1)), (centerY+hbar_k)
+		//Cursor/I/W=$(WindowName) D, optdepth, (centerX-hbar_k*(numOrders*2+1)), (centerY+3*hbar_k)
+	elseif (stringmatch(direction,"V"))
+		//place bg region to the left
+		Cursor/I/W=$(WindowName) C, optdepth, (centerX-hbar_k), (centerY+hbar_k*(numOrders*2+1))
+		Cursor/I/W=$(WindowName) D, optdepth, (centerX-3*hbar_k), (centerY-hbar_k*(numOrders*2+1))
+		
+		//place bg region to the right
+		//Cursor/I/W=$(WindowName) C, optdepth, (centerX+hbar_k), (centerY+hbar_k*(numOrders*2+1))
+		//Cursor/I/W=$(WindowName) D, optdepth, (centerX+3*hbar_k), (centerY-hbar_k*(numOrders*2+1))
+	endif
+	//Set the ROI
+	SetROI("",1,"")
+	//Save the ROI
+	SaveROI(ProjectFolder,"P0")
+	
+	
+	String ROIname
+	Variable j
+	for (j=1 ; j <= numOrders ; j+=1) 
+		if (stringmatch(direction,"H"))	//move cursors to next peak to the right
+			Cursor/I/W=$(WindowName) A, optdepth, (centerX+hbar_k*(2*j+1)), (centerY+hbar_k)
+			Cursor/I/W=$(WindowName) B, optdepth, (centerX+hbar_k*(2*j-1)), (centerY-hbar_k)
+		elseif (stringmatch(direction,"V"))	//move cursors to next peak above
+			Cursor/I/W=$(WindowName) A, optdepth, (centerX+hbar_k), (centerY+hbar_k*(2*j+1))
+			Cursor/I/W=$(WindowName) B, optdepth, (centerX-hbar_k), (centerY+hbar_k*(2*j-1))
+		endif
+		ROIname = "P" + num2str(j) + "_R"
+		SetROI("",1,"")
+		SaveROI(ProjectFolder,ROIname)
+		
+		if (stringmatch(direction,"H"))	//move cursors to next peak to the left
+			Cursor/I/W=$(WindowName) A, optdepth, (centerX-hbar_k*(2*j+1)), (centerY+hbar_k)
+			Cursor/I/W=$(WindowName) B, optdepth, (centerX-hbar_k*(2*j-1)), (centerY-hbar_k)
+		elseif (stringmatch(direction,"V"))	//move cursors to next peak below
+			Cursor/I/W=$(WindowName) A, optdepth, (centerX+hbar_k), (centerY-hbar_k*(2*j+1))
+			Cursor/I/W=$(WindowName) B, optdepth, (centerX-hbar_k), (centerY-hbar_k*(2*j-1))
+		endif
+		ROIname = "P" + num2str(j) + "_L"
+		SetROI("",1,"")
+		SaveROI(ProjectFolder,ROIname)
+	
+	endfor
+	
+	
+end
