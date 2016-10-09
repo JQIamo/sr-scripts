@@ -1417,6 +1417,7 @@ function Graph_IndexedWaves(XIndexedWave, YIndexedWave)
 	Display $(":IndexedWaves:" + YIndexedWave) vs $(":IndexedWaves:" + XIndexedWave);
 	Label left YIndexedWave;
 	Label bottom XIndexedWave;
+	ModifyGraph mode=3, marker=19
 	FormatGraph(0, 0, 0);	
 
 	SetDataFolder fldrSav;
