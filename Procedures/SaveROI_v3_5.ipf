@@ -18,11 +18,58 @@ function Init_SavedROIs()
 	
 end
 
-//function SaveROI(String DataSeries, String nameROI)
+function SaveROI(DataSeries, ROI_Name)
+	String ROI_name
+	String DataSeries 
+
+	Init_SavedROIs()
+	Init_ColdAtomInfo(); //Creates the needed variables if they do not already exist
+	
+	String ROI_path = "root:Packages:SavedROIs:" + ROI_Name;
+	
+	//Check if ROI exists by that name already, if not create a subfolder
+	if (DataFolderExists(ROI_path))
+		//do nothing
+		//consider warning user?
+	else
+		NewDataFolder/O $ROI_path;
+	endif
+	
+	SVAR CurrentPath = root:Packages:ColdAtom:CurrentPath;
+	//SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel;
+	
+	//String SavePanel = CurrentPanel;
+	String SavePath = CurrentPath;
+	String fldrSav = GetDataFolder(1);
+	
+	Set_ColdAtomInfo(DataSeries)
+	
+	String ProjectFolder = Activate_Top_ColdAtomInfo();
+	SetDataFolder ProjectFolder
+	
+	//Get cursor positions:
+	NVAR y_max=:fit_info:ymax,y_min=:fit_info:ymin;
+	NVAR x_max=:fit_info:xmax,x_min=:fit_info:xmin;
+	NVAR bgy_max=:fit_info:bgymax,bgy_min=:fit_info:bgymin;
+	NVAR bgx_max=:fit_info:bgxmax,bgx_min=:fit_info:bgxmin;
+	
+	SetDataFolder ROI_path;
+	
+	//Save cursor positions:
+	Variable/G xmax = x_max
+	Variable/G xmin = x_min
+	Variable/G ymax = y_max
+	Variable/G ymin = y_min
+	Variable/G bgxmax = bgx_max
+	Variable/G bgxmin = bgx_min
+	Variable/G bgymax = bgy_max
+	Variable/G bgymin = bgy_min
+	
+	Set_ColdAtomInfo(SavePath)
+	SetDataFolder fldrSav
 
 
-
-//end
+end
 
 function Dialog_SaveROI()
 
@@ -61,35 +108,8 @@ function Dialog_SaveROI()
 	
 	String HostPath = StringFromList(HostProjectNum-1, ActivePaths);
 	
-	String SavePanel = CurrentPanel;
-	String SavePath = CurrentPath;
-	String fldrSav = GetDataFolder(1);
+	SaveROI(HostPath,ROI_Name)
 	
-	Set_ColdAtomInfo(HostPath)
-	
-	String ProjectFolder = Activate_Top_ColdAtomInfo();
-	SetDataFolder ProjectFolder
-	
-	//Get cursor positions:
-	NVAR y_max=:fit_info:ymax,y_min=:fit_info:ymin;
-	NVAR x_max=:fit_info:xmax,x_min=:fit_info:xmin;
-	NVAR bgy_max=:fit_info:bgymax,bgy_min=:fit_info:bgymin;
-	NVAR bgx_max=:fit_info:bgxmax,bgx_min=:fit_info:bgxmin;
-	
-	SetDataFolder ROI_path;
-	
-	//Save cursor positions:
-	Variable/G xmax = x_max
-	Variable/G xmin = x_min
-	Variable/G ymax = y_max
-	Variable/G ymin = y_min
-	Variable/G bgxmax = bgx_max
-	Variable/G bgxmin = bgx_min
-	Variable/G bgymax = bgy_max
-	Variable/G bgymin = bgy_min
-	
-	Set_ColdAtomInfo(SavePath)
-	SetDataFolder fldrSav
 	
 end
 
@@ -199,4 +219,3 @@ function LoadROI(ROI_Name)
 	SetROI("",1,"")
 	
 end
-
