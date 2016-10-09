@@ -2527,6 +2527,9 @@ Function ArbPolyLogUpdateCloudPars(Gauss3D_coef)
 	tvert *= 1e9;															// Temperature in nK.
 	N2T3var = absnumber^2/(temperature^3)
 	A_alpha = amplitude/(temperature^PolyLogOrd * NumPolyLog(polyLogOrd,-fugacity));
+	
+	//A_alpha = ( temperature^alpha * NumPolyLog(polyLogOrd,-fugacity)/(amplitude * xrms * yrms) )^(1/alpha) //I think this might be a better calculation of theta_alpha from Schmidutz's thesis
+	
 End
 
 // ******************** ThermalUpdateCloudPars *****************************************************************************
