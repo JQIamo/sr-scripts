@@ -164,7 +164,7 @@ function Scattering_Depth_Sorting(numImages,numDiffOrders,depthGuess)
 		//Fit to ratio:	
 		Make/D/N=3/O W_coef
 		W_coef[0] = {0,1,depthGuess}
-		FuncFit/NTHR=0/TBOX=768 LatPulseRatio1_0FitFunc W_coef  :LatticePulseCal:ratio_1_0 /X=:LatticePulseCal:pulseLatT /M=:LatticePulseCal:mask_ratio_1_0 /D 
+		FuncFit/NTHR=0/TBOX=768 LatPulseRatio1_0FitFunc W_coef  $(ProjectFolder + ":LatticePulseCal:ratio_1_0") /X=$(ProjectFolder + ":LatticePulseCal:pulseLatT") /M=$(ProjectFolder + ":LatticePulseCal:mask_ratio_1_0") /D 
 		ModifyGraph rgb(fit_ratio_1_0)=(0,26112,13056)
 	endif
 	
@@ -186,20 +186,20 @@ function Scattering_Depth_Sorting(numImages,numDiffOrders,depthGuess)
 		//Fit to pop0:	
 		Make/D/N=4/O W_coef
 		W_coef[0] = {0,1,depthGuess,0}
-		FuncFit/H="0001"/NTHR=0/TBOX=768 LatPulseFitFunc W_coef  :LatticePulseCal:pop_0 /X=:LatticePulseCal:pulseLatT /D 
+		FuncFit/H="0001"/NTHR=0/TBOX=768 LatPulseFitFunc W_coef  $(ProjectFolder + ":LatticePulseCal:pop_0") /X=$(ProjectFolder + ":LatticePulseCal:pulseLatT") /D 
 		ModifyGraph mode(fit_pop_0)=0
 		
 		//Fit to pop1:
 		Make/D/N=4/O W_coef
 		W_coef[0] = {0,1,depthGuess,1}
-		FuncFit/H="0001"/NTHR=0/TBOX=768 LatPulseFitFunc W_coef  :LatticePulseCal:pop_1_avg /X=:LatticePulseCal:pulseLatT /D 
+		FuncFit/H="0001"/NTHR=0/TBOX=768 LatPulseFitFunc W_coef  $(ProjectFolder + ":LatticePulseCal:pop_1_avg") /X=$(ProjectFolder + ":LatticePulseCal:pulseLatT") /D 
 		ModifyGraph rgb(fit_pop_1_avg)=(0,12800,52224)
 		ModifyGraph mode(fit_pop_1_avg)=0
 		
 		//Fit to pop2:
 		Make/D/N=4/O W_coef
 		W_coef[0] = {0,1,depthGuess,2}
-		FuncFit/H="0001"/NTHR=0/TBOX=768 LatPulseFitFunc W_coef  :LatticePulseCal:pop_2_avg /X=:LatticePulseCal:pulseLatT /D 
+		FuncFit/H="0001"/NTHR=0/TBOX=768 LatPulseFitFunc W_coef  $(ProjectFolder + ":LatticePulseCal:pop_2_avg") /X=$(ProjectFolder + ":LatticePulseCal:pulseLatT") /D 
 		ModifyGraph rgb(fit_pop_2_avg)=(0,26112,0)
 		ModifyGraph mode(fit_pop_2_avg)=0
 		if (numDiffOrders>2)
@@ -207,7 +207,7 @@ function Scattering_Depth_Sorting(numImages,numDiffOrders,depthGuess)
 			//Fit to pop3:
 			Make/D/N=4/O W_coef
 			W_coef[0] = {0,1,depthGuess,3}
-			FuncFit/H="0001"/NTHR=0/TBOX=768 LatPulseFitFunc W_coef  :LatticePulseCal:pop_3_avg /X=:LatticePulseCal:pulseLatT /D 
+			FuncFit/H="0001"/NTHR=0/TBOX=768 LatPulseFitFunc W_coef  $(ProjectFolder + ":LatticePulseCal:pop_3_avg") /X=$(ProjectFolder + ":LatticePulseCal:pulseLatT") /D 
 			ModifyGraph rgb(fit_pop_3_avg)=(19712,0,39168)
 			ModifyGraph mode(fit_pop_3_avg)=0
 		endif
