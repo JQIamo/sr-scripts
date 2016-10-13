@@ -673,7 +673,8 @@ Function Load_Img(ImageName,FileName)
 		//RotAng = 26.67;	//check by minimizing crosscorrelation term in 2D thermal fit on PIXIS (20)
 		//RotAng = 53.2; //rotation angle to level the main dipole beam
 		//RotAng = 6.7 //rotation angle to approximately level cross beam
-		RotAng = 7.43;	// rotation angle to level box on pixix
+		//RotAng = 7.43;	// rotation angle to level box on pixis
+		RotAng = 6.967 // rotation angle to level horizontal lattice on PIXIS
 		//RotAng =7;	// rotation angle to level box on vert flea
 		ImageRotate/Q/O/E=0/A=(RotAng) ImageName;
 		Update_Magnification();			// CDH: why is this here??	
