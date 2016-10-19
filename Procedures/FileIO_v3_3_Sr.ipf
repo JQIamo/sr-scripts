@@ -431,7 +431,8 @@ Function Load_Img(ImageName,FileName)
 					case "XY":
 						//single axis imaging XY ISatCounts goes here
 						//ISatCounts = 14650;     //measurement on 6/30/2014 for Sr
-						ISatCounts = 12851;     //measurement on 12/11/2015 for Sr for 2x2 bin, 10 us
+						//ISatCounts = 12851;     //measurement on 12/11/2015 for Sr for 2x2 bin, 10 us
+						ISatCounts = 4050.06;    //measurement on 10/18/2016, no binning on PIXIS, 10 us
 						//ISatCounts = inf;
 					break;
 					case "XZ":
