@@ -1379,6 +1379,7 @@ Function PolyLogFit2D(inputimage,PolyLogOrder)
 	NVAR ymax=:fit_info:ymax, ymin=:fit_info:ymin
 	NVAR DoRealMask = :fit_info:DoRealMask
 	NVAR PeakOD = :Experimental_Info:PeakOD
+	NVAR chisqVar = :chisqVar
 
 	// Coefficent wave	
 	make/O/N=7 :Fit_Info:Gauss3d_coef
@@ -1502,6 +1503,9 @@ Function PolyLogFit2D(inputimage,PolyLogOrder)
 	G3d_confidence[8] = V_chisq;
 	G3d_confidence[9] = V_npnts-(V_nterms-V_nheld);
 	G3d_confidence[10] = G3d_confidence[8]/G3d_confidence[9];
+	
+	//store chi-square in an indexed wave:
+	chisqVar = V_chisq
 	
 	// Update Display Waves
 	fit_optdepth[pmin,pmax][qmin,qmax] = ArbPolyLogFit2D(Gauss3d_coef,x,y);

@@ -372,6 +372,8 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	Variable/G $(ProjectFolder + ":Experimental_Info:theta") = 36;
 	Variable/G $(ProjectFolder + ":Experimental_Info:mass") = 1.42655671e-25; //86-Sr mass
 	Variable/G $(ProjectFolder + ":Experimental_Info:a_scatt") = 43.619e-3; //86-Sr scattering length
+	Variable/G $(ProjectFolder + ":Experimental_Info:x_pixels") = 1024;
+	Variable/G $(ProjectFolder + ":Experimental_Info:y_pixels") = 1024;
 
 	// Trap properties
 	Variable/G $(ProjectFolder + ":Experimental_Info:TrapMin") = nan;
@@ -436,6 +438,7 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	New_IndexedWave("tempFermiFrac",":TTf");
 	New_IndexedWave("A_alpha","A_alphaVar");
 	New_IndexedWave("polyLogOrder","polyLogOrderVar");
+	New_IndexedWave("fit_chi_sq","chisqVar");
 
 
 	Variable/G $(ProjectFolder + ":LineProfiles:slicesource") = 0;
@@ -945,6 +948,7 @@ Function Update_Magnification()
 	NVAR magnification=:Experimental_Info:magnification
 	NVAR delta_pix=:Experimental_Info:delta_pix
 	SVAR Camera = :Experimental_Info:Camera
+	NVAR x_pixels = :Experimental_Info:x_pixels
 
 	Wave optdepth=:optdepth
 	
@@ -994,8 +998,13 @@ Function Update_Magnification()
 		starty = -DimSize(OptDepth, 1)*Delta_Y / 2;
 		startx = -DimSize(OptDepth, 0)*Delta_X / 2;
 	elseif (stringmatch(Camera,"PIXIS") == 1) // PI Pixis camera
-		delta_X = 13 / magnification; //multiply by 2 if binning pixels
-		delta_Y = 13 / magnification; //multiply by 2 if binning pixels
+		if (x_pixels == 512)	//in this case, we are binning pixels
+			delta_X = 2*13 / magnification; //multiply by 2 since binning pixels
+			delta_Y = 2*13 / magnification; //multiply by 2 since binning pixels
+		else //no binning
+			delta_X = 13 / magnification; 
+			delta_Y = 13 / magnification; 
+		endif
 		starty = -DimSize(OptDepth, 1)*Delta_Y / 2;
 		startx = -DimSize(OptDepth, 0)*Delta_X / 2;
 	elseif (stringmatch(Camera,"Flea3") == 1) // Flea 3 camera
