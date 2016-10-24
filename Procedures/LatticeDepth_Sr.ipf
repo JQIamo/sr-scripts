@@ -92,7 +92,7 @@ function Scattering_Depth_Sorting(numImages,numDiffOrders,depthGuess)
 	//Make a new data folder to store the waves created below
 	NewDataFolder /O $(ProjectFolder + ":LatticePulseCal")
 	
-	//Make a wave to hold the pulst time
+	//Make a wave to hold the pulse time
 	Duplicate /O /R=(0,numImages-1) $(ProjectFolder + ":IndexedWaves:pulseLatT") $(ProjectFolder + ":LatticePulseCal:pulseLatT")
 	
 	//Loop over the various diffraction orders and save waves with the atom number for those waves
