@@ -988,6 +988,24 @@ function generate_polylog_lookups()
 	endfor												
 end
 
+function export_polylog_lookups()
+	String savedDataFolder = GetDataFolder(1)
+	SetDataFolder root:polylog	
+	
+	//Save the x wave:
+	Save/J/P=Igor_PolyLog_Lookup PolyLog_Xwave as "PolyLog_Xwave.txt"
+	
+	String tempWaveName, tempFileName
+	variable v;
+	for(v=0.5;v<2.6;v+=0.1)
+		tempWaveName = "PolyLog_" + ReplaceString(".",num2str(v),"_")
+		tempFileName = tempWaveName + ".txt"
+		Save/J/P=Igor_PolyLog_Lookup $tempWaveName as tempFileName
+	endfor
+	
+	SetDataFolder savedDataFolder									
+end
+
 function generate_polylog_lookup_xwave()
 	//Since the polylog varies at different rates, generate multiple x waves with different spacings between points, then concatenate them together:
 	
@@ -1423,6 +1441,13 @@ Function PolyLogFit2D(inputimage,PolyLogOrder)
 	
 	endif
 	
+	//Create mask of just the ROI
+	//Duplicate /O/Free inputimage, ROI_region_mask;
+	//ROI_region_mask =  ( x < xmax && x > xmin && y < ymax && y > ymin ? 1 : 0);
+	
+	//Combine the two mask waves:
+	//inputimage_mask = inputimage_mask*ROI_region_mask //adding this mask changes the results very slightly, but doesn't speed up execution. It seems like the mask behaves similarly to bounding the wave to be fit with ((xmin),(xmax))((ymin),(ymax))
+	
 	// In this procedure, and other image procedures, the YMIN/YMAX variable
 	// is the physical Z axes for XZ imaging.
 	
@@ -1484,7 +1509,7 @@ Function PolyLogFit2D(inputimage,PolyLogOrder)
 	Variable/G V_FitmaxIters = 300;
 	//Fit the image
 	FuncFitMD/G/N/Q/H="00000001"/ODR=0 ArbPolyLogFit2D, Gauss3d_coef, inputimage((xmin),(xmax))((ymin),(ymax)) /M=inputimage_mask /R=res_optdepth /W=inputimage_weight  //C=T_Constraints //E=epsilonWave
-
+	//((xmin),(xmax))((ymin),(ymax))
 	//print V_FitNumIters
 	
 	//print Gauss3d_coef; //temporary
