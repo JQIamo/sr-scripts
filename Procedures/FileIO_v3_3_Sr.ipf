@@ -179,6 +179,7 @@ Function Load_Img(ImageName,FileName)
 	SVAR ImageDirection = :Experimental_Info:ImageDirection;
 	NVAR magnification = :Experimental_Info:magnification;
 	NVAR ISatCounts = :Experimental_Info:ISatCounts;
+	NVAR alphaIsat = :Experimental_Info:alphaISat;
 	NVAR Irace = :Experimental_Info:Irace;
 	NVAR Ipinch = :Experimental_Info:Ipinch;
 	NVAR Ibias = :Experimental_Info:Ibias;
@@ -193,6 +194,10 @@ Function Load_Img(ImageName,FileName)
 	NVAR DualAxis = :Experimental_Info:DualAxis;
 	NVAR Analysis_Type = :Fit_Info:Analysis_Type;
 	NVAR isotope = :Experimental_Info:SrIsotope;
+	NVAR x_pixels = :Experimental_Info:x_pixels;
+	NVAR y_pixels = :Experimental_Info:y_pixels;
+	
+	NVAR ProbePow = :ProbePow
 
 	Wave Isat = :Isat;
 	Wave Raw1 = :Raw1;
@@ -201,7 +206,9 @@ Function Load_Img(ImageName,FileName)
 	Wave Raw4 = :Raw4;
 	Wave/I ROI_mask = :ROI_mask;
 	Wave PrAlpha = :Fit_Info:PrAlpha;
-
+	
+	
+	
 	// FileName should include the full path to the file i.e., "D:Experiment:Data Acquisition:PFabsimg.ibw"
 
 	try
@@ -211,7 +218,7 @@ Function Load_Img(ImageName,FileName)
 		print "Error (Load_Img: LoadWave): ", GetRTErrMessage(), "Num: ", GetRTError(1);
 		Abort;
 	endtry
-
+	
 	//LoadWave/Q/O FileName		//CDH: no need to repeat command since try-catch evaluates it if no error!
 	LoadedWaveName =  StringFromList(0,S_waveNames);
 	TargetWaveName = NameOfWave(ImageName);
@@ -407,6 +414,10 @@ Function Load_Img(ImageName,FileName)
 				break;
 			endswitch
 			
+			//Look at image size now that they have been loaded
+			x_pixels = dimsize(Raw1,0)
+			y_pixels = dimsize(Raw1,1)
+			
 			if (stringmatch(Camera,"FL3_32S2M") && stringmatch(ImageDirection,"XY"))
 				RotateImage=1
 			endif
@@ -416,33 +427,69 @@ Function Load_Img(ImageName,FileName)
 					case "XY":
 						//two axis imaging XY ISatCounts goes here
 						ISatCounts = inf;
+						alphaIsat = 1;
 					break;
 					case "XZ":
 						//two axis imaging XZ ISatCounts goes here
 						ISatCounts = inf;
+						alphaIsat = 1;
 					break;
 					default:
 						//default imposes no Isat correction
 						ISatCounts = inf;
+						alphaIsat = 1;
 					break;
 				endswitch
 			elseif(DualAxis == 0)
 				strswitch(ImageDirection)
 					case "XY":
 						//single axis imaging XY ISatCounts goes here
-						//ISatCounts = 14650;     //measurement on 6/30/2014 for Sr
-						//ISatCounts = 12851;     //measurement on 12/11/2015 for Sr for 2x2 bin, 10 us
-						ISatCounts = 4050.06;    //measurement on 10/18/2016, no binning on PIXIS, 10 us
-						//ISatCounts = inf;
+						
+						strswitch(Camera)
+							case "PIXIS":
+								if (x_pixels == 512)
+									//PIXIS is binning pixels
+									//ISatCounts = 14650;     //measurement on 6/30/2014 for Sr
+									//ISatCounts = 12851;     //measurement on 12/11/2015 for Sr for 2x2 bin, 10 us
+									ISatCounts = 10669.1 //measurement on 10/18/2016, binning PIXIS, 10 us exposure
+									
+									If(isotope==3)	//case Sr87
+										alphaIsat = 1.81 //!uncalibrated for pixel binning, using value from unbinned
+									else
+										alphaIsat = 1.28 //!uncalibrated for pixel binning, using value from unbinned
+									endif
+								else
+									//PIXIS is not binning pixels
+									
+									//ISatCounts = 4050.06;    //measurement on 10/18/2016, no binning on PIXIS, 10 us
+									ISatCounts = 4400; //measurement 10/28/2016, no binning on PIXIS, 10 us, need to adjust this if I change exposureT!
+									
+									//Variable expTime = 10*1550 / (58515-36805*ProbePow + 5891*ProbePow^2) //exp time used on 11/1/16
+									//Variable expTime = 10*1550 / (64233-41103*ProbePow + 6702*ProbePow^2) //exp time used on 11/1/16
+									//ISatCounts = 440 * expTime
+									
+									If(isotope==3)	//case Sr87
+										alphaIsat = 1.81 //see lab notebook, 2016.11.07
+									else
+										alphaIsat = 1.28 //see lab notebook, 2016.11.07
+									endif								
+									
+								endif
+								break
+							endswitch
+										
+						
 					break;
 					case "XZ":
 						//single axis imaging XZ ISatCounts goes here
 						ISatCounts = 52500;     //measurement on 6/30/2014 for Sr
+						alphaIsat = 1 //uncalibrated
 						//ISatCounts = inf;
 					break;
 					default:
 						//default imposes no Isat correction
 						ISatCounts = inf;
+						alphaIsat = 1
 					break;
 				endswitch
 			else
@@ -622,21 +669,28 @@ Function Load_Img(ImageName,FileName)
 					//Isat is now a local, relative (to peak bosonic Sr absorption), absorption cross-section and not the local saturation parameter
 					//Get the average correction:
 					ImageStats/R=ROI_mask_byte Isat
-					Print V_avg
-					ImageHistogram/R=ROI_mask_byte Isat
+					//Print V_avg
+					//ImageHistogram/R=ROI_mask_byte Isat
 					
 					//Pixel by Pixel correction:
 					//ImageName = -(ln(ImageName))/Isat
 					//Average correction:
-					ImageName = -(ln(ImageName))/V_avg
+					//ImageName = -(ln(ImageName))/V_avg
+					
+					//new method
+					ImageName = -alphaIsat*ln(ImageName)*(1+4*detuning^2) + (Raw2 - Raw1) / IsatCounts 
 					
 				elseif((isotope==1)||(isotope==2)||(isotope==4))	//case Sr88, Sr86, Sr84
-				
-					ImageName = -(ln(ImageName))*(1+4*detuning^2+Isat);
+					
+					//ImageName = -(ln(ImageName))*(1+4*detuning^2+Isat); //original method
+					
+					//new method
+					ImageName = -alphaIsat*ln(ImageName)*(1+4*detuning^2) + (Raw2 - Raw1) / IsatCounts 
 					
 				else		//case unknown isotope
 				
-					ImageName = -(ln(ImageName))*(1+4*detuning^2+Isat);
+					//ImageName = -(ln(ImageName))*(1+4*detuning^2+Isat);
+					ImageName = -alphaIsat*ln(ImageName)*(1+4*detuning^2) + (Raw2 - Raw1) / IsatCounts 
 					
 				endif
 	

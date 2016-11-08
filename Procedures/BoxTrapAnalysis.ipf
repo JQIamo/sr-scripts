@@ -145,7 +145,7 @@ function calcThetaAlpha()
 	//SetDataFolder $(currentDir + ":IndexedWaves")
 	
 	Wave polyLogOrder = :IndexedWaves:polyLogOrder
-	Wave temp = :IndexedWaves:tempH
+	Wave temp = :IndexedWaves:temp
 	Wave z_fermi =  :IndexedWaves:z_fermi
 	Wave amplitude =  :IndexedWaves:amplitude
 	Wave xwidth =  :IndexedWaves:xwidth
@@ -157,13 +157,13 @@ function calcThetaAlpha()
 	if (WaveExists(:IndexedWaves:alpha)==0)
 		New_IndexedWave("alpha",":alpha")
 		//Redimension /N=(numpnts( :IndexedWaves:FileNames))  :IndexedWaves:alpha
-		Make /N=(numpnts( :IndexedWaves:FileNames))  :IndexedWaves:alpha
+		Make /O/N=(numpnts( :IndexedWaves:FileNames))  :IndexedWaves:alpha
 		Wave alpha =  :IndexedWaves:alpha
 		alpha = polyLogOrder + 1
 		
 		New_IndexedWave("theta_alpha",":theta_alpha")
 		//Redimension  /N=(numpnts( :IndexedWaves:FileNames)) :IndexedWaves:theta_alpha
-		Make /N=(numpnts( :IndexedWaves:FileNames))  :IndexedWaves:theta_alpha
+		Make /O/N=(numpnts( :IndexedWaves:FileNames))  :IndexedWaves:theta_alpha
 		Wave theta_alpha = :IndexedWaves:theta_alpha
 	else
 		Wave alpha =  :IndexedWaves:alpha
@@ -213,7 +213,7 @@ function getSlopes(maxTemp,makePlots)
 		tempStr = ReplaceString(".",num2str(polyLogOrder[ii]),"_");
 		tempStr = ProjectFolder + ":polyLogBoxTrapAnalysis:PL_" + tempStr 
 		
-		Wave tempWave = $(tempStr + ":BoxOn:tempH")
+		Wave tempWave = $(tempStr + ":BoxOn:temp")
 		//print tempWave
 		//Find the index corresponding to maxTemp for box on
 		FindLevel /Q/P tempWave maxTemp
@@ -226,14 +226,14 @@ function getSlopes(maxTemp,makePlots)
 		//Fit the box on data, save parameters:
 		CurveFit /N/Q /NTHR=0 line kwCWave=fitCoef $(tempStr + ":BoxOn:theta_alpha")[0,index] /X=tempWave
 		wave W_sigma = :W_sigma;
-		fitted_offset_boxOn[ii] = fitCoef[1]
+		fitted_offset_boxOn[ii] = fitCoef[0]
 		fitted_slope_boxOn[ii] = fitCoef[1]
 		fitted_chisq_boxOn[ii] = V_chisq
 		fitted_stdev_boxOn[ii] = W_sigma[1]
 		
 		
 		//Find the index corresponding to maxTemp for box off
-		Wave tempWave = $(tempStr + ":BoxOff:tempH")
+		Wave tempWave = $(tempStr + ":BoxOff:temp")
 		FindLevel /Q/P tempWave maxTemp
 		if (V_flag == 0)
 			index = min( round(V_LevelX), numpnts(tempWave)-1 ) //level was found
@@ -243,7 +243,7 @@ function getSlopes(maxTemp,makePlots)
 		
 		//Fit the box off data, save parameters:
 		CurveFit /N/Q /NTHR=0 line kwCWave=fitCoef $(tempStr + ":BoxOff:theta_alpha")[0,index] /X=tempWave
-		fitted_offset_boxOff[ii] = fitCoef[1]
+		fitted_offset_boxOff[ii] = fitCoef[0]
 		fitted_slope_boxOff[ii] = fitCoef[1]
 		fitted_chisq_boxOff[ii] = V_chisq
 		fitted_stdev_boxOff[ii] = W_sigma[1]
@@ -323,5 +323,174 @@ end
 function testing()
 	Variable centerY = 170.25
 	Duplicate /R=(centerY-150,centerY+150) root:Sr_PIXIS_Seq:Fit_Info:xsec_col root:copied2_xsec_col
+	
+end
+
+function createChiSqWave()
+	SVAR ProjectFolder = root:Packages:ColdAtom:CurrentPath;
+	New_IndexedWave("fit_chi_sq","chisqVar");
+	Wave G3d_confidenceHistory = $(ProjectFolder + ":IndexedWaves:FitWaves:G3d_confidenceHistory")
+	Wave fit_chi_sq = $(ProjectFolder + ":IndexedWaves:fit_chi_sq")
+	Duplicate /O/R=[][8,8]  G3d_confidenceHistory fit_chi_sq
+end
+
+function importImagesISatTest(startNum,endNum,skipList,startAlpha,endAlpha,deltaAlpha)
+ 	Variable startNum, endNum, startAlpha, endAlpha, deltaAlpha
+ 	string skipList
+
+	SVAR ProjectFolder = root:Packages:ColdAtom:CurrentPath;
+
+	New_IndexedWave("alphaIsat",":alphaIsat")
+	NVAR alpha = :alphaIsat
+	variable ii, jj
+	
+	//Make a new data folder to store the waves created below
+	String ISatCalFolder = ProjectFolder + ":ISatCalibration"
+	NewDataFolder /O $ISatCalFolder
+	
+	//Make a wave to hold the alpha values:
+	Variable numAlphaVals = round((endAlpha-startAlpha)/deltaAlpha)+1
+	Make /O /N=(numAlphaVals) $(ISatCalFolder + ":alphaIsat")
+	Wave alphaIsatCal =  $(ISatCalFolder + ":alphaIsat")
+	
+	Variable alphaCount = 0;
+	
+	Variable numImages = endNum - startNum + 1 - ItemsInList(skipList);
+	
+	for (ii = startAlpha ; ii < endAlpha+deltaAlpha; ii += deltaAlpha) //loop over alpha values
+		alpha = ii
+		alphaIsatCal[alphaCount] = ii //save this alpha value
+		
+		for (jj = startNum ; jj <= endNum; jj+=1) //loop over image numbers
+			if(WhichListItem(num2str(jj),skipList,";",0,1)==-1) //only load images not in skipList
+				BatchRun(-1,jj,0,"") //load current image
+			endif
+		endfor
+		
+		alphaCount +=1
+		
+	endfor
+		
+	//Make a wave to hold the std deviation of the atom number
+	Make /O /N=(numAlphaVals) $(ISatCalFolder + ":absnumStdDev")
+	Wave absnumStdDev = $(ISatCalFolder + ":absnumStdDev")
+	
+	//Make a wave to hold the std deviation of the peak OD
+	Make /O /N=(numAlphaVals) $(ISatCalFolder + ":amplitudeStdDev")
+	Wave amplitudeStdDev = $(ISatCalFolder + ":amplitudeStdDev")
+	
+
+	
+//	Variable imgIndex = 0
+//	alphaCount = 0
+//	for (ii = startAlpha ; ii < endAlpha+deltaAlpha; ii += deltaAlpha) //loop over alpha values
+//		WaveStats /Q/R=(imgIndex,imgIndex+numImages-1) $(ProjectFolder + ":IndexedWaves:absnum")
+//		absnumStdDev[alphaCount] = V_sdev
+//		WaveStats /Q/R=(imgIndex,imgIndex + numImages - 1) $(ProjectFolder + ":IndexedWaves:amplitude")
+//		amplitudeStdDev[alphaCount] = V_sdev
+//		alphaCount += 1
+//		imgIndex += numImages -1
+//	endfor
+//	
+//	Display :ISatCalibration:absnumStdDev vs :ISatCalibration:alphaIsat
+//	CurveFit/NTHR=0/TBOX=768 gauss  :ISatCalibration:absnumStdDev /X=:ISatCalibration:alphaIsat /D 			
+End
+
+Function analyzeIsatCal(numImages,startAlpha,endAlpha,deltaAlpha, plot)
+	Variable numImages, startAlpha, endAlpha, deltaAlpha, plot
+	
+	SVAR ProjectFolder = root:Packages:ColdAtom:CurrentPath;
+	
+	Variable numAlphaVals = round((endAlpha-startAlpha)/deltaAlpha)+1
+
+	//Make a new data folder to store the waves created below
+	String ISatCalFolder = ProjectFolder + ":ISatCalibration"
+	NewDataFolder /O $ISatCalFolder
+	
+	//Make a wave to hold the std deviation of the atom number
+	Make /O /N=(numAlphaVals) $(ISatCalFolder + ":absnumStdDev")
+	Wave absnumStdDev = $(ISatCalFolder + ":absnumStdDev")
+	
+	//Make a wave to hold the mean of the atom number
+	Make /O /N=(numAlphaVals) $(ISatCalFolder + ":absnumMean")
+	Wave absnumMean = $(ISatCalFolder + ":absnumMean")
+	
+	//Make a wave to hold the std deviation of the peak OD
+	Make /O /N=(numAlphaVals) $(ISatCalFolder + ":amplitudeStdDev")
+	Wave amplitudeStdDev = $(ISatCalFolder + ":amplitudeStdDev")
+	
+	//Make a wave to hold the mean of the peak OD
+	Make /O /N=(numAlphaVals) $(ISatCalFolder + ":amplitudeMean")
+	Wave amplitudeMean = $(ISatCalFolder + ":amplitudeMean")
+	
+	//Make a wave to hold the probe powers
+	Duplicate /O /R=(0,numImages-1) $(ProjectFolder + ":IndexedWaves:ProbePow") $(ISatCalFolder + ":ProbePow")
+	Wave probePow =  $(ISatCalFolder + ":ProbePow")
+	
+	//Make waves to hold fit parameters
+	Make /O/N=(numAlphaVals) $(ISatCalFolder + ":absnum_slope")
+	Wave absnum_slope = $(ISatCalFolder + ":absnum_slope")
+	Make /O/N=(numAlphaVals) $(ISatCalFolder + ":amplitude_slope")
+	Wave amplitude_slope = $(ISatCalFolder + ":amplitude_slope")
+
+	Variable imgIndex = 0
+	Variable alphaCount = 0
+	Variable ii
+	String tempStr
+	Make /O/N=2 fitCoef
+	for (ii = startAlpha ; ii < endAlpha+deltaAlpha; ii += deltaAlpha) //loop over alpha values
+		WaveStats /Q/R=(imgIndex,imgIndex+numImages-1) $(ProjectFolder + ":IndexedWaves:absnum")
+		absnumStdDev[alphaCount] = V_sdev
+		absnumMean[alphaCount] = V_avg
+		WaveStats /Q/R=(imgIndex,imgIndex + numImages - 1) $(ProjectFolder + ":IndexedWaves:amplitude")
+		amplitudeStdDev[alphaCount] = V_sdev
+		amplitudeMean[alphaCount] = V_avg
+		
+		//Make wave for the absnum and amplitudes at various alpha values
+		tempStr = ReplaceString(".",num2str(ii),"_");
+		Duplicate /O /R=(imgIndex,imgIndex+numImages-1) $(ProjectFolder + ":IndexedWaves:absnum") $(ISatCalFolder + ":absnum_" + tempStr) 
+		Duplicate /O /R=(imgIndex,imgIndex+numImages-1) $(ProjectFolder + ":IndexedWaves:amplitude") $(ISatCalFolder + ":amplitude_" + tempStr) 
+		Wave temp_absnum = $(ISatCalFolder + ":absnum_" + tempStr)
+		Wave temp_amplitude = $(ISatCalFolder + ":amplitude_" + tempStr)
+		print imgIndex
+		print imgIndex + numImages - 1
+		//Generate slopes of absnum and amplitude as a function of ProbePow:
+		CurveFit /N/Q /NTHR=0 line kwCWave=fitCoef temp_absnum /X=probePow
+		//wave W_sigma = :W_sigma;
+		absnum_slope[alphaCount] = fitCoef[1]
+		
+		CurveFit /N/Q /NTHR=0 line kwCWave=fitCoef temp_amplitude /X=probePow
+		//wave W_sigma = :W_sigma;
+		amplitude_slope[alphaCount] = fitCoef[1]
+	
+		alphaCount += 1
+		imgIndex += numImages 
+	endfor
+	
+	if (plot == 1)
+		Display absnumStdDev vs :ISatCalibration:alphaIsat
+		AppendToGraph/R absnum_slope vs :ISatCalibration:alphaIsat
+		ModifyGraph mode(absnumStdDev)=3
+		ModifyGraph mode(absnum_slope)=3,marker(absnum_slope)=8;
+		ModifyGraph useMrkStrokeRGB(absnum_slope)=1;
+		ModifyGraph mrkStrokeRGB(absnum_slope)=(0,0,52224)
+		ModifyGraph zero(right)=1
+		Label left "Atom Number Std Dev"
+		Label bottom "Alpha"
+		Label right "Atom Number Slope"
+		CurveFit/NTHR=0/TBOX=768 gauss  absnumStdDev /X=:ISatCalibration:alphaIsat /D 	
+		
+		Display amplitudeStdDev vs :ISatCalibration:alphaIsat
+		AppendToGraph/R amplitude_slope vs :ISatCalibration:alphaIsat
+		ModifyGraph mode(amplitudeStdDev)=3
+		ModifyGraph mode(amplitude_slope)=3,marker(amplitude_slope)=8;
+		ModifyGraph useMrkStrokeRGB(amplitude_slope)=1;
+		ModifyGraph mrkStrokeRGB(amplitude_slope)=(0,0,52224)
+		ModifyGraph zero(right)=1
+		Label left "Peak OD Std Dev"
+		Label bottom "Alpha"
+		Label right "Peak OD Slope"
+		CurveFit/NTHR=0/TBOX=768 gauss  amplitudeStdDev /X=:ISatCalibration:alphaIsat /D 
+	endif
 	
 end

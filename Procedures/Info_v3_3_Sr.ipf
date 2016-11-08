@@ -374,6 +374,8 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	Variable/G $(ProjectFolder + ":Experimental_Info:a_scatt") = 43.619e-3; //86-Sr scattering length
 	Variable/G $(ProjectFolder + ":Experimental_Info:x_pixels") = 1024;
 	Variable/G $(ProjectFolder + ":Experimental_Info:y_pixels") = 1024;
+	
+	Variable/G $(ProjectFolder + ":Experimental_Info:alphaISat") = 1; 
 
 	// Trap properties
 	Variable/G $(ProjectFolder + ":Experimental_Info:TrapMin") = nan;
@@ -538,15 +540,15 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	Variable/G $(ProjectFolder + ":AspectRatio_BEC_meas_t0") = nan;
 
 	// Create some initial waves for the traces and images
-	make/O/N=(100,100) $(ProjectFolder + ":optdepth")
-	make/O/N=(100,100) $(ProjectFolder + ":ISat")
-	make/O/I/N=(100,100) $(ProjectFolder + ":ROI_mask")
-	make/O/N=(100,100) $(ProjectFolder + ":Raw1")
-	make/O/N=(100,100) $(ProjectFolder + ":Raw2")
-	make/O/N=(100,100) $(ProjectFolder + ":Raw3")
-	make/O/N=(100,100) $(ProjectFolder + ":Raw4")
-	make/O/N=(100,100) $(ProjectFolder + ":Fit_Info:fit_optdepth")	//-CDH: why make this? 2D fits?
-	make/O/N=(100,100) $(ProjectFolder + ":Fit_Info:res_optdepth")
+	make/O/N=(1024,1024) $(ProjectFolder + ":optdepth")
+	make/O/N=(1024,1024) $(ProjectFolder + ":ISat")
+	make/O/I/N=(1024,1024) $(ProjectFolder + ":ROI_mask")
+	make/O/N=(1024,1024) $(ProjectFolder + ":Raw1")
+	make/O/N=(1024,1024) $(ProjectFolder + ":Raw2")
+	make/O/N=(1024,1024) $(ProjectFolder + ":Raw3")
+	make/O/N=(1024,1024) $(ProjectFolder + ":Raw4")
+	make/O/N=(1024,1024) $(ProjectFolder + ":Fit_Info:fit_optdepth")	//-CDH: why make this? 2D fits?
+	make/O/N=(1024,1024) $(ProjectFolder + ":Fit_Info:res_optdepth")
 	
 	// References to 
 	wave xsec_row = $(ProjectFolder + ":Fit_Info:xsec_row")
@@ -620,18 +622,35 @@ function New_ColdAtomInfo(ProjectID, ExperimentID)
 	//res_optdepth = optdepth
 	//print sqrt(2)*temp_params[5]
 	
-	//For Fermi Gas:
-	Make/O/D/N=7 temp_params;
+//	//For Fermi Gas:
+//	Make/O/D/N=7 temp_params;
+//	temp_params[0] = 0;
+//	temp_params[1] = 1;
+//	temp_params[2] = 10;
+//	temp_params[3] = abs(xmin/8);
+//	temp_params[4] = 0;
+//	temp_params[5] = abs(ymin/8);
+//	temp_params[6] = 1000;
+//	optdepth = TF_FD_2D(temp_params,x,y)+gnoise(.1,2);
+//	xsec_row =  TF_FD_2D(temp_params,x,0)+gnoise(.1,2);
+//	xsec_col = TF_FD_2D(temp_params,0,x)+gnoise(.1,2);
+//	fit_optdepth = optdepth
+//	res_optdepth = optdepth
+//	//print sqrt(2)*temp_params[5]
+	
+	//For 2D PolyLog Testing
+	Make/O/D/N=8 temp_params;
 	temp_params[0] = 0;
 	temp_params[1] = 1;
-	temp_params[2] = 10;
-	temp_params[3] = abs(xmin/8);
+	temp_params[2] = 0;
+	temp_params[3] =50;
 	temp_params[4] = 0;
-	temp_params[5] = abs(ymin/8);
-	temp_params[6] = 1000;
-	optdepth = TF_FD_2D(temp_params,x,y)+gnoise(.1,2);
-	xsec_row =  TF_FD_2D(temp_params,x,0)+gnoise(.1,2);
-	xsec_col = TF_FD_2D(temp_params,0,x)+gnoise(.1,2);
+	temp_params[5] = 50;
+	temp_params[6] = 10;
+	temp_params[7] = 2.1;
+	optdepth =ArbPolyLogFit2D(temp_params,x,y)//+gnoise(.1,2);
+	xsec_row =  ArbPolyLogFit2D(temp_params,x,0)//+gnoise(.1,2);
+	xsec_col = ArbPolyLogFit2D(temp_params,0,x)//+gnoise(.1,2);
 	fit_optdepth = optdepth
 	res_optdepth = optdepth
 	//print sqrt(2)*temp_params[5]
