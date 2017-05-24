@@ -592,6 +592,65 @@ Function TF_FD_2D_AAO(pw,yw,xw,zw) : FitFunc
 	//return w[0] + w[1]*DiLogApprox(-w[6]*exp( -(1/2)*(((x-w[2])/w[3])^2 + ((z-w[4])/w[5])^2) ) ) / DiLogApprox(-w[6])
 End
 
+Function TF_FD_1D_slice(w,x) : FitFunc
+	Wave w
+	Variable x
+	
+	//CurveFitDialog/ These comments were created by the Curve Fitting dialog. Altering them will
+	//CurveFitDialog/ make the function less convenient to work with in the Curve Fitting dialog.
+	//CurveFitDialog/ Equation:
+	//CurveFitDialog/ f(x) = offset + A*DiLogApprox(-f*exp( (-1/2)* ( ((x-x0)/sigma_x)^2 +  ) ) ) / DiLogApprox(-f)
+	//CurveFitDialog/ End of Equation
+	//CurveFitDialog/ Independent Variables 1
+	//CurveFitDialog/ x
+	//CurveFitDialog/ Coefficients 7
+	//CurveFitDialog/ w[0] = offset
+	//CurveFitDialog/ w[1] = A
+	//CurveFitDialog/ w[2] = x0
+	//CurveFitDialog/ w[3] = sigma_x
+	//CurveFitDialog/ w[4] = fugacity
+	
+	Variable r = w[0] + w[1]*DiLogApprox(-w[4]*exp( -(1/2)*(((x-w[2])/w[3])^2 ) ) ) / DiLogApprox(-w[4])
+
+	if (numtype(r)==2)
+		print "Got NAN"
+	elseif (numtype(r)==1)
+		print "got Inf"
+	endif
+
+	return r	
+End
+
+Function TF_FD_1D_integral(w,x) : FitFunc
+	Wave w
+	Variable x
+	
+	//CurveFitDialog/ These comments were created by the Curve Fitting dialog. Altering them will
+	//CurveFitDialog/ make the function less convenient to work with in the Curve Fitting dialog.
+	//CurveFitDialog/ Equation:
+	//CurveFitDialog/ f(x) = offset + A*Li(5/2, -f*exp( (-1/2)* ( ((x-x0)/sigma_x)^2 +  ) ) ) / DiLogApprox(-f)
+	//CurveFitDialog/ End of Equation
+	//CurveFitDialog/ Independent Variables 1
+	//CurveFitDialog/ x
+	//CurveFitDialog/ Coefficients 7
+	//CurveFitDialog/ w[0] = offset
+	//CurveFitDialog/ w[1] = A
+	//CurveFitDialog/ w[2] = x0
+	//CurveFitDialog/ w[3] = sigma_x
+	//CurveFitDialog/ w[4] = fugacity
+	
+	Variable r = w[0] + w[1]*PolyLog(5/2,-w[4]*exp( -(1/2)*(((x-w[2])/w[3])^2 ) ) )/PolyLog(2,-w[4])
+
+	if (numtype(r)==2)
+		print "Got NAN"
+		print w
+	elseif (numtype(r)==1)
+		print "got Inf"
+	endif
+
+	return r	
+End
+
 Function AAO_Test(w, yw, xw, zw) : FitFunc
 	wave w
 	wave yw
@@ -980,7 +1039,7 @@ end
 
 function generate_polylog_lookups()
 	variable v;
-	for(v=0.5;v<2.6;v+=0.1)
+	for(v=0.1;v<0.5;v+=0.1)
 		print v
 		tic();
 		generate_polylog_lookup(root:polylog:PolyLog_Xwave,v);
@@ -997,7 +1056,7 @@ function export_polylog_lookups()
 	
 	String tempWaveName, tempFileName
 	variable v;
-	for(v=0.5;v<2.6;v+=0.1)
+	for(v=0.1;v<0.5;v+=0.1) //
 		tempWaveName = "PolyLog_" + ReplaceString(".",num2str(v),"_")
 		tempFileName = tempWaveName + ".txt"
 		Save/J/P=Igor_PolyLog_Lookup $tempWaveName as tempFileName
@@ -1137,9 +1196,10 @@ Function ArbPolyLogFit2D(w,x,z) : FitFunc
 	//CurveFitDialog/ w[4] = z0
 	//CurveFitDialog/ w[5] = sigma_z
 	//CurveFitDialog/ w[6] = fugacity
-	//CurveFitDialog/ w[7] = alpha (order of the polylog)
+	//CurveFitDialog/ w[7] = alpha-1 (order of the polylog)
 	
 	return w[0] + w[1]*PolyLog(w[7],-w[6]*exp( -(1/2)*(((x-w[2])/w[3])^2 + ((z-w[4])/w[5])^2) ) )  /PolyLog(w[7],-w[6]); 
+	//return w[0] + (2*pi*w[1]/(w[3]*w[5]))*PolyLog(w[7],w[6]*exp( -(1/2)*(((x-w[2])/w[3])^2 + ((z-w[4])/w[5])^2) ) )  //PolyLog(w[7],-w[6]); 
 End
 
 Function ArbPolyLogFit1D(w,x) : FitFunc
@@ -1546,3 +1606,400 @@ Function PolyLogFit2D(inputimage,PolyLogOrder)
 	SetDataFolder fldrSav
 	return 1
 End
+
+// ******************** FD_Fit1DSlice *************************************************************************
+//! @brief This function takes a given image, cuts two cross sections (vert, horiz, defined by cursor A in "Image") 
+//! and fits the two cross sections to a simple Gaussian.
+//! @details It assumes that xsec_col,xsec_row, ver_coef,
+//! hor_coef all exist.  The fit is done using the x and y scaling of the image (i.e. in real length units if you have 
+//! scaled them correctly.)  It does not assume that the cursor is on the center of the cloud.
+//!
+//! @param[in]  inputimage  The image to run the fit on
+//! @param[in]  cursorname  The name of the cursor to use for center of the slices
+//! @return \b 1, always
+Function  FD_Fit1DSlice(inputimage,cursorname)
+	Wave inputimage
+	String cursorname
+
+	// Get the current path and active windows
+	String ProjectFolder = Activate_Top_ColdAtomInfo();
+	String fldrSav= GetDataFolder(1)
+	SetDataFolder ProjectFolder
+
+	// Discover the name of the current image and graph windows
+	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel;
+	String ImageWindowName = CurrentPanel + "#ColdAtomInfoImage";
+	String GraphWindowName = CurrentPanel + "#ColdAtomInfoSections";
+
+
+	NVAR slicewidth = :Fit_Info:slicewidth
+	NVAR DoRealMask = :Fit_Info:DoRealMask
+	NVAR xmax=:fit_info:xmax,xmin=:fit_info:xmin
+	NVAR ymax=:fit_info:ymax,ymin=:fit_info:ymin
+	NVAR PeakOD = :Experimental_Info:PeakOD
+	variable i = 0,fitpts;
+
+ 	Wave xsec_col=:Fit_Info:xsec_col, xsec_row=:Fit_Info:xsec_row
+	Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row
+	Wave res_xsec_col = :Fit_Info:res_xsec_col, res_xsec_row=:Fit_Info:res_xsec_row
+
+	Make/O/T/N=2 :Fit_Info:T_Constraints
+	wave/T T_Constraints = :Fit_Info:T_Constraints
+	String TempString;
+	make/O/N=4 :Fit_Info:ver_coef; make/O/N=4 :Fit_Info:hor_coef;
+	Wave ver_coef=:Fit_Info:ver_coef, hor_coef=:Fit_Info:hor_coef
+	
+	variable bgxmax, bgxmin;
+	variable bgymax, bgymin;
+	variable background, bg_sdev;
+
+	// Get the background average
+	
+	bgymax = max(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgymin = min(qcsr(C,ImageWindowName),qcsr(D,ImageWindowName));
+	bgxmax = max(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
+	bgxmin = min(pcsr(C,ImageWindowName),pcsr(D,ImageWindowName));
+	
+	Duplicate /O inputimage, bg_mask;
+	bg_mask *= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? 1 : 0);
+	background = sum(bg_mask)/((bgxmax-bgxmin)*(bgymax-bgymin));
+	bg_mask -= ( p < bgxmax && p > bgxmin && q < bgymax && q > bgymin ? background : 0);
+	bg_mask = bg_mask^2;
+	bg_sdev = sqrt(sum(bg_mask)/((bgxmax-bgxmin)*(bgymax-bgymin)-1))
+	
+	// In this procedure, and other image procedures, the YMIN/YMAX variable
+	// is the physical Z axes for XZ imaging.
+	
+	// **************************************************
+	// define the 1-D crosssections which are to be fit:
+
+	MakeSlice(inputimage,cursorname);
+	Duplicate /O xsec_row fit_xsec_row xsec_row_mask xsec_row_weight res_xsec_row; fit_xsec_row = nan;
+	Duplicate /O xsec_col fit_xsec_col xsec_col_mask xsec_col_weight res_xsec_col; fit_xsec_col = nan;
+	
+	// Create weight waves which eliminate regions which have an excessive OD from the fit
+	
+	If(DoRealMask)
+	
+		//Create mask waves to have a hard boundary at PeakOD if desired.
+		xsec_row_mask = (xsec_row[p] > PeakOD ? 0 : 1);
+		xsec_col_mask = (xsec_col[p] > PeakOD ? 0 : 1); 
+		xsec_row_weight = 1/bg_sdev;
+		xsec_col_weight = 1/bg_sdev;
+	
+	else
+	
+		// Using the the weight waves creates a soft boundary at PeakOD
+		xsec_row_weight = (1/bg_sdev)*exp(-(xsec_row[p] / PeakOD)^2);
+		xsec_col_weight = (1/bg_sdev)*exp(-(xsec_col[p] / PeakOD)^2);
+		xsec_row_mask = 1;
+		xsec_col_mask = 1;
+	
+	endif
+	
+	// **************************************************
+       // Fit coefficients:
+       // ver_coef[0] = Amplitude offset
+       // ver_coef[1] = Amplitude
+       // ver_coef[2] = Position
+       // ver_coef[3] = Width (defined as w in exp((-1/2)*x^2/w^2))
+       // ver_coef[4] = Fugacity 
+       
+	// Fit in the horizontal direction	--CDH: This is the slice display window! 
+	Cursor /W=$(GraphWindowName)  A, xsec_row, xmin; 
+	Cursor /W=$(GraphWindowName)  B, xsec_row, xmax; 
+
+	// Have igor guess at the fit paramaters, instead of my guesses
+	sprintf TempString, "K2 > %e", xmin; T_Constraints[0] = TempString;
+	sprintf TempString, "K2 < %e", xmax; T_Constraints[1] = TempString; 
+	
+	// wave to store confidence intervals
+	make/O/N=12 :Fit_Info:G3d_confidence
+	Wave G3d_confidence=:Fit_Info:G3d_confidence
+	
+	//Tried to constrain fugacity greater than 0, 
+	Make/O/T/N=1 :Fit_Info:T_Constraints2;
+	Wave/T T_Constraints2 = :Fit_Info:T_Constraints2;
+	T_Constraints2[0] = {"K4 > 1e-6", "K4 < 1000"};
+	
+	Make /D/O/N=5 epsilonWave = 1e-6;
+	
+	
+	//Tried to constrain fugacity greater than 0, but this doesn't seem to work.
+	//Make/O/T/N=1 :Fit_Info:T_Constraints;
+	//Wave/T T_Constraints = :Fit_Info:T_Constraints;
+	//T_Constraints[0] = {"K6 > 0"};
+	
+	//Variable/G V_FitTol=0.0005
+	Variable/G V_FitTol=0.001 //default value
+	//Variable/G V_FitTol=0.0000001
+	Variable/G V_FitNumIters
+	Variable/G V_FitmaxIters = 300;
+	
+	
+	Variable V_FitOptions=4
+	hor_coef[0] = background; hor_coef[2]=0;
+	//guess coefficients:
+	CurveFit/Q/O/H="1000" gauss  kwCWave=hor_coef xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_weight /M=xsec_row_mask /C=T_Constraints
+	
+	Redimension /N=5 hor_coef;
+	//hor_coef[0] = 0.00242;
+	//hor_coef[1] = 2.1;
+	//hor_coef[2] = 170.768;
+	//hor_coef[3] = 57.2754/sqrt(2)
+	hor_coef[4] =0.1; //Initial guess for fugacity
+	
+	epsilonWave = 1e-6*hor_coef;
+	epsilonWave[4] = .0005;
+	
+	
+	// Perform the Actual fit
+	//CurveFit /N/G/Q/H="1000" gauss kwCWave=hor_coef, xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_weight /M=xsec_row_mask /R=res_xsec_row /C=T_Constraints
+	FuncFit/N/Q/H="00000" TF_FD_1D_slice, hor_coef, xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_mask /R=res_xsec_row /C=T_Constraints2
+	
+	wave W_sigma = :W_sigma;
+	//store the fitting errors
+	G3d_confidence[0] = W_sigma[0];
+	G3d_confidence[1] = W_sigma[1];
+	G3d_confidence[2] = W_sigma[2];
+	G3d_confidence[3] = W_sigma[3];
+	G3d_confidence[6] = V_chisq;
+	G3d_confidence[7] = V_npnts-V_nterms;
+	G3d_confidence[8] = G3d_confidence[6]/G3d_confidence[7];
+	
+	// Fit in the vertical direction:
+	sprintf TempString, "K2 > %e", ymin; T_Constraints[0] = TempString;
+	sprintf TempString, "K2 < %e", ymax; T_Constraints[1] = TempString; 
+	ver_coef[0] = background; ver_coef[2]=0;
+	CurveFit/Q/O/H="1000" gauss  kwCWave=ver_coef, xsec_col((ymin),(ymax)) /D=fit_xsec_col /W=xsec_col_weight /M=xsec_col_mask /C=T_Constraints 
+	//FuncFit/N/Q/H="1010" ThermalSliceFit, ver_coef, xsec_col((ymin),(ymax))  /D=fit_xsec_col  /W=xsec_col_mask
+	
+	Redimension /N=5 ver_coef;
+	//ver_coef[0] = 0.00242;
+	//ver_coef[1] = 2.1;
+	//ver_coef[2] = 192.714;
+	//ver_coef[3] = 51.3012/sqrt(2)
+	ver_coef[4] = 0.1; //Initial guess for fugacity
+	
+	// Perform the actual fit
+	//CurveFit /N/G/Q/H="1000" gauss kwCWave=ver_coef, xsec_col((ymin),(ymax)) /D=fit_xsec_col /W=xsec_col_weight /M=xsec_col_mask /R=res_xsec_col /C=T_Constraints
+	FuncFit/N/Q/H="00000" TF_FD_1D_slice, ver_coef, xsec_col((ymin),(ymax)) /D=fit_xsec_col /W=xsec_col_mask /R=res_xsec_col /C=T_Constraints2
+	
+	//store the fitting errors
+	G3d_confidence[0] = Sqrt(((G3d_confidence[0])^2+(W_sigma[0])^2)/4);
+	G3d_confidence[1] = Sqrt(((G3d_confidence[1])^2+(W_sigma[1])^2)/4);
+	G3d_confidence[4] = W_sigma[2];
+	G3d_confidence[5] = W_sigma[3];
+	G3d_confidence[9] = V_chisq;
+	G3d_confidence[10] = V_npnts-V_nterms;
+	G3d_confidence[11] = G3d_confidence[9]/G3d_confidence[10];
+	
+	// Fill in Coefs wave
+	make/O/N=7 :Fit_Info:Gauss3d_coef
+	Wave Gauss3d_coef=:Fit_Info:Gauss3d_coef
+
+	Gauss3d_coef[0] = (ver_coef[0] + hor_coef[0]) / 2;		// Offset
+	Gauss3d_coef[1] = (ver_coef[1] + hor_coef[1]) / 2;		// Amplitude
+	Gauss3d_coef[2] = hor_coef[2];                                       // Horizontal position
+	Gauss3d_coef[3] = hor_coef[3]*sqrt(2);						// Horizontal width
+	Gauss3d_coef[4] = ver_coef[2];							// Vertical position
+	Gauss3d_coef[5] = ver_coef[3]*sqrt(2);							// Vertical width
+	Gauss3d_coef[6] = (ver_coef[4] + hor_coef[4]) / 2;		// Fugacity
+	
+	print hor_coef[4]
+	print ver_coef[4]
+		
+	killwaves xsec_row_mask, xsec_col_mask, xsec_row_weight, xsec_col_weight;
+	SetDataFolder fldrSav
+	return 1
+End
+
+Function FD_Fit1DIntegral(inputimage,cursorname)
+	Wave inputimage
+	String cursorname
+
+	// Get the current path and active windows
+	String ProjectFolder = Activate_Top_ColdAtomInfo();
+	String fldrSav= GetDataFolder(1)
+	SetDataFolder ProjectFolder
+
+	// Discover the name of the current image and graph windows
+	SVAR CurrentPanel = root:Packages:ColdAtom:CurrentPanel;
+	String ImageWindowName = CurrentPanel + "#ColdAtomInfoImage";
+	String GraphWindowName = CurrentPanel + "#ColdAtomInfoSections";
+
+	NVAR DoRealMask = :Fit_Info:DoRealMask
+	NVAR xmax=:fit_info:xmax,xmin=:fit_info:xmin
+	NVAR ymax=:fit_info:ymax,ymin=:fit_info:ymin
+	NVAR PeakOD = :Experimental_Info:PeakOD
+
+ 	Wave xsec_col=:Fit_Info:xsec_col, xsec_row=:Fit_Info:xsec_row
+	Wave fit_xsec_col = :Fit_Info:fit_xsec_col, fit_xsec_row=:Fit_Info:fit_xsec_row
+	Wave res_xsec_col = :Fit_Info:res_xsec_col, res_xsec_row=:Fit_Info:res_xsec_row
+
+	Make/O/T/N=2 :Fit_Info:T_Constraints
+	wave/T T_Constraints = :Fit_Info:T_Constraints
+	String TempString;
+	make/O/N=4 :Fit_Info:ver_coef; make/O/N=4 :Fit_Info:hor_coef;
+	Wave ver_coef=:Fit_Info:ver_coef, hor_coef=:Fit_Info:hor_coef
+	
+	variable background_row, background_col, bg_sdev_row,bg_sdev_col;
+	
+	// In this procedure, and other image procedures, the YMIN/YMAX variable
+	// is the physical Z axes for XZ imaging.
+	
+	// **************************************************
+	// define the 1-D crosssections which are to be fit:
+
+	MakeIntegral(inputimage);
+	Duplicate /O xsec_row fit_xsec_row xsec_row_mask xsec_row_weight res_xsec_row; fit_xsec_row = nan;
+	Duplicate /O xsec_col fit_xsec_col xsec_col_mask xsec_col_weight res_xsec_col; fit_xsec_col = nan;
+	
+	// Get the background average
+	
+	Duplicate/O xsec_row, bg_mask;
+	bg_mask *= ( x > xmax || x < xmin ? 1 : 0);
+	background_row = sum(bg_mask)/(DimSize(xsec_row,0)-(x2pnt(xsec_row,xmax)-x2pnt(xsec_row,xmin)));
+	bg_mask -= ( x > xmax || x < xmin ? background_row : 0);
+	bg_mask = bg_mask^2;
+	bg_sdev_row = sqrt(sum(bg_mask)/(DimSize(xsec_row,0)-(x2pnt(xsec_row,xmax)-x2pnt(xsec_row,xmin))-1));
+	
+	Duplicate/O xsec_col, bg_mask;
+	bg_mask *= ( x > ymax || x < ymin ? 1 : 0);
+	background_col = sum(bg_mask)/(DimSize(xsec_col,0)-(x2pnt(xsec_col,ymax)-x2pnt(xsec_col,ymin)));
+	bg_mask -= ( x > ymax || x < ymin ? background_col : 0);
+	bg_mask = bg_mask^2;
+	bg_sdev_col = sqrt(sum(bg_mask)/(DimSize(xsec_col,0)-(x2pnt(xsec_col,xmax)-x2pnt(xsec_col,xmin))-1));
+	
+	// Create weight waves which eliminate regions which have an excessive OD from the fit
+	
+	If(DoRealMask)
+	
+		//Create mask waves to have a hard boundary at PeakOD if desired.
+		xsec_row_mask = (xsec_row[p] > PeakOD ? 0 : 1);
+		xsec_col_mask = (xsec_col[p] > PeakOD ? 0 : 1); 
+		xsec_row_weight = 1/bg_sdev_row;
+		xsec_col_weight = 1/bg_sdev_col;
+	
+	else
+	
+		// Using the the weight waves creates a soft boundary at PeakOD
+		xsec_row_weight = (1/bg_sdev_row)*exp(-(xsec_row[p] / PeakOD)^2);
+		xsec_col_weight = (1/bg_sdev_col)*exp(-(xsec_col[p] / PeakOD)^2);
+		xsec_row_mask = 1;
+		xsec_col_mask = 1;
+	
+	endif
+	
+
+	// **************************************************
+       // Fit coefficients:
+       // ver_coef[0] = Amplitude offset
+       // ver_coef[1] = Amplitude
+       // ver_coef[2] = Position
+       // ver_coef[3] = Width (defined as w in exp(-x^2/w^2))
+       
+	// Fit in the horizontal direction	--CDH: This is the slice display window! 
+	Cursor /W=$(GraphWindowName)  A, xsec_row, xmin; 
+	Cursor /W=$(GraphWindowName)  B, xsec_row, xmax; 
+
+	// Have igor guess at the fit paramaters, instead of my guesses
+	sprintf TempString, "K2 > %e", xmin; T_Constraints[0] = TempString;
+	sprintf TempString, "K2 < %e", xmax; T_Constraints[1] = TempString; 
+	
+	// wave to store confidence intervals
+	make/O/N=12 :Fit_Info:G3d_confidence
+	Wave G3d_confidence=:Fit_Info:G3d_confidence
+	
+	Variable V_FitOptions=4
+	hor_coef[0] = background_row; hor_coef[2]=0;
+	CurveFit/Q/O/H="1000" gauss  kwCWave=hor_coef xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_weight /M=xsec_row_mask /C=T_Constraints
+	//FuncFit/N/Q/H="1010" ThermalSliceFit, hor_coef, xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_mask
+	
+	//Tried to constrain fugacity greater than 0, 
+	Make/O/T/N=1 :Fit_Info:T_Constraints2;
+	Wave/T T_Constraints2 = :Fit_Info:T_Constraints2;
+	T_Constraints2[0] = {"K3 > 1", "K3 < 1000"};
+	T_Constraints2[1] = {"K4 > 1e-6", "K4 < 1000"};
+	
+	Redimension /N=5 hor_coef;
+	hor_coef[4] =0.1; //Initial guess for fugacity
+	
+	// Perform the Actual fit
+	//CurveFit /N/G/Q/H="0000" gauss kwCWave=hor_coef, xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_weight /M=xsec_row_mask /R=res_xsec_row /C=T_Constraints
+	FuncFit/N/Q/H="00000" TF_FD_1D_integral, hor_coef, xsec_row((xmin),(xmax)) /D=fit_xsec_row /W=xsec_row_mask /R=res_xsec_row /C=T_Constraints2
+	
+	wave W_sigma = :W_sigma;
+	//store the fitting errors
+	G3d_confidence[0] = W_sigma[0];
+	G3d_confidence[1] = W_sigma[1];
+	G3d_confidence[2] = W_sigma[2];
+	G3d_confidence[3] = W_sigma[3];
+	G3d_confidence[6] = V_chisq;
+	G3d_confidence[7] = V_npnts-V_nterms;
+	G3d_confidence[8] = G3d_confidence[6]/G3d_confidence[7];
+	
+	// Fit in the vertical direction:
+	sprintf TempString, "K2 > %e", ymin; T_Constraints[0] = TempString;
+	sprintf TempString, "K2 < %e", ymax; T_Constraints[1] = TempString; 
+	ver_coef[0] = background_col; ver_coef[2]=0;
+	CurveFit/Q/O/H="1000" gauss  kwCWave=ver_coef, xsec_col((ymin),(ymax)) /D=fit_xsec_col /W=xsec_col_weight /M=xsec_col_mask /C=T_Constraints 
+	//FuncFit/N/Q/H="1010" ThermalSliceFit, ver_coef, xsec_col((ymin),(ymax))  /D=fit_xsec_col  /W=xsec_col_mask
+	
+	Redimension /N=5 ver_coef;
+	ver_coef[4] =0.1; //Initial guess for fugacity
+	
+	print "guess = " 
+	print ver_coef
+	// Perform the actual fit
+	//CurveFit /N/G/Q/H="0000" gauss kwCWave=ver_coef, xsec_col((ymin),(ymax)) /D=fit_xsec_col /W=xsec_col_weight /M=xsec_col_mask /R=res_xsec_col /C=T_Constraints
+	FuncFit/N/Q/H="00000" TF_FD_1D_integral, ver_coef, xsec_col((ymin),(ymax)) /D=fit_xsec_col /W=xsec_col_mask /R=res_xsec_col /C=T_Constraints2
+	
+	//store the fitting errors
+	G3d_confidence[0] = Sqrt(((G3d_confidence[0])^2+(W_sigma[0])^2)/4);
+	G3d_confidence[1] = Sqrt(((G3d_confidence[1]/ver_coef[3])^2+(W_sigma[3]*hor_coef[1]/ver_coef[3]^2)^2+(W_sigma[1]/hor_coef[3])^2+(G3d_confidence[3]*ver_coef[1]/hor_coef[3]^2)^2)/(4*pi));
+	G3d_confidence[4] = W_sigma[2];
+	G3d_confidence[5] = W_sigma[3];
+	G3d_confidence[9] = V_chisq;
+	G3d_confidence[10] = V_npnts-V_nterms;
+	G3d_confidence[11] = G3d_confidence[9]/G3d_confidence[10];
+	
+	// Fill in Coefs wave
+	make/O/N=6 :Fit_Info:Gauss3d_coef
+	Wave Gauss3d_coef=:Fit_Info:Gauss3d_coef
+
+	Gauss3d_coef[0] = (ver_coef[0] + hor_coef[0]) / 2;		// Offset
+	//The new expression for the amplitude is necessary for the cloudpars functions to extract atom number correctly
+	Gauss3d_coef[1] = (ver_coef[1]/hor_coef[3] + hor_coef[1]/ver_coef[3]) / (2*sqrt(pi));		// Amplitude
+	Gauss3d_coef[2] = hor_coef[2];                                       // Horizontal position
+	Gauss3d_coef[3] = hor_coef[3];						// Horizontal width
+	Gauss3d_coef[4] = ver_coef[2];							// Vertical position
+	Gauss3d_coef[5] = ver_coef[3];							// Vertical width
+	//add fugacity results
+	print hor_coef[4]
+	print ver_coef[4]
+	
+	
+	killwaves xsec_row_mask, xsec_col_mask, xsec_row_weight, xsec_col_weight;
+	SetDataFolder fldrSav
+	return 1
+End
+
+Function FugacityTTf(pwave, z)
+	//use this function with FindRoots to calculate fugacity for a given fermi fraction (T/Tf)
+	Wave pwave //parameter wave
+	Variable z //fugacity
+	
+	return NumPolyLog(3,-z) + 1/(6*pwave[0]^3);
+end
+
+Function calcFugacity(TTf)
+	//Calculate the fugacity corresponding to the given T/Tf value
+	//This function numerically finds the root of PolyLog(3,-fugacity) + 1/( 6*(T/Tf)^3 ) == 0
+	Variable TTf
+	Make/N=(1)/Free pwave
+	pwave[0] = TTf
+	
+	FindRoots/Q /L=0 /H=100000 FugacityTTf, pwave
+	return V_Root;
+end
