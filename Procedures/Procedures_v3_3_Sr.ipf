@@ -3200,7 +3200,7 @@ Function GaussRotate2DFit(inputimage)
 	//CurveFitDialog/ w[4] = z0
 	//CurveFitDialog/ w[5] = sigma_z
 	//CurveFitDialog/ w[6] = theta (rotation angle, CW direction)
-	Gauss3d_coef[6] = -2 //Initial guess for theta
+	Gauss3d_coef[6] = 0 //Initial guess for theta
 	
 	Make /D/O/N=7 epsilonWave = 1e-6;
 	epsilonWave = 1e-5*Gauss3d_coef;
@@ -3245,4 +3245,25 @@ Function GaussRotate2DFit(inputimage)
 		
 	SetDataFolder fldrSav
 	return 1
+End
+
+Function DecayingSine(w,x) : FitFunc
+	Wave w
+	Variable x
+
+	//CurveFitDialog/ These comments were created by the Curve Fitting dialog. Altering them will
+	//CurveFitDialog/ make the function less convenient to work with in the Curve Fitting dialog.
+	//CurveFitDialog/ Equation:
+	//CurveFitDialog/ f(x,z) = offset + A*exp(-x/t0)*sin(2*pi*f*x + phi);
+	//CurveFitDialog/ End of Equation
+	//CurveFitDialog/ Independent Variables 1
+	//CurveFitDialog/ x
+	//CurveFitDialog/ Coefficients 9
+	//CurveFitDialog/ w[0] = offset
+	//CurveFitDialog/ w[1] = A
+	//CurveFitDialog/ w[2] = t0
+	//CurveFitDialog/ w[3] = f
+	//CurveFitDialog/ w[4] = phi
+
+	return w[0] + w[1]*exp(-x/w[2])*sin(2*pi*w[3]*x + w[4]);
 End
