@@ -180,6 +180,7 @@ Function Load_Img(ImageName,FileName)
 	NVAR magnification = :Experimental_Info:magnification;
 	NVAR ISatCounts = :Experimental_Info:ISatCounts;
 	NVAR alphaIsat = :Experimental_Info:alphaISat;
+	NVAR alphaIsatCal = :Experimental_Info:alphaISatCal;
 	NVAR Irace = :Experimental_Info:Irace;
 	NVAR Ipinch = :Experimental_Info:Ipinch;
 	NVAR Ibias = :Experimental_Info:Ibias;
@@ -206,7 +207,7 @@ Function Load_Img(ImageName,FileName)
 	Wave Raw4 = :Raw4;
 	Wave/I ROI_mask = :ROI_mask;
 	Wave PrAlpha = :Fit_Info:PrAlpha;
-	
+		
 	
 	
 	// FileName should include the full path to the file i.e., "D:Experiment:Data Acquisition:PFabsimg.ibw"
@@ -420,6 +421,8 @@ Function Load_Img(ImageName,FileName)
 			
 			if (stringmatch(Camera,"FL3_32S2M") && stringmatch(ImageDirection,"XY"))
 				RotateImage=1
+			elseif (stringmatch(Camera,"GS3_28S4M") && stringmatch(ImageDirection,"XZ"))
+				RotateImage=1
 			endif
 			
 			if (DualAxis == 1)
@@ -482,8 +485,9 @@ Function Load_Img(ImageName,FileName)
 					break;
 					case "XZ":
 						//single axis imaging XZ ISatCounts goes here
-						ISatCounts = 52500;     //measurement on 6/30/2014 for Sr
-						alphaIsat = 1 //uncalibrated
+						//ISatCounts = 52500;     //measurement on 6/30/2014 for Sr
+						ISatCounts = 1233; //measurement 12/12/16 on grasshopper, move this
+						alphaIsat = 1.02 //measurement 12/12/16 on grasshopper, move this
 						//ISatCounts = inf;
 					break;
 					default:
@@ -678,6 +682,10 @@ Function Load_Img(ImageName,FileName)
 					//ImageName = -(ln(ImageName))/V_avg
 					
 					//new method
+					if (alphaIsatCal == 1) //check if we are calibrating the alphaIsat variable
+						NVAR alpha = :alphaIsat  //if yes, set alphaIsat to be the same as the indexed wave called alphaIsat
+						alphaIsat = alpha;
+					endif
 					ImageName = -alphaIsat*ln(ImageName)*(1+4*detuning^2) + (Raw2 - Raw1) / IsatCounts 
 					
 				elseif((isotope==1)||(isotope==2)||(isotope==4))	//case Sr88, Sr86, Sr84
@@ -685,11 +693,20 @@ Function Load_Img(ImageName,FileName)
 					//ImageName = -(ln(ImageName))*(1+4*detuning^2+Isat); //original method
 					
 					//new method
+					if (alphaIsatCal == 1) //check if we are calibrating the alphaIsat variable
+						NVAR alpha = :alphaIsat  //if yes, set alphaIsat to be the same as the indexed wave called alphaIsat
+						alphaIsat = alpha;
+					endif
+					
 					ImageName = -alphaIsat*ln(ImageName)*(1+4*detuning^2) + (Raw2 - Raw1) / IsatCounts 
 					
 				else		//case unknown isotope
 				
 					//ImageName = -(ln(ImageName))*(1+4*detuning^2+Isat);
+					if (alphaIsatCal == 1) //check if we are calibrating the alphaIsat variable
+						NVAR alpha = :alphaIsat  //if yes, set alphaIsat to be the same as the indexed wave called alphaIsat
+						alphaIsat = alpha;
+					endif
 					ImageName = -alphaIsat*ln(ImageName)*(1+4*detuning^2) + (Raw2 - Raw1) / IsatCounts 
 					
 				endif
@@ -729,8 +746,10 @@ Function Load_Img(ImageName,FileName)
 		//RotAng = 53.2; //rotation angle to level the main dipole beam
 		//RotAng = 6.7 //rotation angle to approximately level cross beam
 		//RotAng = 7.43;	// rotation angle to level box on pixis
-		RotAng = 6.967 // rotation angle to level horizontal lattice on PIXIS
+		//RotAng = 6.967 // rotation angle to level horizontal lattice on PIXIS
 		//RotAng =7;	// rotation angle to level box on vert flea
+		
+		RotAng = -4.86 //rotation angle to make BEC straight on grasshopper
 		ImageRotate/Q/O/E=0/A=(RotAng) ImageName;
 		Update_Magnification();			// CDH: why is this here??	
 	endif
