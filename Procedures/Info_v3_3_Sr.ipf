@@ -919,11 +919,11 @@ Function ComputeTrapProperties()
 			// the Trap properties section.
 			//freqX = sqrt(0.925+CrDipolePower*FreqScalingX^2);
 			//freqX = FreqScalingX*sqrt(exp(LambertWaprx(-Pc^2/DipolePower^2)/2)*(1.01+LambertWaprx(-Pc^2/DipolePower^2))*DipolePower);	
-			freqX = 68.5;
+			freqX = 52;
 			//freqY = FreqScalingY*sqrt(exp(LambertWaprx(-Pc^2/DipolePower^2)/2)*DipolePower);
-			freqY = 68.5;	
+			freqY = 52;	
 			//freqZ = FreqScalingZ*sqrt(exp(LambertWaprx(-Pc^2/DipolePower^2)/2)*DipolePower*(LambertWaprx(-Pc^2/DipolePower^2)+1));
-			freqZ = 0;
+			freqZ = 146.8;
 			freqXLat = 0;
 			freqYLat = 0;
 			freqZLat = 28.5e+3;

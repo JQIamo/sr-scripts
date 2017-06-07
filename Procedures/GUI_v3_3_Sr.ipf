@@ -1383,10 +1383,10 @@ function BuildSrWindow(ProjectFolder)
 	SetVariable absdensBEC_t0,limits={-inf,inf,0},value= :absdensity_BEC_t0,noedit= 1
 	
 	SetVariable BECnum,pos={290,265},size={174,16},bodyWidth=75,title="Number (absorption)"
-	SetVariable BECnum,limits={0,0,0},value= :number_BEC
+	SetVariable BECnum,limits={0,0,0},value= :number_BEC,format="%.3e",noedit= 1
 	
 	SetVariable BECnum01,pos={326,284},size={138,16},bodyWidth=75,title="Number (TF)"
-	SetVariable BECnum01,limits={0,0,0},value= :number_TF
+	SetVariable BECnum01,limits={0,0,0},value= :number_TF,format="%.3e",noedit= 1
 	
 	SetVariable chempot,pos={280,304},size={100,16},bodyWidth=40,title="\[1 \F'Symbol'm \F]1 (abs, Hz)"
 	SetVariable chempot,limits={0,0,0},value= :chempot

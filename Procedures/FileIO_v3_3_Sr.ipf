@@ -484,11 +484,23 @@ Function Load_Img(ImageName,FileName)
 						
 					break;
 					case "XZ":
-						//single axis imaging XZ ISatCounts goes here
-						//ISatCounts = 52500;     //measurement on 6/30/2014 for Sr
-						ISatCounts = 1233; //measurement 12/12/16 on grasshopper, move this
-						alphaIsat = 1.02 //measurement 12/12/16 on grasshopper, move this
-						//ISatCounts = inf;
+						strswitch(Camera)
+							case "GS3_28S4M": //Grasshopper imaging
+								//ISatCounts = 1233; //measurement 12/12/16 on grasshopper,
+								//alphaIsat = 1.02 //measurement 12/12/16 on grasshopper,
+								ISatCounts = 895; //measurement 5/23/17, with correction
+								RotateImage = 1; //rotation of a couple degrees needed to level image to gravity (5/23/17)
+								if (isotope == 3)		//case Sr87
+									alphaIsat = 1; //uncalibrated
+								else
+									alphaIsat = 1;
+								endif
+							break;
+							default:  //single axis imaging XZ
+								ISatCounts = 9999999; 
+								alphaIsat = 1; //uncalibrated
+							break;
+						endswitch;
 					break;
 					default:
 						//default imposes no Isat correction
@@ -699,6 +711,7 @@ Function Load_Img(ImageName,FileName)
 					endif
 					
 					ImageName = -alphaIsat*ln(ImageName)*(1+4*detuning^2) + (Raw2 - Raw1) / IsatCounts 
+					//ImageName = -ln(ImageName)*(1+4*detuning^2) + (Raw2 - Raw1) / (alphaIsat*IsatCounts)
 					
 				else		//case unknown isotope
 				
@@ -741,15 +754,23 @@ Function Load_Img(ImageName,FileName)
 	
 	if (RotateImage)
 		NVAR RotAng = :Experimental_Info:RotAng;
-		//RotAng = 22;
-		//RotAng = 26.67;	//check by minimizing crosscorrelation term in 2D thermal fit on PIXIS (20)
-		//RotAng = 53.2; //rotation angle to level the main dipole beam
-		//RotAng = 6.7 //rotation angle to approximately level cross beam
-		//RotAng = 7.43;	// rotation angle to level box on pixis
-		//RotAng = 6.967 // rotation angle to level horizontal lattice on PIXIS
-		//RotAng =7;	// rotation angle to level box on vert flea
-		
-		RotAng = -4.86 //rotation angle to make BEC straight on grasshopper
+		strswitch(Camera)
+			case "GS3_28S4M": //Grasshopper imaging
+				//RotAng = 0;
+				RotAng = 1.96; //rotation angle to align GH with gravity, measured 5/23/17
+			break;
+			
+			case "PIXIS": //PIXIS imaging
+				//RotAng = 22;
+				//RotAng = 26.67;	//check by minimizing crosscorrelation term in 2D thermal fit on PIXIS (20)
+				RotAng = 53.2; //rotation angle to level the main dipole beam
+				//RotAng = 6.7 //rotation angle to approximately level cross beam
+				//RotAng = 7.43;	// rotation angle to level box on pixis
+				//RotAng = 6.967 // rotation angle to level horizontal lattice on PIXIS
+				//RotAng =7;	// rotation angle to level box on vert flea
+			break;
+		endswitch
+	
 		ImageRotate/Q/O/E=0/A=(RotAng) ImageName;
 		Update_Magnification();			// CDH: why is this here??	
 	endif
