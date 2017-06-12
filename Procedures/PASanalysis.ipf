@@ -49,7 +49,7 @@ function setupPASanalysis()
 	
 	//Make variables for common parameters
 	Variable /G mass = 84 * 1.67377e-27; //kg
-	Variable /G gammaMol = 2*pi*2*7.44e3; //2*pi*Hz (uncertainty?) (??????????? factor of 2Pi ??????????)
+	Variable /G gammaMol = 2*7.44e3; //2*pi*Hz (uncertainty?) (??????????? factor of 2Pi ??????????)
 	Variable /G a_scatt = 123 * 5.29177e-11; //m (uncertainty?)
 	Variable /G beamWaist = 0.135 //cm
 	Variable /G fractionTransmitted = 0.875 // (uncertainty?)
@@ -100,6 +100,7 @@ function setupPASanalysis()
 	//make fit function that includes one body loss
 	//calculate error bars
 	
+	avgPASdata()
 end
 
 function avgPASdata()
@@ -122,6 +123,10 @@ function avgPASdata()
 		//numTF:
 		DataSorter($(path + "num_TF"),$(path + "SSDetuning"),"num_TF_" + num2str(i),"detuning_" + num2str(i)); 
 		//other variables?? TF radii - will need if we take stimulated broadening into account
+		
+		Duplicate /O $("detuning_" + num2str(i) + "_Vals") $("detuning_" + num2str(i) + "_Scaled")
+		Wave detScaledWv = $("detuning_" + num2str(i) + "_Scaled")
+		detScaledWv = 2*pi*detScaledWv;
 			
 	endfor
 
@@ -158,6 +163,7 @@ function PASdataPlot(dataToPlot,index)
 	//String yWv = dataToPlot + "_" + num2str(index) +"_Avg"
 	Wave waveToPlot = $(dataToPlot + "_" + num2str(index) +"_Avg")
 	Wave detWave = $("detuning_" + num2str(index) + "_Vals")
+	//Wave detWave = $("detuning_" + num2str(index) + "_Scaled")
 	Wave stdDevWave = $(dataToPlot + "_" + num2str(index) + "_SD");
 	
 	Display waveToPlot vs detWave
@@ -173,6 +179,7 @@ function fitPASLoss(dataToFit,index)
 	
 	Wave numWv = $(dataToFit + "_" + num2str(index) + "_Avg")
 	Wave detWv = $("detuning_" + num2str(index) + "_Vals")
+	//Wave detWv = $("detuning_" + num2str(index) + "_Scaled")
 	Wave StdDevWv = $(dataToFit + "_" + num2str(index) + "_SD");
 	
 	//Make wave to hold fit coefficients:
@@ -184,8 +191,9 @@ function fitPASLoss(dataToFit,index)
 	//manipulate fit_coef to be the appropriate guesses for the becPASloss function:
 	Redimension/N=5 fit_coef
 	fit_coef[1] = sqrt(-fit_coef[1]);
-	fit_coef[2] = fit_coef[2]/(2*pi);
-	fit_coef[3] = 2*sqrt(fit_coef[3])*2*pi
+	//fit_coef[1] = -fit_coef[1]*1e-5;
+	//fit_coef[2] = fit_coef[2]/(2*pi);
+	fit_coef[3] = 2*sqrt(fit_coef[3])
 	fit_coef[4] = 0; //hold to zero if we can ignore loss from atomic resonance
 	
 	//populate coefficient wave
@@ -195,7 +203,13 @@ function fitPASLoss(dataToFit,index)
 	//w[3] = gamma 20e3 -> close to 2*sqrt(B) from Lor
 	//w[4] = C //hold to 0
 	
-	FuncFit/NTHR=0/N=1/Q=1/H="00001" becPASloss fit_coef numWv /X=detWv /W=StdDevWv /I=1 /D
+	//Make constraint wave to force gamma to be positive
+	Make/O/T/N=1 T_Constraints
+	T_Constraints[0] = {"K3 > 0"}
+	
+	//Do the fit
+	FuncFit/NTHR=0/N=1/Q=1/H="00001" becPASloss fit_coef numWv /X=detWv /W=StdDevWv /I=1 /D /C=T_Constraints 
+
 	
 	//uncertainties are stored in W_sigma
 	
@@ -247,20 +261,21 @@ function becPASloss(w,x) : FitFunc
 	//CurveFitDialog/ w[2] = x0
 	//CurveFitDialog/ w[3] = gamma
 	//CurveFitDialog/ w[4] = C
-	x=2*Pi*x;
-	w[2] = 2*Pi*w[2]//these lines break the function, I have no idea why
+	//x=2*Pi*x;
+	//w[2] = 2*Pi*w[2]//these lines break the function, I have no idea why
 	
 	return w[0]*(1 + w[1]/( (x-w[2])^2 + (1/4)*w[3]^2 ) + w[4])^(-5/2)
 
 end
 
-function analyzePAS()
+function analyzePAS(plot)
+	Variable plot;
 	SetDataFolder root:PAS
 	
 	//choose one:
-	//String num = "absnum"
+	String num = "absnum"
 	//String num = "num_BEC"
-	String num = "num_TF"
+	//String num = "num_TF"
 	
 	SVAR dataSeriesList = dataSeriesList;
 	Variable numDataSeries = ItemsInList(dataSeriesList)
@@ -270,10 +285,21 @@ function analyzePAS()
 	
 	for (i=0 ; i<numDataSeries; i+=1)
 		
-		//PASdataPlot(num,i);
+		if (plot==1)
+			PASdataPlot(num,i);
+		endif
 		fitPASloss(num,i)
 			
 	endfor
 	
+	if (plot==1)
+		//plot optical lengths:
+		Display lopt vs actIntensity
+		ModifyGraph mode=3,marker=19
+		ErrorBars lopt X,wave=(deltaIntensity,deltaIntensity)
+		Label left "l\\Bopt\\M/a\\B0"
+		Label bottom "Intensity (uW/cm\\S2\\M)"
+		
+	endif
 	
 end
