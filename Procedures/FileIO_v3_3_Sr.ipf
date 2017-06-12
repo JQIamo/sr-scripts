@@ -267,7 +267,7 @@ Function Load_Img(ImageName,FileName)
 			break;
 		endswitch
 		
-		variable DipRat, DipStart, tEnd, tau, DipPowXi, DipPowZi, DipPowXf, DipPowZf, DipPowXRamp,DipPowZRamp,WMfreq
+		variable DipRat, DipStart, tEnd, tau, DipPowXi, DipPowZi, DipPowXf, DipPowZf, DipPowXRamp,DipPowZRamp,WMfreq,ClearCounts,ClearMax
 		strswitch(Experiment)    
 			case "Sr":
 				//Will need to modify as Sr progresses
@@ -291,6 +291,8 @@ Function Load_Img(ImageName,FileName)
 				CrDipolePower = DipPowZf;
 				//CrDipolePower = DipPowZRamp;
 				WMfreq = NumberByKey_Safe(0, "WMfreq",wavenote,"=","\n");
+				ClearCounts = NumberByKey_Safe(0, "ClearCounts", wavenote, "=", "\n");
+				ClearMax = NumberByKey_Safe(0, "ClearMax", wavenote, "=", "\n");
 				//printf "frequency: %15.12g\r", WMfreq
 				detuning = (1/31.99)*NumberByKey_Safe(NaN,"ProbeDet ", wavenote, "=","\n"); //Sr linewidth from NIST spectral database
 			break;
@@ -361,6 +363,12 @@ Function Load_Img(ImageName,FileName)
 					//printf "frequency: %15.12g\r", WMfreq
 					IndexedVariable = WMfreq
 					//printf "saved frequency: %15.12g\r", IndexedVariable
+				break;
+				case "ClearCounts":
+					IndexedVariable = ClearCounts
+				break;
+				case "ClearMax":
+					IndexedVariable = ClearMax
 				break;
 				default:
 					IndexedVariable = str2num( StringFromList(i, IndexedValuesList) );
