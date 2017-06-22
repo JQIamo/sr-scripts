@@ -267,7 +267,7 @@ Function Load_Img(ImageName,FileName)
 			break;
 		endswitch
 		
-		variable DipRat, DipStart, tEnd, tau, DipPowXi, DipPowZi, DipPowXf, DipPowZf, DipPowXRamp,DipPowZRamp,WMfreq,ClearCounts,ClearMax,Timestamp
+		variable DipRat, DipStart, tEnd, tau, DipPowXi, DipPowZi, DipPowXf, DipPowZf, DipPowXRamp,DipPowZRamp,WMfreq,ClearCounts,ClearMax
 		strswitch(Experiment)    
 			case "Sr":
 				//Will need to modify as Sr progresses
@@ -293,7 +293,6 @@ Function Load_Img(ImageName,FileName)
 				WMfreq = NumberByKey_Safe(0, "WMfreq",wavenote,"=","\n");
 				ClearCounts = NumberByKey_Safe(0, "ClearCounts", wavenote, "=", "\n");
 				ClearMax = NumberByKey_Safe(0, "ClearMax", wavenote, "=", "\n");
-				Timestamp = NumberByKey_Safe(0, "Timestamp", wavenote, "=", "\n");
 				//printf "frequency: %15.12g\r", WMfreq
 				detuning = (1/31.99)*NumberByKey_Safe(NaN,"ProbeDet ", wavenote, "=","\n"); //Sr linewidth from NIST spectral database
 			break;
@@ -370,9 +369,6 @@ Function Load_Img(ImageName,FileName)
 				break;
 				case "ClearMax":
 					IndexedVariable = ClearMax
-				break;
-				case "Timestamp":
-					IndexedVariable = Timestamp
 				break;
 				default:
 					IndexedVariable = str2num( StringFromList(i, IndexedValuesList) );
@@ -500,8 +496,7 @@ Function Load_Img(ImageName,FileName)
 							case "GS3_28S4M": //Grasshopper imaging
 								//ISatCounts = 1233; //measurement 12/12/16 on grasshopper,
 								//alphaIsat = 1.02 //measurement 12/12/16 on grasshopper,
-								//ISatCounts = 895; //measurement 5/23/17, with correction
-								ISatCounts = 928; //measurement 6/14/17
+								ISatCounts = 895; //measurement 5/23/17, with correction
 								RotateImage = 1; //rotation of a couple degrees needed to level image to gravity (5/23/17)
 								if (isotope == 3)		//case Sr87
 									alphaIsat = 1; //uncalibrated
@@ -770,8 +765,7 @@ Function Load_Img(ImageName,FileName)
 		strswitch(Camera)
 			case "GS3_28S4M": //Grasshopper imaging
 				//RotAng = 0;
-				//RotAng = 1.96; //rotation angle to align GH with gravity, measured 5/23/17
-				RotAng = 3.42; //rotation angle to align GH with gravity, measured 6/13/17
+				RotAng = 1.96; //rotation angle to align GH with gravity, measured 5/23/17
 			break;
 			
 			case "PIXIS": //PIXIS imaging
