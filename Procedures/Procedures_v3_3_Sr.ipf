@@ -3244,7 +3244,7 @@ Function GaussRotate2DFit(inputimage)
 	killwaves inputimage_mask, inputimage_weight;
 		
 	SetDataFolder fldrSav
-	return 1
+	return Gauss3d_coef[6]*180/pi;
 End
 
 Function DecayingSine(w,x) : FitFunc

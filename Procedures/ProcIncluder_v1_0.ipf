@@ -23,6 +23,7 @@
 #include "SaveROI_v3_5"
 #include "LatticeDepth_Sr"
 #include "BoxTrapAnalysis"
+#include "PASanalysis"
 
 //!
 //! @brief
