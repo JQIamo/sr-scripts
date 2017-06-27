@@ -6,16 +6,68 @@ function setupPASanalysis()
 	SetDataFolder root:PAS
 	KillWaves /A/Z ; KillVariables /A/Z ; KillStrings /A/Z
 	
-	Variable dataset = 3
+	Variable dataset = 5
 	// 1: 23 MHz data, regular trap, from 6/1 and 6/5
 	// 2: 228 MHz data, regular trap, taken 6/6 and 6/7
 	// 3: 23 MHz data, dithered trap, taken 6/14 and 6/15
+	// 4: 228 MHz data, dithered trap, taken 6/15, 6/16, 6/19, and 6/20
+	// 5: 1143 MHz data, regular trap, taken 6/8
 	
 	//build list of data series
 	String /G dataSeriesList = "";
 	Variable numDataSeries
 	
 	switch(dataset)
+		case 5:
+			//Settings for 1143 MHz data taken 6/8 2017
+			//*******Put in names of data series that contain the data we want to analyze
+			dataSeriesList = AddListItem("root:PAS_1143MHz_1000uW",dataSeriesList,";",999)
+			dataSeriesList = AddListItem("root:PAS_1143MHz_2000uW",dataSeriesList,";",999)
+			dataSeriesList = AddListItem("root:PAS_1143MHz_3000uW",dataSeriesList,";",999)
+			
+			numDataSeries = ItemsInList(dataSeriesList)
+			
+			//*******Insert measured optical powers for each data series, following the order above
+			Make /O measuredPow = {1000,1990,3000} //units are uW
+			
+			//*******Insert the amount of time the PAS laser was applied for each data series, following the order above
+			Make /O pasT = {350,200,125} //units are ms
+			Variable /G fracPasT = 1; //(raction of total hold time that the PAS laser was on (1 for regular trap, 2/5 for dithered trap)
+			Make /O trapLifetime = {20,20,20,20,20} //units are s, measured one body trap lifetime, placeholder
+			
+			//*******Insert the correction needed to detuning to account for how far the PAS laser drifted from resonance for each data series, following the order above
+			Make /O detuningCorrection = {6,9.2,10.2} //detuning correction in kHz
+			break;
+		case 4:
+			//Settings for 228 MHz data, dithered trap taken 6/15, 6/16, 6/19, and 6/20 2017	
+			//*******Put in names of data series that contain the data we want to analyze
+			dataSeriesList = AddListItem("root:PAS_228MHz_10uW",dataSeriesList,";")
+			dataSeriesList = AddListItem("root:PAS_228MHz_50uW",dataSeriesList,";",999)
+			dataSeriesList = AddListItem("root:PAS_228MHz_100uW",dataSeriesList,";",999)
+			dataSeriesList = AddListItem("root:PAS_228MHz_150uW",dataSeriesList,";",999)
+			//dataSeriesList = AddListItem("root:PAS_228MHz_150uWb",dataSeriesList,";",999)
+			//dataSeriesList = AddListItem("root:PAS_228MHz_150uWc",dataSeriesList,";",999)
+			dataSeriesList = AddListItem("root:PAS_228MHz_200uW",dataSeriesList,";",999)
+			dataSeriesList = AddListItem("root:PAS_228MHz_250uW",dataSeriesList,";",999)
+			
+			numDataSeries = ItemsInList(dataSeriesList)
+			
+			//*******Insert measured optical powers for each data series, following the order above
+			//Make /O measuredPow = {10,49.7,101,152,152,152,195,255} //units are uW
+			Make /O measuredPow = {10,49.7,101,152,195,255} //units are uW
+			
+			//*******Insert the amount of time the PAS laser was applied for each data series, following the order above
+			//Make /O pasT = {250,40,20,13,13,13,10,13} //units are ms
+			Make /O pasT = {250,40,20,13,10,13} //units are ms
+			Variable /G fracPasT = 2/5; //(fraction of total hold time that the PAS laser was on (1 for regular trap, 2/5 for dithered trap)
+			//Make /O trapLifetime = {6.4,2.2,2.2,2.2,2.2,2.2,2.2,4} //units are s, measured one body trap lifetime
+			Make /O trapLifetime = {6.4,2.2,2.2,2.2,2.2,4} //units are s, measured one body trap lifetime
+			//Future: Make /O deltaTrapLifetime = {0.8,0.3,0.3,0.3,0.3} //units are in s, std dev of fitted lifetime
+			
+			//*******Insert the correction needed to detuning to account for how far the PAS laser drifted from resonance for each data series, following the order above
+			//Make /O detuningCorrection = {35.05,-6.9,2.75,10,10,9.85,-0.75,3.5} //detuning correction in kHz
+			Make /O detuningCorrection = {35.05,-6.9,2.75,10,-0.75,3.5} //detuning correction in kHz
+			break;
 		case 3:
 			//Settings for 23 MHz data, dithered trap taken 6/14 and 6/15 2017	
 			//*******Put in names of data series that contain the data we want to analyze
@@ -114,8 +166,8 @@ function setupPASanalysis()
 	Variable /G mass = 84 * 1.67377e-27; //kg
 	Variable /G gammaMol = 2*7.44e3; //Hz Note: I have divided out the factor of 2 Pi because the fit function expects delta/2Pi as the dependent variable, same result if we add factor of 2Pi here and fit vs scaled detunings
 	Variable /G deltaGammaMol = 2*35 //Hz same issue of 2 Pi as above, find a reference for this!
-	Variable /G a_scatt = 123 * 5.29177e-11; //m (uncertainty?)
-	Variable /G delta_a_scatt = 0 * 5.29177e-11; //m //Look this up!
+	Variable /G a_scatt = 122.762 * 5.29177e-11; //m  (from Stein, Knockel, Tiemann, 2010)
+	Variable /G delta_a_scatt = 0.092* 5.29177e-11; //m (from Stein, Knockel, Tiemann, 2010)
 	Variable /G beamWaist = 0.135 //cm
 	Variable /G fractionTransmitted = 0.875 // (uncertainty?)
 	
@@ -238,14 +290,26 @@ function fitPASLoss(dataToFit,index,oneBody)
 	Wave detWv = $("detuning_" + num2str(index) + "_Vals")
 	//Wave detWv = $("detuning_" + num2str(index) + "_Scaled")
 	Wave StdDevWv = $(dataToFit + "_" + num2str(index) + "_SD");
+	Wave StdErrWv = $(dataToFit + "_" + num2str(index) + "_SEM");
 	
 	//Make wave to hold fit coefficients:
 	Make /O/N=(4) fit_coef;
 	
 	//Fit lorenztian to get guesses
-	CurveFit/NTHR=0/N=1/Q=1 lor kwCWave=fit_coef numWv /X=detWv /D /I=1/W=StdDevWv
+	CurveFit/NTHR=0/N=1/Q=1 lor kwCWave=fit_coef numWv /X=detWv /D /I=1/W=StdErrWv //sometime getting rid of weighting gives better guesses for some data sets
 	
-	//Make constraint wave to force gamma to be positive **commong
+	//Extract fitted center
+	Wave W_sigma = :W_sigma;
+	Wave detuningCorrection = :detuningCorrection
+	Wave fitted_center = :fitted_center
+	Wave corrected_center = :corrected_center
+	Wave deltaCenter = :deltaCenter
+	
+	fitted_center[index] = fit_coef[2]
+	corrected_center[index] = fit_coef[2] + detuningCorrection[index]*1e3 //correct the center position, (convert the correction from kHz to Hz)
+	deltaCenter[index] = W_sigma[2]
+	
+	//Make constraint wave to force gamma to be positive
 	Make/O/T/N=1 T_Constraints
 	T_Constraints[0] = {"K3 > 0"}
 	
@@ -256,32 +320,38 @@ function fitPASLoss(dataToFit,index,oneBody)
 		NVAR pasOnFrac = :fracPasT
 		//manipulate fit_coef to be the appropriate guesses for the becPASloss function:
 		Redimension/N=8 fit_coef
-		fit_coef[1] = sqrt(-fit_coef[1]); //?
+		fit_coef[1] = 10*sqrt(-fit_coef[1]); //multiplying by 10 gives better results for 228MHz, dithered data
 		fit_coef[3] = 2*sqrt(fit_coef[3])
 		fit_coef[4] = 0; //hold to zero if we can ignore loss from atomic resonance
 		fit_coef[5] = trapLifetime[index] //hold tau to the measured onebody trap lifetime
 		fit_coef[6] = pasT[index]/(1000*pasOnFrac) // total hold time, divide by 1000 to convert ms to s
 		fit_coef[7] = pasOnFrac //fraction of total hold that the PAS laser is on
-		
 		//Do the fit
-		FuncFit/NTHR=0/N=1/Q=1/H="00001111" becPASlossOneBodyFitFunc fit_coef numWv /X=detWv /W=StdDevWv /I=1 /D /C=T_Constraints 
+		FuncFit/NTHR=0/N=1/Q=1/H="00101111" becPASlossOneBodyFitFunc fit_coef numWv /X=detWv /I=1 /D /C=T_Constraints /W=StdErrWv //W=StdDevWv //acording the the igor manual, std error is the appropriate weighting, gives smaller error bars 
 	else
 		//manipulate fit_coef to be the appropriate guesses for the becPASloss function:
 		Redimension/N=5 fit_coef
-		fit_coef[1] = sqrt(-fit_coef[1]);
+		fit_coef[1] = 11*sqrt(-fit_coef[1]); //multiplying by 10 gives better results for 228MHz, dithered data
 		//fit_coef[1] = -fit_coef[1]*1e-5;
 		//fit_coef[2] = fit_coef[2]/(2*pi);
-		fit_coef[3] = 2*sqrt(fit_coef[3])
+		fit_coef[3] = 1.4*sqrt(fit_coef[3])
 		fit_coef[4] = 0; //hold to zero if we can ignore loss from atomic resonance
 		
+		//CurveFitDialog/ w[0] = N0
+		//CurveFitDialog/ w[1] = B
+		//CurveFitDialog/ w[2] = x0
+		//CurveFitDialog/ w[3] = gamma
+		//CurveFitDialog/ w[4] = C
+		
 		//Do the fit
-		FuncFit/NTHR=0/N=1/Q=1/H="00001" becPASloss fit_coef numWv /X=detWv /W=StdDevWv /I=1 /D /C=T_Constraints 
+		//Variable/G V_FitTol=0.00001
+		FuncFit/NTHR=0/N=1/Q=1/H="00101"/M=2 becPASloss fit_coef numWv /X=detWv  /D /C=T_Constraints /I=1 /W=StdErrWv //W=StdDevWv //acording the the igor manual, std error is the appropriate weighting, gives smaller error bars 
+		print fit_coef
 	endif
 
 	
 	
 	//uncertainties are stored in W_sigma
-	Wave W_sigma = :W_sigma;
 	Variable delta_fitted_Gamma = W_sigma[3];
 	Variable delta_center = W_sigma[2];
 	Variable delta_B = W_sigma[1];
@@ -428,19 +498,22 @@ function analyzePAS(plot,oneBody)
 		ErrorBars lopt XY,wave=(deltaIntensity,deltaIntensity),wave=(deltaLopt,deltaLopt)
 		Label left "l\\Bopt\\M/a\\B0"
 		Label bottom "Intensity (uW/cm\\S2\\M)"
-		
+		SetAxis left 0,*;
+		SetAxis bottom 0,*
 	endif
 	
 	//Extract lopt/I, or the slope of the above plot
 	Make /O/N=(2) lopt_fit_coef
 	K0=0;
-	CurveFit/NTHR=0/N=1/Q=1/H="10" line kwCWave=lopt_fit_coef lopt /X=actIntensity /D // /I=1/W=StdDevWv
+	//CurveFit/NTHR=0/N=1/Q=1/H="10" line kwCWave=lopt_fit_coef lopt /X=actIntensity /D // /I=1/W=StdDevWv
+	CurveFit/NTHR=0/Q=1/H="10"/ODR=2 line kwCWave=lopt_fit_coef lopt /X=actIntensity /D /I=1 /W=deltaLopt /XW=deltaIntensity
 	Variable slope = K1*1e6; //units: (lopt/a0) / (W/cm^2)
 	Wave W_sigma = :W_sigma
 	Variable slope_sigma = W_sigma[1]*1e6;//units: (lopt/a0) / (W/cm^2)
 	string result = "lopt/a0 = " + num2str(slope) + " ± " + num2str(slope_sigma) + "(W/cm^2)^-1"
 	
 	if (plot ==1)
+		//Display lopt textbox on the lopt plot
 		TextBox/C/N=text0/A=MC result
 		TextBox/C/N=text0/A=LC/X=36.56/Y=31.88
 		
@@ -450,8 +523,37 @@ function analyzePAS(plot,oneBody)
 		ErrorBars eta XY,wave=(deltaIntensity,deltaIntensity),wave=(deltaEta,deltaEta)
 		Label left "eta"
 		Label bottom "Intensity (uW/cm\\S2\\M)"
+		SetAxis left 1.0,*;
+		SetAxis bottom 0,*
+
+	endif
+	
+	//Extract the average eta value:
+	Make /O/N=2 eta_fit_coef
+	K1=0;
+	CurveFit/NTHR=0/N=1/Q=1/H="01" line kwCWave=eta_fit_coef eta /X=actIntensity /D /I=1 /W=deltaEta
+	Variable etaAvg = K0;
+	Variable etaAvgDelta = W_sigma[0]
+	string result2 = "Average eta = " + num2str(etaAvg) + " ± " + num2str(etaAvgDelta)
+	
+	if (plot ==1)
+		//Display eta result textbox on the eta plot
+		TextBox/C/N=text0/A=MC result2
+		TextBox/C/N=text0/A=LC/X=36.56/Y=31.88
+		ModifyGraph lstyle(fit_eta)=7
 	else
 		print result
+		print result2
+	endif
+	
+	//Plot the center frequency
+	If (plot ==1)
+		Display corrected_center vs actIntensity
+		ModifyGraph mode=3
+		ModifyGraph marker=19;
+		ErrorBars corrected_center Y,wave=(deltaCenter,deltaCenter)
+		Label left "Center Frequency (Hz)"
+		Label bottom "Intensity (uW/cm\\S2\\M)"
 	endif
 	
 end
@@ -539,6 +641,38 @@ function checkForOutliers()
 		Label bottom "Detuning (Hz)"
 		//Legend/C/N=text0/A=LC
 		//Legend/C/N=text0/A=LC/X=36.56/Y=31.88
+		
+		String dataSeriesLabel = StringFromList(i,dataSeriesList)
+		TextBox/C/N=text0/A=MC dataSeriesLabel
+		TextBox/C/N=text0/A=LC/X=36.56/Y=31.88
+					
+	endfor
+	
+end
+
+function plotClearShotCounts()
+	
+	SetDataFolder root:PAS
+	
+	SVAR dataSeriesList = dataSeriesList;
+	Variable numDataSeries = ItemsInList(dataSeriesList)
+	
+	Variable i;
+	String path;
+	for (i=0 ; i<numDataSeries; i+=1)
+		path = StringFromList(i,dataSeriesList) + ":IndexedWaves:";
+		
+		Wave absnum = $(path + "absnum")
+		Wave ClearMax = $(path + "ClearMax")
+		
+		//Make plot of absnum, num_BEC, and num_TF on same graph for each data series
+		Display absnum; 
+		AppendToGraph/R ClearMax
+		ModifyGraph rgb(ClearMax)=(0,0,65280)
+		
+		Label left "Atom Number"
+		Label right "Clear Shot Max Counts"
+		Label bottom "ShotNumber"
 		
 		String dataSeriesLabel = StringFromList(i,dataSeriesList)
 		TextBox/C/N=text0/A=MC dataSeriesLabel
