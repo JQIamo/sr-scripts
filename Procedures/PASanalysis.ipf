@@ -6,18 +6,73 @@ function setupPASanalysis()
 	SetDataFolder root:PAS
 	KillWaves /A/Z ; KillVariables /A/Z ; KillStrings /A/Z
 	
-	Variable dataset = 5
+	Variable dataset = 7;
 	// 1: 23 MHz data, regular trap, from 6/1 and 6/5
 	// 2: 228 MHz data, regular trap, taken 6/6 and 6/7
-	// 3: 23 MHz data, dithered trap, taken 6/14 and 6/15
+	// 3: 23 MHz data, dithered trap, taken 6/14 and 6/15, and 7/7/17
 	// 4: 228 MHz data, dithered trap, taken 6/15, 6/16, 6/19, and 6/20
 	// 5: 1143 MHz data, regular trap, taken 6/8
+	// 6: 1143 MHz data, dithered trap, taken 6/27/17 (and morning of 6/28), and 7/7/17
+	// 7: 3693 MHz data, dithered trap, taken 7/12/17
 	
 	//build list of data series
 	String /G dataSeriesList = "";
 	Variable numDataSeries
 	
 	switch(dataset)
+		case 7:
+			//Settings for 3963 MHz data taken 7/12 2017
+			//*******Put in names of data series that contain the data we want to analyze
+			dataSeriesList = AddListItem("root:PAS_3693MHz_1200uW",dataSeriesList,";",999)
+			dataSeriesList = AddListItem("root:PAS_3693MHz_2400uW",dataSeriesList,";",999)
+			dataSeriesList = AddListItem("root:PAS_3693MHz_3500uW",dataSeriesList,";",999)
+			//dataSeriesList = AddListItem("root:PAS_3693MHz_4600uW",dataSeriesList,";",999)
+			dataSeriesList = AddListItem("root:PAS_3693MHz_4600uWb",dataSeriesList,";",999) //same as above data set without last scan
+			dataSeriesList = AddListItem("root:PAS_3693MHz_5600uW",dataSeriesList,";",999)
+			
+			numDataSeries = ItemsInList(dataSeriesList)
+			
+			//*******Insert measured optical powers for each data series, following the order above
+			Make /O measuredPow = {1210,2355,3520,4560,5600} //units are uW
+			
+			//*******Insert the amount of time the PAS laser was applied for each data series, following the order above
+			Make /O pasT = {150,100,100,50,40} //units are ms
+			Variable /G fracPasT = 2/5; //(raction of total hold time that the PAS laser was on (1 for regular trap, 2/5 for dithered trap)
+			Make /O trapLifetime = {9.4,9.4,9.4,9.4,9.4} //units are s, measured one body trap lifetime, placeholder
+			
+			//*******Insert the correction needed to detuning to account for how far the PAS laser drifted from resonance for each data series, following the order above
+			Make /O detuningCorrection = {0.9,-26.2,-4.25,19.8,-2.2} //detuning correction in kHz
+			break;
+		case 6:
+			//Settings for 1143 MHz data taken 6/27 and 6/28 2017
+			//*******Put in names of data series that contain the data we want to analyze
+			//dataSeriesList = AddListItem("root:PAS_1143MHzDither_1000uWa",dataSeriesList,";",999)
+			dataSeriesList = AddListItem("root:PAS_1143MHzDither_1000uWb",dataSeriesList,";",999)
+			dataSeriesList = AddListItem("root:PAS_1143MHzDither_2000uW",dataSeriesList,";",999)
+			dataSeriesList = AddListItem("root:PAS_1143MHzDither_3000uW",dataSeriesList,";",999)
+			dataSeriesList = AddListItem("root:PAS_1143MHzDither_4000uWa",dataSeriesList,";",999)
+			//dataSeriesList = AddListItem("root:PAS_1143MHzDither_4000uWb",dataSeriesList,";",999)
+			dataSeriesList = AddListItem("root:PAS_1143MHzDither_5000uW",dataSeriesList,";",999)
+			//dataSeriesList = AddListItem("root:PAS_1143MHzDither_5000uWb",dataSeriesList,";",999)
+			
+			numDataSeries = ItemsInList(dataSeriesList)
+			
+			//*******Insert measured optical powers for each data series, following the order above
+			//Make /O measuredPow = {1040,1030,2090,3060,3980,3980,4940,5030} //units are uW
+			Make /O measuredPow = {1030,2090,3060,3980,4940} //units are uW
+			
+			//*******Insert the amount of time the PAS laser was applied for each data series, following the order above
+			//Make /O pasT = {400,400,200,150,100,100,100,100} //units are ms
+			Make /O pasT = {400,200,150,100,100} //units are ms
+			Variable /G fracPasT = 2/5; //(raction of total hold time that the PAS laser was on (1 for regular trap, 2/5 for dithered trap)
+			//Make /O trapLifetime = {2.6,2.6,2.6,2.6,2.6,2.6,2.6,2.6} //units are s, measured one body trap lifetime, placeholder
+			Make /O trapLifetime = {2.6,2.6,2.6,2.6,2.6} //units are s, measured one body trap lifetime, placeholder
+			
+			//*******Insert the correction needed to detuning to account for how far the PAS laser drifted from resonance for each data series, following the order above
+			//Make /O detuningCorrection = {-11.05,-10.9,-16.15,-20.1,-16.55,-16.55,-9.6,-20.95} //detuning correction in kHz
+			Make /O detuningCorrection = {-10.9,-16.15,-20.1,-16.55,-9.6} //detuning correction in kHz
+			
+			break;
 		case 5:
 			//Settings for 1143 MHz data taken 6/8 2017
 			//*******Put in names of data series that contain the data we want to analyze
@@ -36,7 +91,7 @@ function setupPASanalysis()
 			Make /O trapLifetime = {20,20,20,20,20} //units are s, measured one body trap lifetime, placeholder
 			
 			//*******Insert the correction needed to detuning to account for how far the PAS laser drifted from resonance for each data series, following the order above
-			Make /O detuningCorrection = {6,9.2,10.2} //detuning correction in kHz
+			Make /O detuningCorrection = {-6,-9.2,-10.2} //detuning correction in kHz
 			break;
 		case 4:
 			//Settings for 228 MHz data, dithered trap taken 6/15, 6/16, 6/19, and 6/20 2017	
@@ -48,48 +103,53 @@ function setupPASanalysis()
 			//dataSeriesList = AddListItem("root:PAS_228MHz_150uWb",dataSeriesList,";",999)
 			//dataSeriesList = AddListItem("root:PAS_228MHz_150uWc",dataSeriesList,";",999)
 			dataSeriesList = AddListItem("root:PAS_228MHz_200uW",dataSeriesList,";",999)
-			dataSeriesList = AddListItem("root:PAS_228MHz_250uW",dataSeriesList,";",999)
+			//dataSeriesList = AddListItem("root:PAS_228MHz_250uW",dataSeriesList,";",999)
 			
 			numDataSeries = ItemsInList(dataSeriesList)
 			
 			//*******Insert measured optical powers for each data series, following the order above
 			//Make /O measuredPow = {10,49.7,101,152,152,152,195,255} //units are uW
-			Make /O measuredPow = {10,49.7,101,152,195,255} //units are uW
+			Make /O measuredPow = {10,49.7,101,152,195} //units are uW
 			
 			//*******Insert the amount of time the PAS laser was applied for each data series, following the order above
 			//Make /O pasT = {250,40,20,13,13,13,10,13} //units are ms
-			Make /O pasT = {250,40,20,13,10,13} //units are ms
+			Make /O pasT = {250,40,20,13,10} //units are ms
 			Variable /G fracPasT = 2/5; //(fraction of total hold time that the PAS laser was on (1 for regular trap, 2/5 for dithered trap)
 			//Make /O trapLifetime = {6.4,2.2,2.2,2.2,2.2,2.2,2.2,4} //units are s, measured one body trap lifetime
-			Make /O trapLifetime = {6.4,2.2,2.2,2.2,2.2,4} //units are s, measured one body trap lifetime
+			Make /O trapLifetime = {6.4,2.2,2.2,2.2,2.2} //units are s, measured one body trap lifetime
 			//Future: Make /O deltaTrapLifetime = {0.8,0.3,0.3,0.3,0.3} //units are in s, std dev of fitted lifetime
 			
 			//*******Insert the correction needed to detuning to account for how far the PAS laser drifted from resonance for each data series, following the order above
 			//Make /O detuningCorrection = {35.05,-6.9,2.75,10,10,9.85,-0.75,3.5} //detuning correction in kHz
-			Make /O detuningCorrection = {35.05,-6.9,2.75,10,-0.75,3.5} //detuning correction in kHz
+			Make /O detuningCorrection = {35.05,-6.9,2.75,10,-0.75} //detuning correction in kHz
 			break;
 		case 3:
 			//Settings for 23 MHz data, dithered trap taken 6/14 and 6/15 2017	
 			//*******Put in names of data series that contain the data we want to analyze
 			dataSeriesList = AddListItem("root:PAS_23MHz_10uW",dataSeriesList,";")
 			dataSeriesList = AddListItem("root:PAS_23MHz_20uW",dataSeriesList,";",999)
-			dataSeriesList = AddListItem("root:PAS_23MHz_30uW",dataSeriesList,";",999)
+			//dataSeriesList = AddListItem("root:PAS_23MHz_30uW",dataSeriesList,";",999)
+			dataSeriesList = AddListItem("root:PAS_23MHz_30uWb",dataSeriesList,";",999)
 			dataSeriesList = AddListItem("root:PAS_23MHz_40uW",dataSeriesList,";",999)
 			dataSeriesList = AddListItem("root:PAS_23MHz_50uW",dataSeriesList,";",999)
 			
 			numDataSeries = ItemsInList(dataSeriesList)
 			
 			//*******Insert measured optical powers for each data series, following the order above
-			Make /O measuredPow = {11.1,19.9,30.4,40,50.6} //units are uW
+			//Make /O measuredPow = {11.1,19.9,30.4,30,40,50.6} //units are uW
+			Make /O measuredPow = {11.1,19.9,30,40,50.6} //units are uW
 			
 			//*******Insert the amount of time the PAS laser was applied for each data series, following the order above
-			Make /O pasT = {75,50,35,25,20} //units are ms
+			//Make /O pasT = {75,50,35,40,25,20} //units are ms
+			Make /O pasT = {75,50,40,25,20} //units are ms
 			Variable /G fracPasT = 2/5; //(fraction of total hold time that the PAS laser was on (1 for regular trap, 2/5 for dithered trap)
+			//Make /O trapLifetime = {6.3,6.4,6.4,6.4,6.4,6.4} //units are s, measured one body trap lifetime
 			Make /O trapLifetime = {6.3,6.4,6.4,6.4,6.4} //units are s, measured one body trap lifetime
 			//Future: Make /O deltaTrapLifetime = {0.8,0.3,0.3,0.3,0.3} //units are in s, std dev of fitted lifetime
 			
 			//*******Insert the correction needed to detuning to account for how far the PAS laser drifted from resonance for each data series, following the order above
-			Make /O detuningCorrection = {-3.1,3.75,6.25,22.5,30.05} //detuning correction in kHz
+			//Make /O detuningCorrection = {-3.1,3.75,6.25,12.5,22.5,30.05} //detuning correction in kHz
+			Make /O detuningCorrection = {-3.1,3.75,12.5,22.5,30.05} //detuning correction in kHz
 			break;
 		case 2:
 			//Settings for 228 MHz data taken 6/6 and 6/7 2017
@@ -168,7 +228,8 @@ function setupPASanalysis()
 	Variable /G deltaGammaMol = 2*35 //Hz same issue of 2 Pi as above, find a reference for this!
 	Variable /G a_scatt = 122.762 * 5.29177e-11; //m  (from Stein, Knockel, Tiemann, 2010)
 	Variable /G delta_a_scatt = 0.092* 5.29177e-11; //m (from Stein, Knockel, Tiemann, 2010)
-	Variable /G beamWaist = 0.135 //cm
+	//Variable /G beamWaist = 0.135 //cm
+	Variable /G beamWaist = 0.16287 //cm
 	Variable /G fractionTransmitted = 0.875 // (uncertainty?)
 	
 	//loop over data series to populate certain data
@@ -320,7 +381,7 @@ function fitPASLoss(dataToFit,index,oneBody)
 		NVAR pasOnFrac = :fracPasT
 		//manipulate fit_coef to be the appropriate guesses for the becPASloss function:
 		Redimension/N=8 fit_coef
-		fit_coef[1] = 10*sqrt(-fit_coef[1]); //multiplying by 10 gives better results for 228MHz, dithered data
+		fit_coef[1] = 1*sqrt(-fit_coef[1]); //multiplying by 10 gives better results for 228MHz, dithered data, multiplying by 1 gives better guesses for 1143 dithered data
 		fit_coef[3] = 2*sqrt(fit_coef[3])
 		fit_coef[4] = 0; //hold to zero if we can ignore loss from atomic resonance
 		fit_coef[5] = trapLifetime[index] //hold tau to the measured onebody trap lifetime
@@ -393,7 +454,7 @@ function fitPASLoss(dataToFit,index,oneBody)
 	
 	//Now calculate deltaC2:
 	NVAR delta_a_scatt = :delta_a_scatt
-	Variable deltaC2 = (15^(2/5) / (14*pi) ) * (3/5) *(mass/hbar)^(6/5) * sqrt( (2/(a_scatt^(3/5)*omegaBar^(1/5)))^2*deltaOmegaBar^2 + (omegaBar^(6/5)/a_scatt^(8/5))^2*delta_a_scatt)
+	Variable deltaC2 = (15^(2/5) / (14*pi) ) * (3/5) *(mass/hbar)^(6/5) * sqrt( (2/(a_scatt^(3/5)*omegaBar^(1/5)))^2*deltaOmegaBar^2 + (omegaBar^(6/5)/a_scatt^(8/5))^2*delta_a_scatt^2)
 	
 	//Finally, calculate deltaLopt
 	Variable deltaBterm 
@@ -541,10 +602,9 @@ function analyzePAS(plot,oneBody)
 		TextBox/C/N=text0/A=MC result2
 		TextBox/C/N=text0/A=LC/X=36.56/Y=31.88
 		ModifyGraph lstyle(fit_eta)=7
-	else
-		print result
-		print result2
 	endif
+	
+
 	
 	//Plot the center frequency
 	If (plot ==1)
@@ -554,6 +614,30 @@ function analyzePAS(plot,oneBody)
 		ErrorBars corrected_center Y,wave=(deltaCenter,deltaCenter)
 		Label left "Center Frequency (Hz)"
 		Label bottom "Intensity (uW/cm\\S2\\M)"
+	endif
+	
+	//Extract the average center frequency:
+	Make /O/N=2 center_fit_coef
+	K1=0;
+	CurveFit/NTHR=0/N=1/Q=1/H="01" line kwCWave=center_fit_coef corrected_center /X=actIntensity /D /I=1 /W=deltaCenter
+	Variable centerAvg = K0;
+	Variable centerAvgDelta = W_sigma[0]
+	string centerFormatted
+	string centerDeltaFormatted
+	sprintf centerFormatted "%.6W1PHz" centerAvg;
+	sprintf centerDeltaFormatted "%.0W1PHz" centerAvgDelta;
+	string result3 = "Resonance center = " + centerFormatted + " ± " + centerDeltaFormatted
+	//string result3 = "Average Detuning = " + num2str(centerAvg) + " ± " + num2str(centerAvgDelta)
+	
+	if (plot == 1)	
+		//Display the result textbox on the detuning center plot
+		TextBox/C/N=text0/A=MC result3
+		TextBox/C/N=text0/A=LC/X=36.56/Y=31.88
+		ModifyGraph lstyle(fit_corrected_center)=7
+	else
+		print result
+		print result2
+		print result3
 	endif
 	
 end
