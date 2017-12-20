@@ -2165,7 +2165,10 @@ Function ThermalUpdateCloudPars(Gauss3D_coef)
 			density = amplitude / (sqrt(pi)*sigma*zrms);								// Get image density.
 			//number = pi*(zeta3/zeta2)*(xrms*zrms*amplitude/sigma);				// Get number (polylog fit). zetas are approx. of Riemann zeta.
 			number = density*(pi)^(1.5)*(xrms*yrms*zrms);							// Get number. (Gaussian fit)
-			temperature = (mass/(2*kB))*((omgY*yrms*10^(-6))^2)/(1+(omgY*.001*expand_time)^2);           			// Temp in K calculated from average width assuming long TOF.
+			//temperature = (mass/(2*kB))*((omgY*yrms*10^(-6))^2)/(1+(omgY*.001*expand_time)^2);           			// Temp in K calculated from average width assuming long TOF.
+			thoriz =  (mass/(2*kB))*((omgX*xrms*10^(-6))^2)/(1+(omgX*.001*expand_time)^2);
+			tvert = (mass/(2*kB))*((omgY*yrms*10^(-6))^2)/(1+(omgY*.001*expand_time)^2);
+			temperature = (thoriz+tvert)/2;
 			xrms_t0 = sqrt(2*kB*temperature/(mass*omgX^2))*10^6;					// Initial size in transverse direction in um.
 			yrms_t0 = sqrt(2*kB*temperature/(mass*omgY^2))*10^6;					// Initial size in longitudnal direction in um.
 			zrms_t0 = sqrt(2*kB*temperature/(mass*omgZ^2))*10^6;
@@ -2280,6 +2283,11 @@ Function FDUpdateCloudPars(Gauss3D_coef)
 	NVAR camdir=:Experimental_Info:camdir, traptype=:Experimental_Info:traptype
 	NVAR mass=:Experimental_Info:mass, expand_time=:Experimental_Info:expand_time
 	
+	NVAR omgX = :Experimental_Info:omgX;
+	NVAR omgY = :Experimental_Info:omgY;
+	NVAR omgZ = :Experimental_Info:omgZ;
+	NVAR omg_ho=:Experimental_Info:omg_ho
+	
 	fugacity = Gauss3d_coef[6]
 	TTf = CalcTTf(fugacity)
 	
@@ -2310,7 +2318,9 @@ Function FDUpdateCloudPars(Gauss3D_coef)
 			//density = amplitude / (sqrt(pi)*sigma*zrms);								// Get image density.
 			//number = pi*(zeta3/zeta2)*(xrms*zrms*amplitude/sigma);				// Get number (polylog fit). zetas are approx. of Riemann zeta.
 			//number = density*(pi)^(1.5)*(xrms*yrms*zrms);							// Get number. (Gaussian fit)
-			//temperature = (mass/(2*kB))*((omgY*yrms*10^(-6))^2)/(1+(omgY*.001*expand_time)^2);           			// Temp in K calculated from average width assuming long TOF.
+			thoriz =  (mass/(2*kB))*((omgX*xrms*10^(-6))^2)/(1+(omgX*.001*expand_time)^2);        
+			tvert =  (mass/(2*kB))*((omgY*yrms*10^(-6))^2)/(1+(omgY*.001*expand_time)^2);        
+			temperature =  (thoriz+tvert)/2;			// Temp in K calculated from average width assuming long TOF.
 			//xrms_t0 = sqrt(2*kB*temperature/(mass*omgX^2))*10^6;					// Initial size in transverse direction in um.
 			//yrms_t0 = sqrt(2*kB*temperature/(mass*omgY^2))*10^6;					// Initial size in longitudnal direction in um.
 			//zrms_t0 = sqrt(2*kB*temperature/(mass*omgZ^2))*10^6;
@@ -2318,6 +2328,8 @@ Function FDUpdateCloudPars(Gauss3D_coef)
 			//zrms =zrms_t0*sqrt(1+(omgZ*expand_time*0.001)^2);
 			//density = amplitude / (sqrt(pi)*sigma*zrms);								// Get better image density estimate.
 			//absdensity_t0 = absnumber/((xrms_t0*yrms_t0*zrms_t0)*pi^1.5);
+			print (hbar*omg_ho/kB)*(6*number/10)^(1/3)
+			print temperature/ ((hbar*omg_ho/kB)*(6*number/10)^(1/3))
 		elseif(traptype==3)	// MOT
 			zrms = (xrms+yrms)/2;
 			thoriz = (mass/(2*kB))*(xrms*0.001/expand_time)^2;
