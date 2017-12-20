@@ -29,13 +29,24 @@ function setupPASanalysis()
 			//dataSeriesList = AddListItem("root:PAS_3693MHz_4600uW",dataSeriesList,";",999)
 			dataSeriesList = AddListItem("root:PAS_3693MHz_4600uWb",dataSeriesList,";",999) //same as above data set without last scan
 			dataSeriesList = AddListItem("root:PAS_3693MHz_5600uW",dataSeriesList,";",999)
+			//dataSeriesList = AddListItem("root:PAS_3693MHz_5300uW_0mG",dataSeriesList,";",999)
+			//dataSeriesList = AddListItem("root:PAS_3693MHz_5300uW_0mGb",dataSeriesList,";",999)
+			//dataSeriesList = AddListItem("root:PAS_3693MHz_5300uW_200mG",dataSeriesList,";",999)
+			//dataSeriesList = AddListItem("root:PAS_3693MHz_5300uW_200mGb",dataSeriesList,";",999)
+			//dataSeriesList = AddListItem("root:PAS_3693MHz_1100uW_0mG",dataSeriesList,";",999)
+			//dataSeriesList = AddListItem("root:PAS_3693MHz_1100uW_0mGb",dataSeriesList,";",999)
+			//dataSeriesList = AddListItem("root:PAS_3693MHz_1100uW_200mG",dataSeriesList,";",999)
+			//dataSeriesList = AddListItem("root:PAS_3693MHz_1100uW_200mGb",dataSeriesList,";",999)
+			
 			
 			numDataSeries = ItemsInList(dataSeriesList)
 			
 			//*******Insert measured optical powers for each data series, following the order above
+			//Make /O measuredPow = {1210,2355,3520,4560,5600,5300,5300,5300,5300,1112,1112,1112,1112} //units are uW
 			Make /O measuredPow = {1210,2355,3520,4560,5600} //units are uW
 			
 			//*******Insert the amount of time the PAS laser was applied for each data series, following the order above
+			//Make /O pasT = {150,100,100,50,40,40,40,40,40,150,150,150,150} //units are ms
 			Make /O pasT = {150,100,100,50,40} //units are ms
 			Variable /G fracPasT = 2/5; //(raction of total hold time that the PAS laser was on (1 for regular trap, 2/5 for dithered trap)
 			Make /O trapLifetime = {9.4,9.4,9.4,9.4,9.4} //units are s, measured one body trap lifetime, placeholder
@@ -252,13 +263,13 @@ function setupPASanalysis()
 	endfor												
 	
 	//calculate actual intensity:
-	actIntensity = 2*fractionTransmitted*measuredPow/ (pi*beamWaist^2) //units uW/cm^2
+	actIntensity = 2*fractionTransmitted*measuredPow/ (pi*beamWaist^2) //units µW/cm^2
 	
 	//calculate uncertainty in the intensity:
 	//assumptions: uncertainty in intensity measurement: 3% (per Thorlabs spec)
 	//uncertainty in fraction transmitted: 4% (estimate, there is about an 8% difference in loss before and after the chamber, so I split the difference)
-	//uncertainty in beam waist: 4% this dominates at larger intensities
-	deltaIntensity = (2/pi)*sqrt( (fractionTransmitted*0.03*measuredPow/beamWaist)^2 + (measuredPow*.04/beamWaist)^2 + (2*measuredPow*fractionTransmitted/beamWaist^3)^2*(0.04*beamWaist)^2 )
+	//uncertainty in beam waist: 5%, this dominates at larger intensities
+	deltaIntensity = (2/pi)*sqrt( (fractionTransmitted*0.03*measuredPow/beamWaist)^2 + (fractionTransmitted*measuredPow*.04/beamWaist)^2 + (2*measuredPow*fractionTransmitted/beamWaist^3)^2*(0.05*beamWaist)^2 )
 	
 	//to do:
 		//add detuning correction
@@ -388,7 +399,7 @@ function fitPASLoss(dataToFit,index,oneBody)
 		fit_coef[6] = pasT[index]/(1000*pasOnFrac) // total hold time, divide by 1000 to convert ms to s
 		fit_coef[7] = pasOnFrac //fraction of total hold that the PAS laser is on
 		//Do the fit
-		FuncFit/NTHR=0/N=1/Q=1/H="00101111" becPASlossOneBodyFitFunc fit_coef numWv /X=detWv /I=1 /D /C=T_Constraints /W=StdErrWv //W=StdDevWv //acording the the igor manual, std error is the appropriate weighting, gives smaller error bars 
+		FuncFit/NTHR=0/N=1/Q=1/H="00101111" becPASlossOneBodyFitFunc fit_coef numWv /X=detWv /I=1 /D /C=T_Constraints /W=StdDevWv //W=StdErrWv //acording the the igor manual, std error is the appropriate weighting, gives smaller error bars 
 	else
 		//manipulate fit_coef to be the appropriate guesses for the becPASloss function:
 		Redimension/N=5 fit_coef
@@ -406,7 +417,7 @@ function fitPASLoss(dataToFit,index,oneBody)
 		
 		//Do the fit
 		//Variable/G V_FitTol=0.00001
-		FuncFit/NTHR=0/N=1/Q=1/H="00101"/M=2 becPASloss fit_coef numWv /X=detWv  /D /C=T_Constraints /I=1 /W=StdErrWv //W=StdDevWv //acording the the igor manual, std error is the appropriate weighting, gives smaller error bars 
+		FuncFit/NTHR=0/N=1/Q=1/H="00101"/M=2 becPASloss fit_coef numWv /X=detWv  /D /C=T_Constraints /I=1 /W=StdDevWv //W=StdErrWv  //acording the the igor manual, std error is the appropriate weighting, gives smaller error bars 
 		print fit_coef
 	endif
 
@@ -447,14 +458,16 @@ function fitPASLoss(dataToFit,index,oneBody)
 	
 	//Calculate uncertainty in lopt - this is going to be messy!
 	//First calculate uncertainty in omegaBar, assume 10 Hz (10% in z) and 2.5 Hz (5%) in x, y, this is probably too big?
-	Variable deltaFx = 2.5;
-	Variable deltaFy = deltaFx;	
-	Variable deltaFz = 10;
-	Variable deltaOmegaBar = (1/3)*sqrt( (omgX[index]*omgY[index]/omgZ[index]^2)^(2/3)*deltaFz + (omgZ[index]*omgY[index]/omgX[index]^2)^(2/3)*deltaFx + (omgX[index]*omgZ[index]/omgY[index]^2)^(2/3)*deltaFy)
+	Variable deltaFx  = 0.025*OmgX[index];
+	Variable deltaFy 	= 0.025*OmgY[index];
+	Variable deltaFz = 0.1*OmgZ[index];
+	//Variable deltaOmegaBar = (1/3)*sqrt( (omgX[index]*omgY[index]/omgZ[index]^2)^(2/3)*deltaFz^2 + (omgZ[index]*omgY[index]/omgX[index]^2)^(2/3)*deltaFx^2 + (omgX[index]*omgZ[index]/omgY[index]^2)^(2/3)*deltaFy^2)
+	Variable deltaOmegaBar = (1/3)*omegaBar*sqrt( (deltaFz/omgZ[index])^2 + (deltaFx/omgX[index])^2  +(deltaFy/omgY[index])^2)
+
 	
 	//Now calculate deltaC2:
 	NVAR delta_a_scatt = :delta_a_scatt
-	Variable deltaC2 = (15^(2/5) / (14*pi) ) * (3/5) *(mass/hbar)^(6/5) * sqrt( (2/(a_scatt^(3/5)*omegaBar^(1/5)))^2*deltaOmegaBar^2 + (omegaBar^(6/5)/a_scatt^(8/5))^2*delta_a_scatt^2)
+	Variable deltaC2 = (15^(2/5) / (14*pi) ) * (3/5) *(mass/hbar)^(6/5) * sqrt( (2*omegaBar^(1/5)/(a_scatt^(3/5)))^2*deltaOmegaBar^2 + (omegaBar^(6/5)/a_scatt^(8/5))^2*delta_a_scatt^2)
 	
 	//Finally, calculate deltaLopt
 	Variable deltaBterm 
@@ -468,7 +481,7 @@ function fitPASLoss(dataToFit,index,oneBody)
 		deltaBterm = (W_sigma[1]/(eta*gammaMol^2*C2))^2;
 		deltaC2term = (fit_coef[1]*deltaC2/(eta*gammaMol^2*C2^2))^2;
 		deltaEtaterm = (fit_coef[1]*delta_Eta/(eta^2*gammaMol^2*C2))^2;
-		deltaGammaMolterm = (2*fit_coef[1]*deltaGammaMol^2/(eta*gammaMol^3*C2))^2;
+		deltaGammaMolterm = (2*fit_coef[1]*deltaGammaMol/(eta*gammaMol^3*C2))^2;
 		deltaLopt = (mu / (2*pi*hbar))*sqrt(deltaBterm + deltaC2term + deltaEtaterm + deltaGammaMolterm);
 	else
 		deltaBterm = (fit_coef[0]^(2/5)*C2*eta*gammaMol^2)^(-2)*W_sigma[1]^2;
@@ -558,7 +571,7 @@ function analyzePAS(plot,oneBody)
 		ModifyGraph mode=3,marker=19
 		ErrorBars lopt XY,wave=(deltaIntensity,deltaIntensity),wave=(deltaLopt,deltaLopt)
 		Label left "l\\Bopt\\M/a\\B0"
-		Label bottom "Intensity (uW/cm\\S2\\M)"
+		Label bottom "Intensity (µW/cm\\S2\\M)"
 		SetAxis left 0,*;
 		SetAxis bottom 0,*
 	endif
@@ -583,7 +596,7 @@ function analyzePAS(plot,oneBody)
 		ModifyGraph mode=3,marker=19
 		ErrorBars eta XY,wave=(deltaIntensity,deltaIntensity),wave=(deltaEta,deltaEta)
 		Label left "eta"
-		Label bottom "Intensity (uW/cm\\S2\\M)"
+		Label bottom "Intensity (µW/cm\\S2\\M)"
 		SetAxis left 1.0,*;
 		SetAxis bottom 0,*
 
@@ -613,7 +626,7 @@ function analyzePAS(plot,oneBody)
 		ModifyGraph marker=19;
 		ErrorBars corrected_center Y,wave=(deltaCenter,deltaCenter)
 		Label left "Center Frequency (Hz)"
-		Label bottom "Intensity (uW/cm\\S2\\M)"
+		Label bottom "Intensity (µW/cm\\S2\\M)"
 	endif
 	
 	//Extract the average center frequency:
@@ -672,7 +685,7 @@ function plotNums()
 		ErrorBars $("num_TF_" + num2str(i) +"_Avg") Y,wave=($("num_TF_" + num2str(i) +"_SD"),$("num_TF_" + num2str(i) +"_SD"));
 		
 		Wave measuredPow = :measuredPow
-		String powerLabel = "power = " + num2str(measuredPow[i]) + " uW"
+		String powerLabel = "power = " + num2str(measuredPow[i]) + " µW"
 		TextBox/C/N=text0/A=MC powerLabel
 		TextBox/C/N=text0/A=LC/X=36.56/Y=31.88
 		
@@ -856,4 +869,924 @@ function testRotation()
 		rotationAngle[ii] = GaussRotate2DFit(optdepth)
 		ii += 1; 
 	endfor
+end
+
+function exportPASData(FolderName)
+	String FolderName// "This name should be formatted like PAS_XXXMHz" where XXX=23, 228, 1132, or 3693
+	
+	SetDataFolder root:PAS
+	SaveData /D=1/O /T=$FolderName ":IgorPASdata"
+end
+
+function importPASData()
+	String FolderName// "This name should be formatted like PAS_XXXMHz" where XXX=23, 228, 1132, or 3693
+	
+	
+	//LoadData /D ":IgorPASdata"
+	
+	//NewPath 
+	//String path = "Englebert_3_7_Sr_PAS_23MHz.pxp"
+	LoadData /O=1 /S="PAS" /T=PAS_23MHz ":" //This works, but requires the user to manually find the file
+		
+end
+
+function plotLoptCombined()
+	
+	String Axes;
+	
+	//Make 23 MHz lopt plot
+	Display root:PAS_23MHz:lopt vs root:PAS_23MHz:actIntensity
+	ModifyGraph mode=3,marker=19
+	ErrorBars lopt XY,wave=(root:PAS_23MHz:deltaIntensity,root:PAS_23MHz:deltaIntensity),wave=(root:PAS_23MHz:deltaLopt,root:PAS_23MHz:deltaLopt)
+	Label left "l\\Bopt\\M/a\\B0"
+	Label bottom "Intensity (µW/cm\\S2\\M)"
+	SetAxis left 0,*;
+	SetAxis bottom 0,*
+	
+	//Add fit line (calculated in other notebook)
+	AppendToGraph :PAS_23MHz:fit_lopt
+	//Add line
+	//Make /O/N=(2) lopt23_fit_coef
+	//K0=0;
+	//CurveFit/NTHR=0/Q=1/H="10"/ODR=2 line kwCWave=lopt23_fit_coef root:PAS_23MHz:lopt /X=root:PAS_23MHz:actIntensity /D /I=1 /W=root:PAS_23MHz:deltaLopt /XW=root:PAS_23MHz:deltaIntensity
+	formatPASgraph()
+	
+	//Make 228 MHz lopt plot
+	Display root:PAS_228MHz:lopt vs root:PAS_228MHz:actIntensity
+	ModifyGraph mode=3,marker=19
+	ErrorBars lopt XY,wave=(root:PAS_228MHz:deltaIntensity,root:PAS_228MHz:deltaIntensity),wave=(root:PAS_228MHz:deltaLopt,root:PAS_228MHz:deltaLopt)
+	Label left "l\\Bopt\\M/a\\B0"
+	Label bottom "Intensity (µW/cm\\S2\\M)"
+	SetAxis left 0,*;
+	SetAxis bottom 0,*
+	//Add line
+	AppendToGraph :PAS_228MHz:fit_lopt
+	ModifyGraph rgb=(0,0,65280),marker(lopt)=16
+	formatPASgraph()
+	
+	//Make 1143 MHz lopt plot
+	Display root:PAS_1143MHz:lopt vs root:PAS_1143MHz:actIntensity
+	ModifyGraph mode=3,marker=19
+	ErrorBars lopt XY,wave=(root:PAS_1143MHz:deltaIntensity,root:PAS_1143MHz:deltaIntensity),wave=(root:PAS_1143MHz:deltaLopt,root:PAS_1143MHz:deltaLopt)
+	Label left "l\\Bopt\\M/a\\B0"
+	Label bottom "Intensity (µW/cm\\S2\\M)"
+	SetAxis left 0,*;
+	SetAxis bottom 0,*
+	//Add line
+	AppendToGraph :PAS_1143MHz:fit_lopt
+	ModifyGraph rgb=(0,26112,0),marker(lopt)=17
+	formatPASgraph()
+	
+	//Make 3693 MHz lopt plot
+	Display root:PAS_3693MHz:lopt vs root:PAS_3693MHz:actIntensity
+	ModifyGraph mode=3,marker=19
+	ErrorBars lopt XY,wave=(root:PAS_3693MHz:deltaIntensity,root:PAS_3693MHz:deltaIntensity),wave=(root:PAS_3693MHz:deltaLopt,root:PAS_3693MHz:deltaLopt)
+	Label left "l\\Bopt\\M/a\\B0"
+	Label bottom "Intensity (µW/cm\\S2\\M)"
+	SetAxis left 0,*;
+	SetAxis bottom 0,*
+	//Add line
+	AppendToGraph :PAS_3693MHz:fit_lopt
+	ModifyGraph rgb=(52224,34816,0),marker(lopt)=19
+	formatPASgraph()
+	
+	//Make 1143, 3693 combined lopt plot
+	Display root:PAS_1143MHz:lopt vs root:PAS_1143MHz:actIntensity
+	ModifyGraph mode=3,marker=19
+	ErrorBars lopt XY,wave=(root:PAS_1143MHz:deltaIntensity,root:PAS_1143MHz:deltaIntensity),wave=(root:PAS_1143MHz:deltaLopt,root:PAS_1143MHz:deltaLopt)
+	Label left "l\\Bopt\\M/a\\B0"
+	Label bottom "Intensity (µW/cm\\S2\\M)"
+	SetAxis left 0,*;
+	SetAxis bottom 0,*
+	//Add line
+	AppendToGraph :PAS_1143MHz:fit_lopt
+	ModifyGraph rgb=(0,26112,0),marker(lopt)=17
+	//Add 3693 data
+	AppendToGraph :PAS_3693MHz:lopt vs :PAS_3693MHz:actIntensity
+	ErrorBars lopt#1 XY,wave=(root:PAS_3693MHz:deltaIntensity,root:PAS_3693MHz:deltaIntensity),wave=(root:PAS_3693MHz:deltaLopt,root:PAS_3693MHz:deltaLopt)
+	AppendToGraph :PAS_3693MHz:fit_lopt
+	ModifyGraph mode(lopt#1)=3,marker(lopt#1)=19,rgb(lopt#1)=(52224,34816,0)
+	ModifyGraph rgb(fit_lopt#1)=(52224,34816,0)
+	formatPASgraph()
+	
+end
+
+function formatPASgraph()
+	
+	String Axes;
+	
+	ModifyGraph tick=2, standoff=1, btLen=3, stLen=2 //change to standoff=0 to remove standoff
+	// Only mirror if no opposite axes
+	Axes = AxisList("");
+	if (stringmatch(Axes, "!*right*" ))
+		ModifyGraph mirror(left)=1		
+	Endif
+	if (stringmatch(Axes, "!*left*" ))
+		ModifyGraph mirror(right)=1		
+	Endif
+	if (stringmatch(Axes, "!*top*" ))
+		ModifyGraph mirror(bottom)=1		
+	Endif
+	if (stringmatch(Axes, "!*bottom*" ))
+		ModifyGraph mirror(top)=1		
+	Endif
+	
+	•ModifyGraph width=0,height={Aspect,1}
+	//ModifyGraph width=250
+	//ModifyGraph height=250
+	// Line Thickness Stuff
+		ModifyGraph lsize=0.5
+		ModifyGraph zeroThick=0.5
+		ModifyGraph axThick=0.5
+		ModifyGraph btThick=0.5
+		ModifyGraph ftThick=0.5
+		ModifyGraph stThick=0.5
+		ModifyGraph ttThick=0.5
+		
+		//font size
+		ModifyGraph fSize(left)=22, fSize(bottom)=22
+end
+
+function generateplots()
+	
+	String folderList = "root:PAS_23MHz;root:PAS_228MHz;root:PAS_1143MHz;root:PAS_3693MHz"
+	NewPath /O FigureFolder "C:Users:breschovsky:Documents:GitHub:Papers:SrDepumpPaper:84 PAS Files:84PAS-Figures:"
+	
+	//options:
+	Variable plotLoptInd = 1
+	Variable plotLoptComb = 1
+	Variable plotEtaInd = 1
+	Variable plotEtaComb = 1
+	
+	Variable savePlot = 1;
+
+	Variable numFolders = ItemsInList(folderList);
+	Variable i;
+	String path;
+	String plotName;
+	String AxesLabelSize = "\Z28"
+	String legendTextSize = "\Z24";
+
+	for(i=0;i<numFolders; i +=1)	
+		path = StringFromList(i,folderList);
+		cd path;
+		Wave actIntensity = :actIntensity
+		Wave deltaIntensity = :deltaIntensity
+		Wave fit_lopt = :fit_lopt
+		Wave fit_eta = :fit_eta
+		
+		//Add new waves to scale the intensity from uW to mW
+		Make /O /N=(numpnts(lopt)) actIntensity_mW = actIntensity/1000;
+		Make /O /N=(numpnts(lopt)) deltaIntensity_mW = deltaIntensity/1000;
+		Make /O /N=(numpnts(fit_lopt)) fit_lopt_mW = fit_lopt;
+		Make /O /N=(numpnts(fit_eta)) fit_eta_mW = fit_eta;
+		SetScale /P x, DimOffset(fit_lopt,0)/1000, DimDelta(fit_lopt,0)/1000, fit_lopt_mW
+		SetScale /P x, DimOffset(fit_eta,0)/1000, DimDelta(fit_eta,0)/1000, fit_eta_mW
+		
+		if (plotLoptInd == 1)
+			//Generate individual lopt plots
+			plotName = "lopt_" + num2str(i)
+			Display /N=$plotName lopt vs actIntensity_mW
+			ModifyGraph mode=3,marker=19
+			ErrorBars lopt XY,wave=(deltaIntensity_mW,deltaIntensity_mW),wave=(deltaLopt,deltaLopt)
+			Label left AxesLabelSize + "\F'Times New Roman'l\\Bopt\\M/\f02a\f00\\B0"
+			Label bottom AxesLabelSize + "\f02\F'Times New Roman'I \f00(mW/cm\\S2\\M)" 
+			
+			SetAxis left 0,*;
+			SetAxis bottom 0,*
+		
+			//Add fit line (calculated in other igor experiment)
+			AppendToGraph fit_lopt_mW
+			
+			//Change color and marker
+			if (i == 1)
+				//228 MHz
+				ModifyGraph rgb=(0,0,65280),marker(lopt)=16
+				Legend /C/N=text0/J/M/A=LT legendTextSize + "\\s(lopt)0\Bu\M\S\Z16+\M" + legendTextSize +"\F'symbol' n = -3"
+
+			elseif (i==2)
+				//1143 MHz
+				ModifyGraph rgb=(0,26112,0),marker(lopt)=17
+				Legend /C/N=text0/J/M/A=LT legendTextSize + "\\s(lopt)0\Bu\M\S\Z16+\M" + legendTextSize +"\F'symbol' n = -4"
+			elseif (i==3)
+				//3693 MHz
+				ModifyGraph rgb=(52224,34816,0),marker(lopt)=18
+				Legend /C/N=text0/J/M/A=LT legendTextSize + "\\s(lopt)0\Bu\M\S\Z16+\M" + legendTextSize +"\F'symbol' n = -5"
+			else //i==0, 23 MHz
+				Legend /C/N=text0/J/M/A=LT legendTextSize + "\\s(lopt)0\Bu\M\S\Z16+\M" + legendTextSize +"\F'symbol' n = -2"
+			endif
+			
+			formatPASgraph()
+			
+			if (savePlot==1)
+				SavePICT/EF=1/E=-8 /O/WIN=$plotName /P=FigureFolder
+			endif
+		endif
+		
+		//Generate combined plots for 1143 and 3693 MHz;
+		
+		if (plotLoptComb == 1)
+			if (i==2)
+				plotName = "lopt_2_3" 
+				Display /N=$plotName lopt vs actIntensity_mW
+				ModifyGraph mode=3,marker=19
+				ErrorBars lopt XY,wave=(deltaIntensity_mW,deltaIntensity_mW),wave=(deltaLopt,deltaLopt)
+				Label left AxesLabelSize + "\F'Times New Roman'l\\Bopt\\M/\f02a\f00\\B0"
+				Label bottom AxesLabelSize + "\f02\F'Times New Roman'I \f00(mW/cm\\S2\\M)" 
+				SetAxis left 0,*;
+				SetAxis bottom 0,*
+		
+				//Add fit line (calculated in other igor experiment)
+				AppendToGraph fit_lopt_mW
+				ModifyGraph rgb=(0,26112,0),marker(lopt)=17
+			elseif (i==3)
+				plotName = "lopt_2_3"
+				DoWindow /F $plotName
+				AppendToGraph lopt vs actIntensity_mW
+				AppendToGraph fit_lopt_mW
+				ErrorBars lopt#1 XY,wave=(deltaIntensity_mW,deltaIntensity_mW),wave=(deltaLopt,deltaLopt)
+				ModifyGraph mode(lopt#1)=3,marker(lopt#1)=18,rgb(lopt#1)=(52224,34816,0)
+				ModifyGraph rgb(fit_lopt_mW#1)=(52224,34816,0)
+				formatPASgraph()
+				
+				//Add Legend
+				
+				Legend /C/N=text0/J/M/A=LT/X=0.0/Y=5.0 legendTextSize + "\\s(lopt)0\Bu\M\S\Z16+\M" + legendTextSize +"\F'symbol' n = -4 \F'Arial' \r\\s(lopt#1)0\Bu\M\S\Z16+\M" + legendTextSize + "\F'symbol' n = -5 \F'Arial'"
+				
+				if (savePlot==1)
+					SavePICT/EF=1/E=-8/O/WIN=$plotName /P=FigureFolder
+				endif
+			endif
+		endif
+		
+		if (plotEtaComb == 1)
+			if (i==2)
+				plotName = "eta_2_3"
+				Display /N =$plotName eta vs actIntensity_mW
+				ModifyGraph mode=3,marker=19
+				ErrorBars eta XY,wave=(deltaIntensity_mW,deltaIntensity_mW),wave=(deltaEta,deltaEta)
+				Label left AxesLabelSize + "\f02\[0\F'Symbol'h\]0"
+				Label bottom AxesLabelSize + "\f02\F'Times New Roman'I \f00(mW/cm\\S2\\M)" 
+				
+				SetAxis left 1.0,*;
+				SetAxis bottom 0,*
+		
+				//Add fit line (calculated in other igor experiment)
+				AppendToGraph fit_eta_mW
+				ModifyGraph lstyle(fit_eta_mW)=7
+				ModifyGraph rgb=(0,26112,0),marker(eta)=17
+			elseif (i==3)
+				plotName = "eta_2_3"
+				DoWindow /F $plotName
+				AppendToGraph eta vs actIntensity_mW
+				AppendToGraph fit_eta_mW
+				ErrorBars eta#1 XY,wave=(deltaIntensity_mW,deltaIntensity_mW),wave=(deltaEta,deltaEta)
+				ModifyGraph mode(eta#1)=3,marker(eta#1)=18,rgb(eta#1)=(52224,34816,0)
+				ModifyGraph rgb(fit_eta_mW#1)=(52224,34816,0)
+				ModifyGraph lstyle(fit_eta_mW#1)=7
+				formatPASgraph()
+				if (savePlot==1)
+					SavePICT/EF=1/E=-8 /O/WIN=$plotName /P=FigureFolder
+				endif
+			endif
+		endif
+		
+		//Generate individual eta plots
+		if (plotEtaInd == 1)
+			plotName = "eta_" + num2str(i)
+			Display /N=$plotName eta vs actIntensity_mW
+			ModifyGraph mode=3,marker=19
+			ErrorBars eta XY,wave=(deltaIntensity_mW,deltaIntensity_mW),wave=(deltaEta,deltaEta)
+			Label left AxesLabelSize + "\f02\[0\F'Symbol'h\]0"
+			Label bottom AxesLabelSize + "\f02\F'Times New Roman'I \f00(mW/cm\\S2\\M)" 
+			SetAxis left 1.0,*;
+			SetAxis bottom 0,*
+			//Add fit line (calculated in other igor experiment)
+			AppendToGraph fit_eta_mW
+			ModifyGraph lstyle(fit_eta_mW)=7
+			
+			//Change color and marker
+			if (i == 1)
+				//228 MHz
+				ModifyGraph rgb=(0,0,65280),marker(eta)=16
+			elseif (i==2)
+				//1143 MHz
+				ModifyGraph rgb=(0,26112,0),marker(eta)=17
+			elseif (i==3)
+				//3693 MHz
+				ModifyGraph rgb=(52224,34816,0),marker(eta)=18
+			endif
+			
+			formatPASgraph()
+			if (savePlot==1)
+				SavePICT/EF=1/E=-8 /O/WIN=$plotName /P=FigureFolder
+			endif
+		endif
+		
+		
+	endfor
+	cd root:
+end
+
+function combineCenterScans()
+
+	//make directory to hold analysis results
+	NewDataFolder /O root:PAS_combinedCenters
+	SetDataFolder root:PAS_combinedCenters
+	KillWaves /A/Z ; KillVariables /A/Z ; KillStrings /A/Z
+	
+	String /G dataSeriesList = "";
+	Variable numDataSeries
+	
+	Variable isotope = 86;
+	
+	if (isotope == 84)
+		//*******Put in names of data series that contain the data we want to analyze and plot
+		dataSeriesList = AddListItem("root:center0",dataSeriesList,";",999)
+		dataSeriesList = AddListItem("root:center350",dataSeriesList,";",999)
+		dataSeriesList = AddListItem("root:center23",dataSeriesList,";",999)
+		dataSeriesList = AddListItem("root:center152",dataSeriesList,";",999)
+		dataSeriesList = AddListItem("root:center228",dataSeriesList,";",999)
+		dataSeriesList = AddListItem("root:center1143",dataSeriesList,";",999)
+		dataSeriesList = AddListItem("root:center2047",dataSeriesList,";",999)
+		dataSeriesList = AddListItem("root:center3693",dataSeriesList,";",999)
+	elseif(isotope == 86)
+		dataSeriesList = AddListItem("root:center0",dataSeriesList,";",999)
+		dataSeriesList = AddListItem("root:center1",dataSeriesList,";",999)
+		dataSeriesList = AddListItem("root:center44",dataSeriesList,";",999)
+		dataSeriesList = AddListItem("root:center349",dataSeriesList,";",999)
+		dataSeriesList = AddListItem("root:center1003",dataSeriesList,";",999)
+		dataSeriesList = AddListItem("root:center1528",dataSeriesList,";",999)
+		dataSeriesList = AddListItem("root:center4467",dataSeriesList,";",999)
+		dataSeriesList = AddListItem("root:center4624",dataSeriesList,";",999)
+	endif
+	
+	numDataSeries = ItemsInList(dataSeriesList)
+	
+	//loop over data series to populate certain data
+	variable i;
+	String path = ""
+	variable maxAtomNum;
+	for(i=0;i<numDataSeries; i +=1)	
+		
+		if (isotope==84)
+			path = StringFromList(i,dataSeriesList) + ":IndexedWaves";
+		elseif (isotope ==86)
+			path = StringFromList(i,dataSeriesList)
+		endif
+		
+		//Duplicate absnum
+		Duplicate /O $(path + ":absnum") $("absnum_" + num2str(i) )
+		
+		//Duplicate SSDetuning
+		Duplicate /O $(path + ":SSDetuning") $("detuning_" + num2str(i) )
+		
+		//Manipulate data
+		Duplicate $("absnum_" + num2str(i) ) $("absnum_normalized_" + num2str(i) )
+		Wave absNorm = $(":absnum_normalized_" + num2str(i) )
+		
+		Wave det = $("detuning_" + num2str(i) )
+		
+		det = det/1e6 //convert detuning from Hz to MHz;
+		if (i < 5)
+			det = - det //For resonances less than ~1 GHz, multiply by -1 so that all detunings are negative
+		endif
+		
+		//Fit to lorenztian to get atom number level to normalize to
+		//Make wave to hold fit coefficients:
+		Make /O/N=(4) fit_coef;
+		CurveFit/NTHR=0/N=1/Q=1 lor kwCWave=fit_coef absNorm /X=det //D 
+				//CurveFit lor absNorm /X=det
+		maxAtomNum = fit_coef[0];
+		absNorm = absNorm / maxAtomNum
+		//absNorm = absNorm / WaveMax(absNorm) ; //Normalize atom number
+		
+	endfor
+	
+	//plot all scans on the same axes
+	Display
+	for(i=0;i<numDataSeries; i +=1)
+		Wave absNorm = $(":absnum_normalized_" + num2str(i) )
+		Wave det = $("detuning_" + num2str(i) )
+		AppendToGraph absNorm vs det
+		//ModifyGraph mode(absNorm)=3,marker(absNorm)=8
+	endfor
+		
+end
+
+
+function fitThermalK2(w,x) : FitFunc
+	Wave w;
+	Variable x
+	
+	//CurveFitDialog/ These comments were created by the Curve Fitting dialog. Altering them will
+	//CurveFitDialog/ make the function less convenient to work with in the Curve Fitting dialog.
+	//CurveFitDialog/ Equation:
+	//CurveFitDialog/ f(x) = N0*(1 + B/((x-x0)^2 + gamma^2/4)) + C)^(-5/2)
+	//CurveFitDialog/ End of Equation
+	//CurveFitDialog/ Independent Variables 1
+	//CurveFitDialog/ x
+	//CurveFitDialog/ Coefficients 4
+	//CurveFitDialog/ w[0] = lopt
+	//CurveFitDialog/ w[1] = eta
+	//CurveFitDialog/ w[2] = x0
+	//CurveFitDialog/ w[3] = temp (temperature, nK)
+	
+	//x=2*Pi*x;
+	//w[2] = 2*Pi*w[2]//these lines break the function, I have no idea why
+	
+	//calcThermalK2(temp (nK), f (Hz), f0 (Hz),lopt (a0), eta (>=1))
+	
+	return calcThermalK2(w[3],x,w[2],w[0],w[1]) 
+
+end
+
+function calcThermalK2(temp, f, f0,lopt, eta)
+	
+	Variable temp //temp, nK
+	Variable f //Detuning, Hz (this should be negative for red detuned)
+	Variable f0 //binding energy of photassociation resonance, Hz
+	Variable lopt //optical length (a0)
+	Variable eta //(broadening factor)
+	
+	//constants needed: kB, hbar, h, m
+	Variable h = hbar*2*pi
+	Variable m = 86*1.660539040e-27;
+	Variable mu = m/2;
+	
+	Variable lambda=689e-9;
+	Variable k = 2*pi/lambda;
+	Variable Erec = ((h/lambda)^2/(4*m))/h;
+	
+	lopt = lopt*5.29177e-11 //convert from bohr radii to m
+	
+	Variable Qt = (2*pi*kB*temp*1e-9*mu/(h^2))^(3/2);
+	
+	Variable delMol = 2*pi*15000; //molecular natural linewidth
+	Variable/G globalDelT = kB*temp*1e-9/h; //thermal width
+	Variable/G globalF = f; //detuning
+	Variable/G globalF0 = f0 //center
+	Variable/G globalErec = Erec //recoil energy shift (Hz)
+	Variable/G globalDelD = sqrt(kB*temp*1e-9/m)/lambda //doppler width
+	Variable/G globalEta = eta;
+	Variable/G globalNumerator = eta*delMol*2*sqrt(2*mu*globalDelT*h)*delMol*lopt/(hbar*4*pi^2); //numerator of L function, without the x dependence
+	
+	Variable/G globalY
+	return (kB*temp*1e-9)*integrate1D(lineshapeIntegrate2,-10,10)/(h*Qt)
+end
+
+function lineshapeIntegrand(inX)
+	Variable inX
+	
+	NVAR globalY=globalY
+	NVAR globalNumerator = globalNumerator
+	NVAR globalF = globalF
+	NVAR globalDelD = globalDelD
+	NVAR globalDelT = globalDelT
+	NVAR globalF0 = globalF0
+	NVAR globalErec = globalErec
+	NVAR globalEta = globalEta
+	Variable delMol = 2*pi*15000; //molecular natural linewidth
+	
+	return exp(-globalY^2)*inX*exp(-inX^2)*globalNumerator*inX / ( (globalF + globalY*globalDelD + inX^2*globalDelT - globalF0 - globalErec)^2 + (globalEta*delMol)^2/(4*pi)^2 );
+	
+end	
+
+function lineshapeIntegrate2(inY)
+	Variable inY
+	
+	NVAR globalY=globalY
+	globalY = inY
+	
+	return integrate1D(lineshapeIntegrand,0,10)
+end
+
+function testThermalLinshapes()
+
+	Make/O /n=200 detuning
+	duplicate/O detuning K2wave
+	Variable detStart = 999.9e6
+	Variable deltaDet = 1e3
+	Variable lopt = 6;
+	Variable eta = 1.5
+	
+	variable temp =160;
+	
+	Variable i=0;
+	for (i=0; i<200; i+=1)
+		detuning[i] = detStart + i*deltaDet
+		K2wave[i] = calcThermalK2(temp,detuning[i],1e9,lopt ,eta)
+	endfor
+	display k2wave vs detuning
+end	
+
+
+function thermalPASloss(w,x) : FitFunc
+	Wave w;
+	Variable x
+	
+	//CurveFitDialog/ These comments were created by the Curve Fitting dialog. Altering them will
+	//CurveFitDialog/ make the function less convenient to work with in the Curve Fitting dialog.
+	//CurveFitDialog/ Equation:
+	//CurveFitDialog/ f(x) = N0*(1 + B/((x-x0)^2 + gamma^2/4)) + C)^(-5/2)
+	//CurveFitDialog/ End of Equation
+	//CurveFitDialog/ Independent Variables 1
+	//CurveFitDialog/ x
+	//CurveFitDialog/ Coefficients 7
+	//CurveFitDialog/ w[0] = N0
+	//CurveFitDialog/ w[1] = A
+	//CurveFitDialog/ w[2] = x0
+	//CurveFitDialog/ w[3] = lopt
+	//CurveFitDialog/ w[4] = eta
+	//CurveFitDialog/ w[5] = t
+	//CurveFitDialog/ w[6] = temp (temperature, nK)
+	
+	//x=2*Pi*x;
+	//w[2] = 2*Pi*w[2]//these lines break the function, I have no idea why
+	
+	//calcThermalK2(temp (nK), f (Hz), f0 (Hz),lopt (a0), eta (>=1))
+	
+	return w[0]*(1 + w[1]*w[0]*w[5]*calcThermalK2(w[6],x,w[2],w[3],w[4]) )
+
+end
+
+function analyzeThermalPAS()
+	//Wave detWave, absnumWave, tempWave
+	//working directory must be the indexed waves folder of the data series
+	
+	//make plots if desired
+	Variable plot = 1
+	if (plot == 1)
+		Display absnum vs SSDetuning
+		ModifyGraph mode=3,marker=19
+		//Display ClearMax
+		Display tempV vs SSDetuning
+		ModifyGraph mode=3,marker=19
+	endif
+	
+	//declare local wave references
+	Wave detWave = :SSDetuning	
+	Wave absnumWave = :absnum
+	Wave tempWave = :tempV
+		
+	//Find average temperature	
+	Wavestats /Q tempWave
+	Variable tempAvg = V_avg;
+	Variable deltaTemp = V_sdev;
+	
+	//apply correction to temperature to account for the slight overestimate of the single shot temperatures:
+	tempAvg = 0.975*tempAvg;
+	print "temp: " + num2str(tempAvg)
+	
+	//declare some constants
+	Variable omegaBar = 2*pi*(213*21.5*3.5)^(1/3);
+	Variable mass = 86*1.66e-27;
+	Wave PATwv = :PAT
+	variable PAT = PATwv[0];
+	
+	print "PAT: " + num2str(PAT)
+	
+	//In order for the correction to be in the correct direction, the SSDetuning values must be negative
+	if (detWave[0] > 0)
+		Duplicate /O detWave SSDetNeg
+		SSDetNeg = -detWave
+		Wave detWave = :SSDetNeg
+	endif
+	
+	//fit the data to a lorentzian to get guesses for several parameters
+	Make /O/N=4 lorFitCoef
+	CurveFit/NTHR=0/N/Q lor kwCWave=lorFitCoef absnumWave /X=detWave /D 
+	
+	Variable N0 = lorFitCoef[0]
+	Variable f0 = lorFitCoef[2]
+	
+	Duplicate /O absnumWave kWave
+	
+	//Calculate PAS loss rate for the data:
+	kWave = (4/PAT)*(1/absnumWave - 1/N0)*(pi*kB*tempAvg*1e-9/(mass*omegaBar^2))^(3/2)
+	
+	Duplicate /O detWave SSDetuningShifted
+	SSDetuningShifted = SSDetuningShifted - f0;
+	
+	if (plot == 1)
+		Display kWave vs SSDetuningShifted
+		ModifyGraph mode=3,marker=19
+	endif
+		
+	Make /D/O/N=4 fit_K2_coef = {10,1.2,4000,tempAvg}
+	Make/O/T/N=2 T_Constraints
+	T_Constraints = {"K0>0","K1 > 1"}
+	FuncFit/H="0001"/NTHR=0 fitThermalK2 fit_K2_coef kWave /X=SSDetuningShifted /D //C=T_Constraints 
+	
+	Wave W_sigma = :W_sigma
+	print /d (fit_k2_coef[2] + f0)/1e6
+	print W_sigma[2]
+
+end
+
+function formatCombinedGraph86()
+	
+	String plotName = "combinedDetunings"
+	
+	Display/R=R0/B=B0 absnum_normalized_0 vs detuning_0
+	AppendToGraph/R=R1/B=B1 absnum_normalized_1 vs detuning_1
+	AppendToGraph/R=R44/B=B44 absnum_normalized_2 vs detuning_2
+	AppendToGraph/R=R349/B=B349 absnum_normalized_3 vs detuning_3
+	AppendToGraph/R=R1003/B=B1003 absnum_normalized_4 vs detuning_4
+	AppendToGraph/R=R1528/B=B1528 absnum_normalized_5 vs detuning_5
+	AppendToGraph/R=R4467/B=B4467 absnum_normalized_6 vs detuning_6
+	AppendToGraph/R=R4624/B=B4624 absnum_normalized_7 vs detuning_7
+	
+	DoWindow /C $plotName
+	
+	Variable gap = 2/100 // gap between breaks, %
+	
+	//B0 0.1 - -0.1, 				16.3%
+	//B1 1.548-1.698, 			12.3%
+	//B44 44.171-44.321			12.3%
+	//B349 349.657-348.807 		12.3%
+	//B1003 1003.37-1003.51		11.5%
+	//B1528 1527.71-1527.57		11.5%
+	//B4467 4466.5-4466.65		12.3%
+	//B4624	4624.23-4624.09		11.5%
+	Variable total = 1-7*gap; //percent of graph available for data after taking out the gaps
+	Variable width16 = .163*total;
+	Variable width12 = 0.123*total;
+	Variable width11 = .115*total;
+	
+	Variable i=0;
+	String wvName = "absnum_normalized_"
+	String tempWvName;
+	String bottomLabel;
+	String rightLabel;
+	String leftLabel
+	for (i=0; i<8; i+=1)
+		tempWvName = wvName + num2str(i);
+		ModifyGraph mode($(tempWvName))=3,marker($(tempWvName))=8 //modify marker type
+		
+		//Wave absNorm = $(":absnum_normalized_" + num2str(i) )
+		//Wave det = $("detuning_" + num2str(i) )
+		//CurveFit /N/Q lor absNorm /X=det /D
+		
+		Wave fitWave = $(":fit_absnum_normalized_" + num2str(i) )		
+		
+		if (i == 0)
+			bottomLabel = "B0"
+			rightLabel = "R0"
+			leftLabel = "L0"
+		elseif (i == 1)
+			bottomLabel = "B1"
+			rightLabel = "R1"
+			leftLabel = "L1"
+		elseif (i == 2)
+			bottomLabel = "B44"
+			rightLabel = "R44"
+			leftLabel = "L44"
+		elseif (i == 3)
+			bottomLabel = "B349"
+			rightLabel = "R349"
+			leftLabel = "L349"
+		elseif (i == 4)
+			bottomLabel = "B1003"
+			rightLabel = "R1003"
+			leftLabel = "L1003"
+		elseif (i == 5)
+			bottomLabel = "B1528"
+			rightLabel = "R1528"
+			leftLabel = "L1528"
+		elseif (i == 6)
+			bottomLabel = "B4467"
+			rightLabel = "R4467"
+			leftLabel = "L4467"
+		elseif (i == 7)
+			bottomLabel = "B4624"
+			rightLabel = "R4624"
+			leftLabel = "L4624"
+		endif
+
+		AppendToGraph /B=$(bottomLabel) /L=$(leftLabel) fitWave		//add fit wave
+				
+		ModifyGraph mirror($(bottomLabel))=1		//mirror bottom axes
+		SetAxis $(rightLabel) 0,1.2					//set vertical axes limits
+		SetAxis $(leftLabel) 0, 1.2
+		ModifyGraph freePos($(bottomLabel))={0,$(rightLabel)}  //set bottom axes position
+		ModifyGraph noLabel($(rightLabel))=2         //no number labels on vertical axes
+		ModifyGraph noLabel($(leftLabel))=2
+	endfor
+	
+	Variable borderR = 1;
+	Variable borderL = borderR-width16;
+	ModifyGraph axisEnab(B0)={borderL,borderR}
+	ModifyGraph freePos(R0)={0,kwFraction}
+	ModifyGraph freePos(L0)={borderL,kwFraction}
+
+	borderR = borderL - gap
+	borderL = borderR - width12;	
+	ModifyGraph axisEnab(B1)={borderL,borderR}
+	ModifyGraph freePos(R1)={1-borderR,kwFraction}
+	ModifyGraph freePos(L1)={borderL,kwFraction}
+	
+	borderR = borderL - gap
+	borderL = borderR - width12;	
+	ModifyGraph axisEnab(B44)={borderL,borderR}
+	ModifyGraph freePos(R44)={1-borderR,kwFraction}
+	ModifyGraph freePos(L44)={borderL,kwFraction}
+
+	borderR = borderL - gap
+	borderL = borderR - width12;	
+	ModifyGraph axisEnab(B349)={borderL,borderR}
+	ModifyGraph freePos(R349)={1-borderR,kwFraction}
+	ModifyGraph freePos(L349)={borderL,kwFraction}
+
+	borderR = borderL - gap
+	borderL = borderR - width11;	
+	ModifyGraph axisEnab(B1003)={borderL,borderR}
+	ModifyGraph freePos(R1003)={1-borderR,kwFraction}
+	ModifyGraph freePos(L1003)={borderL,kwFraction}
+
+	borderR = borderL - gap
+	borderL = borderR - width11;	
+	ModifyGraph axisEnab(B1528)={borderL,borderR}
+	ModifyGraph freePos(R1528)={1-borderR,kwFraction}
+	ModifyGraph freePos(L1528)={borderL,kwFraction}
+
+	borderR = borderL - gap
+	borderL = borderR - width12;	
+	ModifyGraph axisEnab(B4467)={borderL,borderR}
+	ModifyGraph freePos(R4467)={1-borderR,kwFraction}
+	ModifyGraph freePos(L4467)={borderL,kwFraction}
+
+	borderR = borderL - gap
+	borderL = max(borderR - width11,0);	
+	ModifyGraph axisEnab(B4624)={borderL,borderR}
+	ModifyGraph freePos(R4624)={1-borderR,kwFraction}
+	ModifyGraph freePos(L4624)={borderL,kwFraction}
+	
+	//SetAxis left 0,1.2
+	ModifyGraph tick=2, standoff=1, btLen=3, stLen=2 //change to standoff=0 to remove standoff
+
+	//Change the number of ticks so the bottom axis is readable
+	ModifyGraph nticks(B1)=2;
+	ModifyGraph nticks(B44)=2;
+	ModifyGraph nticks(B349)=2,nticks(B1003)=1,nticks(B1528)=1,nticks(B4467)=1;
+	ModifyGraph nticks(B4624)=1;
+	
+	//labels
+	Label B349 "Detuning (MHz)"
+	Label L4624 "Normalized Atom Number"
+	
+	//Set size of graph
+	ModifyGraph width=500,height=100
+	
+	//Fix the labels around zero
+	ModifyGraph ZisZ(B0)=1,lowTrip(B0)=0.01
+	
+	//Add labels to leftmost vertical axis
+	ModifyGraph noLabel(L4624)=0,lblPos(L4624)=30
+	
+	//Position bottom label
+	ModifyGraph lblPos(B349)=30
+	
+	//Get rid of offset on the right of plot
+	ModifyGraph axOffset(R0)=-5
+	
+	//SavePICT/EF=2/E=-8 /O/WIN=$plotName /P=FigureFolder
+end
+
+function formatCombinedGraph84()
+
+	cd root:PAS_combinedCenters
+
+	String plotName = "combinedDetunings84"
+	
+	Display/R=R0/B=B0 absnum_normalized_0 vs detuning_0
+	AppendToGraph/R=R1/B=B1 absnum_normalized_1 vs detuning_1
+	AppendToGraph/R=R2/B=B2 absnum_normalized_2 vs detuning_2
+	AppendToGraph/R=R3/B=B3 absnum_normalized_3 vs detuning_3
+	AppendToGraph/R=R4/B=B4 absnum_normalized_4 vs detuning_4
+	AppendToGraph/R=R5/B=B5 absnum_normalized_5 vs detuning_5
+	AppendToGraph/R=R6/B=B6 absnum_normalized_6 vs detuning_6
+	AppendToGraph/R=R7/B=B7 absnum_normalized_7 vs detuning_7
+	
+	DoWindow /C $plotName
+	
+	Variable gap = 2/100 // gap between breaks, %
+	
+	//B0 0.1 - -0.1, 				16.1%
+	//B1 .25 - 0.45, 				16.1%
+	//B2 27.99 - 23.11			9.7%
+	//B3 152.08 - 152.28 			16.1%
+	//B4 228.33 - 228.47			11.3%
+	//B5 1143.09 - 1143.21		9.7%
+	//B6 2046.64 - 2046.76		9.7%
+	//B7	3692.57 - 3692.71		11.3%
+	Variable total = 1-7*gap; //percent of graph available for data after taking out the gaps
+	Variable width16 = .161*total;
+	Variable width9 = 0.097*total;
+	Variable width11 = .113*total;
+	
+	Variable i=0;
+	String wvName = "absnum_normalized_"
+	String tempWvName;
+	String bottomLabel;
+	String rightLabel;
+	String leftLabel
+	for (i=0; i<8; i+=1)
+		tempWvName = wvName + num2str(i);
+		ModifyGraph mode($(tempWvName))=3,marker($(tempWvName))=8 //modify marker type
+		
+		//Wave absNorm = $(":absnum_normalized_" + num2str(i) )
+		//Wave det = $("detuning_" + num2str(i) )
+		//CurveFit /N/Q lor absNorm /X=det /D
+		
+		Wave fitWave = $(":fit_absnum_normalized_" + num2str(i) )		
+		
+		bottomLabel = "B" + num2str(i)
+		rightLabel = "R" + num2str(i)
+		leftLabel = "L" + num2str(i)
+
+		AppendToGraph /B=$(bottomLabel) /L=$(leftLabel) fitWave		//add fit wave
+				
+		ModifyGraph mirror($(bottomLabel))=1		//mirror bottom axes
+		SetAxis $(rightLabel) 0,1.2					//set vertical axes limits
+		SetAxis $(leftLabel) 0, 1.2
+		ModifyGraph freePos($(bottomLabel))={0,$(rightLabel)}  //set bottom axes position
+		ModifyGraph noLabel($(rightLabel))=2         //no number labels on vertical axes
+		ModifyGraph noLabel($(leftLabel))=2
+	endfor
+	
+	Variable borderR = 1;
+	Variable borderL = borderR-width16;
+	ModifyGraph axisEnab(B0)={borderL,borderR}
+	ModifyGraph freePos(R0)={0,kwFraction}
+	ModifyGraph freePos(L0)={borderL,kwFraction}
+
+	borderR = borderL - gap
+	borderL = borderR - width16;	
+	ModifyGraph axisEnab(B1)={borderL,borderR}
+	ModifyGraph freePos(R1)={1-borderR,kwFraction}
+	ModifyGraph freePos(L1)={borderL,kwFraction}
+	
+	borderR = borderL - gap
+	borderL = borderR - width9;	
+	ModifyGraph axisEnab(B2)={borderL,borderR}
+	ModifyGraph freePos(R2)={1-borderR,kwFraction}
+	ModifyGraph freePos(L2)={borderL,kwFraction}
+
+	borderR = borderL - gap
+	borderL = borderR - width16;	
+	ModifyGraph axisEnab(B3)={borderL,borderR}
+	ModifyGraph freePos(R3)={1-borderR,kwFraction}
+	ModifyGraph freePos(L3)={borderL,kwFraction}
+
+	borderR = borderL - gap
+	borderL = borderR - width11;	
+	ModifyGraph axisEnab(B4)={borderL,borderR}
+	ModifyGraph freePos(R4)={1-borderR,kwFraction}
+	ModifyGraph freePos(L4)={borderL,kwFraction}
+
+	borderR = borderL - gap
+	borderL = borderR - width9;	
+	ModifyGraph axisEnab(B5)={borderL,borderR}
+	ModifyGraph freePos(R5)={1-borderR,kwFraction}
+	ModifyGraph freePos(L5)={borderL,kwFraction}
+
+	borderR = borderL - gap
+	borderL = borderR - width9;	
+	ModifyGraph axisEnab(B6)={borderL,borderR}
+	ModifyGraph freePos(R6)={1-borderR,kwFraction}
+	ModifyGraph freePos(L6)={borderL,kwFraction}
+
+	borderR = borderL - gap
+	borderL = max(borderR - width11,0);	
+	ModifyGraph axisEnab(B7)={borderL,borderR}
+	ModifyGraph freePos(R7)={1-borderR,kwFraction}
+	ModifyGraph freePos(L7)={borderL,kwFraction}
+	
+	//SetAxis left 0,1.2
+	ModifyGraph tick=2, standoff=1, btLen=3, stLen=2 //change to standoff=0 to remove standoff
+	
+	//Change the number of ticks so the bottom axis is readable
+	ModifyGraph nticks(B2)=1,nticks(B3)=2,nticks(B4)=1,nticks(B5)=1,nticks(B6)=1,nticks(B7)=1
+		
+	//labels
+	Label B3 "Detuning (MHz)"
+	Label L7 "Normalized Atom Number"
+	
+	//Set size of graph
+	ModifyGraph width=500,height=100
+	
+	//Fix the labels around zero
+	ModifyGraph ZisZ(B0)=1,lowTrip(B0)=0.01
+	
+	//Add labels to leftmost vertical axis
+	ModifyGraph noLabel(L7)=0,lblPos(L7)=30
+	
+	//Position bottom label
+	ModifyGraph lblPos(B3)=30
+	
+	//Get rid of offset on the right of plot
+	ModifyGraph axOffset(R0)=-5
+	
+	//SavePICT/EF=2/E=-8 /O/WIN=$plotName /P=FigureFolder
 end
