@@ -24,6 +24,7 @@
 #include "LatticeDepth_Sr"
 #include "BoxTrapAnalysis"
 #include "PASanalysis"
+#include "ISatCalibration_Sr"
 
 //!
 //! @brief
@@ -48,6 +49,28 @@ Function tempEstimation88(w,t) : FitFunc
 	//CurveFitDialog/ w[1] = temp
 
 	return sqrt(w[0]^2 + (2e12/1.06e-2)*w[1]*t^2)
+End
+
+Function tempEstimation(w,t) : FitFunc
+	Wave w
+	Variable t
+
+	//CurveFitDialog/ These comments were created by the Curve Fitting dialog. Altering them will
+	//CurveFitDialog/ make the function less convenient to work with in the Curve Fitting dialog.
+	//CurveFitDialog/ Equation:
+	//CurveFitDialog/ f(t) = sqrt(s0^2 + (2e12/1.06e-2)*temp*t^2)
+	//CurveFitDialog/ End of Equation
+	//CurveFitDialog/ Independent Variables 1
+	//CurveFitDialog/ t
+	//CurveFitDialog/ Coefficients 3
+	//CurveFitDialog/ w[0] = s0 (um)
+	//CurveFitDialog/ w[1] = temp (K)
+	//CurveFitDialog/ w[2] = mass (amu)
+	
+	Variable M_amu = 1.66054e-27;
+	
+	//return sqrt(w[0]^2 + (2e12/1.06e-2)*w[1]*t^2)
+	return sqrt( w[0]^2 + (2*kB*w[1]/(w[2]*M_amu))*t^2*1e3)
 End
 
 //!

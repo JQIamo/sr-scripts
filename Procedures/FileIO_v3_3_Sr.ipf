@@ -274,6 +274,7 @@ Function Load_Img(ImageName,FileName)
 				// Most info in the header has spaces around " = "--> be sure to add space after variable name
 				IQuad = -8*NumberByKey_Safe(IQuad,"MOTcurrent ",wavenote, "=","\n");
 				expand_time = NumberByKey_Safe(expand_time,"TOF ",wavenote, "=","\n")*10^3;
+				//expand_time = NumberByKey_Safe(expand_time,"TOF",wavenote, "=","\n")*10^3;
 				// Dipole trap end depth defined by exponential ramp shape: A*e^(-tEnd/tau)
 				DipPowXi = NumberByKey_Safe(3, "DipPowX ",wavenote,"=","\n");
 				DipPowXf = NumberByKey_Safe(3, "DipPowX2 ",wavenote,"=","\n");
@@ -296,6 +297,7 @@ Function Load_Img(ImageName,FileName)
 				Timestamp = NumberByKey_Safe(0, "Timestamp", wavenote, "=", "\n");
 				//printf "frequency: %15.12g\r", WMfreq
 				detuning = (1/31.99)*NumberByKey_Safe(NaN,"ProbeDet ", wavenote, "=","\n"); //Sr linewidth from NIST spectral database
+				//detuning = (1/31.99)*NumberByKey_Safe(NaN,"ProbeDet", wavenote, "=","\n"); //Sr linewidth from NIST spectral database
 			break;
 		
 			case "RbYb":
@@ -465,8 +467,8 @@ Function Load_Img(ImageName,FileName)
 								if (x_pixels == 512)
 									//PIXIS is binning pixels
 									//ISatCounts = 14650;     //measurement on 6/30/2014 for Sr
-									//ISatCounts = 12851;     //measurement on 12/11/2015 for Sr for 2x2 bin, 10 us
-									ISatCounts = 10669.1 //measurement on 10/18/2016, binning PIXIS, 10 us exposure
+									ISatCounts = 12851;     //measurement on 12/11/2015 for Sr for 2x2 bin, 10 us
+									//ISatCounts = 10669.1 //measurement on 10/18/2016, binning PIXIS, 10 us exposure
 									
 									If(isotope==3)	//case Sr87
 										alphaIsat = 1.81 //!uncalibrated for pixel binning, using value from unbinned
@@ -702,7 +704,7 @@ Function Load_Img(ImageName,FileName)
 					//ImageHistogram/R=ROI_mask_byte Isat
 					
 					//Pixel by Pixel correction:
-					//ImageName = -(ln(ImageName))/Isat
+					ImageName = -(ln(ImageName))/Isat //Method based on Dan's lookup tables
 					//Average correction:
 					//ImageName = -(ln(ImageName))/V_avg
 					
@@ -711,7 +713,8 @@ Function Load_Img(ImageName,FileName)
 						NVAR alpha = :alphaIsat  //if yes, set alphaIsat to be the same as the indexed wave called alphaIsat
 						alphaIsat = alpha;
 					endif
-					ImageName = -alphaIsat*ln(ImageName)*(1+4*detuning^2) + (Raw2 - Raw1) / IsatCounts 
+					//Uncomment following line to ignore lookup tables and use calibrated alphaIsat method:
+					//ImageName = -alphaIsat*ln(ImageName)*(1+4*detuning^2) + (Raw2 - Raw1) / IsatCounts //Don't use this method currently since we haven't calibrated alphaIsat for Sr87
 					
 				elseif((isotope==1)||(isotope==2)||(isotope==4))	//case Sr88, Sr86, Sr84
 					
@@ -775,9 +778,9 @@ Function Load_Img(ImageName,FileName)
 			break;
 			
 			case "PIXIS": //PIXIS imaging
-				//RotAng = 22;
+				RotAng = 22;
 				//RotAng = 26.67;	//check by minimizing crosscorrelation term in 2D thermal fit on PIXIS (20)
-				RotAng = 53.2; //rotation angle to level the main dipole beam
+				//RotAng = 53.2; //rotation angle to level the main dipole beam
 				//RotAng = 6.7 //rotation angle to approximately level cross beam
 				//RotAng = 7.43;	// rotation angle to level box on pixis
 				//RotAng = 6.967 // rotation angle to level horizontal lattice on PIXIS
