@@ -611,3 +611,201 @@ End
 
 // -------------------------------------------------
 
+function BECMovieFormation(startNum,endNum,skipList)
+	Variable startNum, endNum;
+	String skipList;
+
+	//String ProjectFolder = Activate_Top_ColdAtomInfo();
+	SVAR ProjectFolder = root:Packages:ColdAtom:CurrentPath;
+	cd ProjectFolder
+	String currentTEvapStr;
+	NewDataFolder /O SavedImages
+	
+	//loop over images
+	Variable jj;
+	for (jj = startNum ; jj <= endNum; jj+=1) //loop over image numbers
+		if(WhichListItem(num2str(jj),skipList,";",0,1)==-1) //only load images not in skipList
+			BatchRun(-1,jj,0,"")
+			
+			//save optdepth 2D wave
+			NVAR currentTEvap =:tEvap1
+			currentTevap = 10*currentTevap;
+			currentTEvapStr = num2str(currentTEvap)
+			Duplicate :optdepth $(":SavedImages:optdepth" + currentTEvapStr)
+			
+			//save cross sections:
+			Duplicate :Fit_Info:xsec_col $(":SavedImages:xsec_col" + currentTEvapStr)
+			Duplicate :Fit_Info:fit_xsec_col $(":SavedImages:fit_xsec_col" + currentTEvapStr)
+			Duplicate :Fit_Info:xsec_row $(":SavedImages:xsec_row" + currentTEvapStr)
+			Duplicate :Fit_Info:fit_xsec_row $(":SavedImages:fit_xsec_row" + currentTEvapStr)
+			
+			//save cross section residuals
+			Duplicate :Fit_Info:res_xsec_col $(":SavedImages:res_xsec_col" + currentTEvapStr)
+			Duplicate :Fit_Info:res_xsec_row $(":SavedImages:res_xsec_row" + currentTEvapStr)
+		endif
+	endfor	
+
+end
+
+Function plotOptdepth(optdepth)
+	Wave optdepth
+	String wvName = NameOfWave(optdepth)
+	//NewImage optdepth
+	PauseUpdate; Silent 1		// building window...
+	Display /W=(495.75,48.5,687,179)
+	AppendImage optdepth
+	ModifyImage $(wvName) ctab= {-0.1,3.5,Geo,0}
+	ModifyGraph margin(left)=40,margin(bottom)=28,margin(top)=3,margin(right)=52,gFont="Times New Roman"
+	ModifyGraph gfSize=10,gmSize=2,width=100,height={Aspect,1}
+	ModifyGraph mirror=2
+	ModifyGraph lblMargin=1
+	ModifyGraph standoff=0
+	ModifyGraph lblPosMode=1
+	ModifyGraph axisOnTop=1
+	ModifyGraph btLen=4
+	ModifyGraph btThick=1
+	ModifyGraph stLen=2
+	ModifyGraph stThick=1
+	ModifyGraph tlOffset(bottom)=-3
+	//ModifyGraph manTick(left)={-775,200,0,0},manMinor(left)={3,0}
+	//ModifyGraph manTick(bottom)={-550,250,0,0},manMinor(bottom)={4,0}
+	Label left "\\f02z\\f00 (\\F'Symbol'm\\F'Times New Roman'm)"
+	Label bottom "\\f02x\\f00 (\\F'Symbol'm\\F'Times New Roman'm)"
+	SetAxis left -500,500
+	SetAxis bottom -500,500
+	ColorScale/C/N=OD/F=0/H={2,0,5}/A=LT/X=101.00/Y=-6.00 image=$(wvName), height=99
+	ColorScale/C/N=OD width=12, tickLen=3, nticks=3//, font="Times New Roman"//, fsize=10
+	ColorScale/C/N=OD lblMargin=0
+	AppendText "Optical Depth"
+end
+
+function plotXsecs(num)
+	Variable num
+	
+	Wave xsec_col = $(":SavedImages:xsec_col" + num2str(num))
+	Wave fit_xsec_col = $(":SavedImages:xsec_col" + num2str(num))
+	Wave xsec_row = $(":SavedImages:xsec_row" + num2str(num))
+	Wave fit_xsec_row = $(":SavedImages:xsec_row" + num2str(num))
+	
+	Display /W=(285.75,251,516.75,453.5) xsec_col
+	AppendToGraph/T xsec_row
+	
+	SetAxis left -0.2,3.5
+	SetAxis bottom -250,350
+	SetAxis top -300,300
+	ModifyGraph margin(left)=31,margin(bottom)=26,margin(top)=26,margin(right)=11,gFont="Times New Roman"
+	ModifyGraph gfSize=10,gmSize=2,width=190,height={Aspect,0.8}
+	ModifyGraph rgb($(NameofWave(xsec_col)))=(27756,34438,50372),rgb($(NameofWave(xsec_row)))=(53199,24929,16705)
+	ModifyGraph mode($(NameofWave(xsec_col)))=3,marker($(NameofWave(xsec_col)))=16, msize($(NameofWave(xsec_col)))=1
+	ModifyGraph mode($(NameofWave(xsec_row)))=3,marker($(NameofWave(xsec_row)))=16, msize($(NameofWave(xsec_row)))=1
+	ModifyGraph tick(left)=2,mirror(left)=1,minor(left)=1,standoff(left)=0
+	ModifyGraph tick(bottom)=2,minor(bottom)=1,standoff(bottom)=0
+	ModifyGraph tick(top)=2,minor(top)=1,standoff(top)=0
+	Label left "Optical Depth"
+	Label bottom "\\f02z\\f00 (\\F'Symbol'm\\F'Times New Roman'm)"
+	Label top "\\f02x\\f00 (\\F'Symbol'm\\F'Times New Roman'm)"
+	
+	//ModifyGraph mode($(NameOfWave(xsec_col)))=2,mode($(NameofWave(xsec_row)))=2
+	//ModifyGraph lSize($(NameofWave(xsec_col)))=2,lSize($(NameofWave(xsec_row)))=2
+	
+//	PauseUpdate; Silent 1		// building window...
+//	Display /W=(285.75,251,516.75,453.5) xsec_col//,fit_xsec_col
+//	AppendToGraph/T xsec_row//,fit_xsec_row
+//	//AppendToGraph/L=Lres/T res_xsec_row
+//	//AppendToGraph/L=Lres res_xsec_col
+//	//SetDataFolder fldrSav0
+//	ModifyGraph margin(left)=31,margin(bottom)=26,margin(top)=26,margin(right)=11,gFont="Times New Roman"
+//	ModifyGraph gfSize=10,gmSize=2,width=190,height={Aspect,0.8}
+//	ModifyGraph mode($(NameOfWave(xsec_col)))=2,mode($(NameofWave(xsec_row)))=2
+
+//	//ModifyGraph lSize($(NameofWave(xsec_col)))=2,lSize($(NameofWave(fit_xsec_col)))=1.25,lSize($(NameofWave(xsec_row)))=2,lSize($(NameofWave(fit_xsec_row)))=1.25
+//	//ModifyGraph lSize(res_xsec_row)=2,lSize(res_xsec_col)=2
+//	//ModifyGraph rgb($(NameofWave(xsec_col)))=(27756,34438,50372),rgb($(NameofWave(fit_xsec_col)))=(0,0,0),rgb($(NameofWave(xsec_row)))=(53199,24929,16705)
+//	//ModifyGraph rgb($(NameofWave(fit_xsec_row)))=(0,0,0)//,rgb(res_xsec_row)=(53199,24929,16705),rgb(res_xsec_col)=(27756,34438,50372)
+//	ModifyGraph tick=2
+//	ModifyGraph zero(Lres)=4
+//	ModifyGraph mirror(left)=1,mirror(Lres)=1
+//	ModifyGraph lblMargin(left)=1,lblMargin(bottom)=1,lblMargin(Lres)=1
+//	ModifyGraph standoff=0
+//	ModifyGraph zeroThick(left)=0.5,zeroThick(bottom)=0.5,zeroThick(top)=0.5,zeroThick(Lres)=1
+//	ModifyGraph lblPosMode=1
+//	ModifyGraph lblPos(left)=35
+//	ModifyGraph axisOnTop=1
+//	ModifyGraph btLen=4
+//	ModifyGraph btThick=1
+//	ModifyGraph stLen=2
+//	ModifyGraph stThick=1
+//	ModifyGraph ttThick=0.5
+//	ModifyGraph ftThick=0.5
+//	ModifyGraph tlOffset(top)=1
+//	ModifyGraph freePos(Lres)=0
+//	ModifyGraph axisEnab(left)={0.28,1}
+//	ModifyGraph axisEnab(Lres)={0,0.22}
+//	ModifyGraph manTick(left)={0,1,0,1},manMinor(left)={3,0}
+//	ModifyGraph manTick(bottom)={-750,100,0,0},manMinor(bottom)={3,0}
+//	ModifyGraph manTick(top)={-550,100,0,0},manMinor(top)={3,0}
+//	ModifyGraph manTick(Lres)={0,1,0,1},manMinor(Lres)={3,0}
+//	Label left "Optical Depth"
+//	Label bottom "\\f02z\\f00 (\\F'Symbol'm\\F'Times New Roman'm)"
+//	Label top "\\f02x\\f00 (\\F'Symbol'm\\F'Times New Roman'm)"
+//	Label Lres "Fit Res."
+//	SetAxis left -0.2,3.5
+//	SetAxis bottom -500,500
+//	SetAxis top -500,500
+//	SetAxis Lres -1,1
+end
+
+function plotallImages()
+	Variable i;
+	String wvName;
+	For(i=1; i < 34 ; i+=1)
+		wvName = ":SavedImages:optdepth" + num2str(i)
+		plotOptdepth($(wvName))
+	endFor
+end
+
+Function makeBECMovie()
+	Duplicate /O :SavedImages:optDepth1 movieWave
+	
+	Display /W=(495.75,48.5,687,179) /N=MovieGraph
+	AppendImage movieWave
+	ModifyImage movieWave ctab= {-0.1,3.5,Geo,0}
+	ModifyGraph margin(left)=50,margin(bottom)=40,margin(top)=3,margin(right)=70,gFont="Times New Roman"
+	ModifyGraph gfSize=16,gmSize=2,width=400,height={Aspect,1}
+	ModifyGraph mirror=2
+	ModifyGraph lblMargin=1
+	ModifyGraph standoff=0
+	ModifyGraph lblPosMode=1
+	ModifyGraph axisOnTop=1
+	ModifyGraph btLen=4
+	ModifyGraph btThick=1
+	ModifyGraph stLen=2
+	ModifyGraph stThick=1
+	ModifyGraph tlOffset(bottom)=-3
+	//ModifyGraph manTick(left)={-775,200,0,0},manMinor(left)={3,0}
+	//ModifyGraph manTick(bottom)={-550,250,0,0},manMinor(bottom)={4,0}
+	Label left "\\f02z\\f00 (\\F'Symbol'm\\F'Times New Roman'm)"
+	Label bottom "\\f02x\\f00 (\\F'Symbol'm\\F'Times New Roman'm)"
+	SetAxis left -500,500
+	SetAxis bottom -500,500
+	ColorScale/C/N=OD/F=0/H={2,0,5}/A=LT/X=102.00/Y=-1.50 image=movieWave, height=398
+	ColorScale/C/N=OD width=12, tickLen=5, nticks=3//, font="Times New Roman"//, fsize=10
+	ColorScale/C/N=OD lblMargin=0
+	AppendText "Optical Depth"
+	
+	String movieName = "BEC_formation.avi"
+	NewMovie /F=10/L/O as movieName
+	
+	Variable i;
+	String wvName;
+	For(i=1; i < 34 ; i+=1)
+		wvName = ":SavedImages:optdepth" + num2str(i)
+		Duplicate /O $(wvName) movieWave
+		DoUpdate
+		AddMovieFrame
+	endFor
+	
+	CloseMovie
+	Killwindow MovieGraph
+	Killwaves movieWave
+end
